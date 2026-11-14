@@ -1427,6 +1427,71 @@
 						"sched_app#clients_assign_own_clinical"
 					],
 					"effect": "write"
+				},
+				{
+					"key": "clients_invite",
+					"name": {
+						"ro": "Clienți: invită în contul online",
+						"en": "Clients: invite to the online account"
+					},
+					"grants": [
+						"sched_app#clients_invite_all",
+						"sched_app#clients_invite_assigned",
+						"sched_app#clients_invite_own"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_invite_contact",
+					"name": {
+						"ro": "Clienți: invită în contul online (contact)",
+						"en": "Clients: invite to the online account (contact)"
+					},
+					"grants": [
+						"sched_app#clients_invite_all_contact",
+						"sched_app#clients_invite_assigned_contact",
+						"sched_app#clients_invite_own_contact"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_invite_guardian",
+					"name": {
+						"ro": "Clienți: invită în contul online (aparținător)",
+						"en": "Clients: invite to the online account (guardian)"
+					},
+					"grants": [
+						"sched_app#clients_invite_all_guardian",
+						"sched_app#clients_invite_assigned_guardian",
+						"sched_app#clients_invite_own_guardian"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_invite_money",
+					"name": {
+						"ro": "Clienți: invită în contul online (sume)",
+						"en": "Clients: invite to the online account (money)"
+					},
+					"grants": [
+						"sched_app#clients_invite_all_money",
+						"sched_app#clients_invite_assigned_money",
+						"sched_app#clients_invite_own_money"
+					],
+					"effect": "write"
+				},
+				{
+					"key": "clients_invite_clinical",
+					"name": {
+						"ro": "Clienți: invită în contul online (clinic)",
+						"en": "Clients: invite to the online account (clinical)"
+					},
+					"grants": [
+						"sched_app#clients_invite_all_clinical",
+						"sched_app#clients_invite_assigned_clinical",
+						"sched_app#clients_invite_own_clinical"
+					],
+					"effect": "write"
 				}
 			]
 		},
@@ -3681,6 +3746,66 @@
 					"from": ["[user, sched_role#member]"]
 				},
 				{
+					"name": "clients_invite_all",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_invite_assigned",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_invite_own",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_invite_all_contact",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_invite_assigned_contact",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_invite_own_contact",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_invite_all_guardian",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_invite_assigned_guardian",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_invite_own_guardian",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_invite_all_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_invite_assigned_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_invite_own_money",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_invite_all_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_invite_assigned_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
+					"name": "clients_invite_own_clinical",
+					"from": ["[user, sched_role#member]"]
+				},
+				{
 					"name": "report_aba_view_all",
 					"from": ["[user, sched_role#member]"]
 				},
@@ -4784,6 +4909,46 @@
 						"clients_assign_all_clinical from app",
 						"(clients_assign_assigned_clinical from app and reach_assigned)",
 						"(clients_assign_own_clinical from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_invite",
+					"from": [
+						"clients_invite_all from app",
+						"(clients_invite_assigned from app and reach_assigned)",
+						"(clients_invite_own from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_invite_contact",
+					"from": [
+						"clients_invite_all_contact from app",
+						"(clients_invite_assigned_contact from app and reach_assigned)",
+						"(clients_invite_own_contact from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_invite_guardian",
+					"from": [
+						"clients_invite_all_guardian from app",
+						"(clients_invite_assigned_guardian from app and reach_assigned)",
+						"(clients_invite_own_guardian from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_invite_money",
+					"from": [
+						"clients_invite_all_money from app",
+						"(clients_invite_assigned_money from app and reach_assigned)",
+						"(clients_invite_own_money from app and reach_own)"
+					]
+				},
+				{
+					"name": "clients_invite_clinical",
+					"from": [
+						"clients_invite_all_clinical from app",
+						"(clients_invite_assigned_clinical from app and reach_assigned)",
+						"(clients_invite_own_clinical from app and reach_own)"
 					]
 				},
 				{

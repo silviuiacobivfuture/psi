@@ -47492,6 +47492,2676 @@ tests:
         object: sched_app:closure
         assertions:
           clients_assign_own_clinical: false
+  - name: sched_app#clients_invite_all is conferred by exactly []
+    check:
+      - user: user:c_platform_administrator
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_auditor
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_break_glass_opener
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_changelog_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_grantor
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_model_releaser
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_org_eraser
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_org_restorer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_program_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_role_cms_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_role_cms_editor
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_role_cms_publisher
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_role_cms_reader
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_role_cms_site_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_role_hemisync_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_role_psizone_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_role_sched_app_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+  - name: sched_app#clients_invite_assigned is conferred by exactly []
+    check:
+      - user: user:c_platform_administrator
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_auditor
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_break_glass_opener
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_changelog_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_grantor
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_model_releaser
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_org_eraser
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_org_restorer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_program_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_role_cms_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_role_cms_editor
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_role_cms_publisher
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_role_cms_reader
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_role_cms_site_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_role_hemisync_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_role_psizone_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+      - user: user:c_platform_role_sched_app_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
+  - name: sched_app#clients_invite_own is conferred by exactly []
+    check:
+      - user: user:c_platform_administrator
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_auditor
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_break_glass_opener
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_changelog_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_grantor
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_model_releaser
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_org_eraser
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_org_restorer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_program_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_role_cms_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_role_cms_editor
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_role_cms_publisher
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_role_cms_reader
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_role_cms_site_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_role_hemisync_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_role_psizone_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_role_sched_app_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+  - name: sched_app#clients_invite_all_contact is conferred by exactly []
+    check:
+      - user: user:c_platform_administrator
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_auditor
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_break_glass_opener
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_changelog_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_grantor
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_model_releaser
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_org_eraser
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_org_restorer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_program_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_role_cms_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_role_cms_editor
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_role_cms_publisher
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_role_cms_reader
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_role_cms_site_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_role_hemisync_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_role_psizone_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+      - user: user:c_platform_role_sched_app_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
+  - name: sched_app#clients_invite_assigned_contact is conferred by exactly []
+    check:
+      - user: user:c_platform_administrator
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_auditor
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_break_glass_opener
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_changelog_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_grantor
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_model_releaser
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_org_eraser
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_org_restorer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_program_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_role_cms_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_role_cms_editor
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_role_cms_publisher
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_role_cms_reader
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_role_cms_site_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_role_hemisync_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_role_psizone_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_role_sched_app_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+  - name: sched_app#clients_invite_own_contact is conferred by exactly []
+    check:
+      - user: user:c_platform_administrator
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_auditor
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_break_glass_opener
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_changelog_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_grantor
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_model_releaser
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_org_eraser
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_org_restorer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_program_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_role_cms_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_role_cms_editor
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_role_cms_publisher
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_role_cms_reader
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_role_cms_site_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_role_hemisync_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_role_psizone_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+      - user: user:c_platform_role_sched_app_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
+  - name: sched_app#clients_invite_all_guardian is conferred by exactly []
+    check:
+      - user: user:c_platform_administrator
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_auditor
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_break_glass_opener
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_changelog_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_grantor
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_model_releaser
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_org_eraser
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_org_restorer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_program_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_role_cms_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_role_cms_editor
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_role_cms_publisher
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_role_cms_reader
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_role_cms_site_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_role_hemisync_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_role_psizone_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_role_sched_app_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+  - name: sched_app#clients_invite_assigned_guardian is conferred by exactly []
+    check:
+      - user: user:c_platform_administrator
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_auditor
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_break_glass_opener
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_changelog_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_grantor
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_model_releaser
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_org_eraser
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_org_restorer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_program_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_role_cms_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_role_cms_editor
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_role_cms_publisher
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_role_cms_reader
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_role_cms_site_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_role_hemisync_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_role_psizone_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+      - user: user:c_platform_role_sched_app_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
+  - name: sched_app#clients_invite_own_guardian is conferred by exactly []
+    check:
+      - user: user:c_platform_administrator
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_auditor
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_break_glass_opener
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_changelog_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_grantor
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_model_releaser
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_org_eraser
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_org_restorer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_program_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_role_cms_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_role_cms_editor
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_role_cms_publisher
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_role_cms_reader
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_role_cms_site_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_role_hemisync_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_role_psizone_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_role_sched_app_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+  - name: sched_app#clients_invite_all_money is conferred by exactly []
+    check:
+      - user: user:c_platform_administrator
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_auditor
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_break_glass_opener
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_changelog_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_grantor
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_model_releaser
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_org_eraser
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_org_restorer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_program_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_role_cms_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_role_cms_editor
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_role_cms_publisher
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_role_cms_reader
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_role_cms_site_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_role_hemisync_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_role_psizone_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+      - user: user:c_platform_role_sched_app_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
+  - name: sched_app#clients_invite_assigned_money is conferred by exactly []
+    check:
+      - user: user:c_platform_administrator
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_auditor
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_break_glass_opener
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_changelog_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_grantor
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_model_releaser
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_org_eraser
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_org_restorer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_program_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_role_cms_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_role_cms_editor
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_role_cms_publisher
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_role_cms_reader
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_role_cms_site_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_role_hemisync_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_role_psizone_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_role_sched_app_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+  - name: sched_app#clients_invite_own_money is conferred by exactly []
+    check:
+      - user: user:c_platform_administrator
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_auditor
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_break_glass_opener
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_changelog_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_grantor
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_model_releaser
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_org_eraser
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_org_restorer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_program_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_role_cms_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_role_cms_editor
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_role_cms_publisher
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_role_cms_reader
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_role_cms_site_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_role_hemisync_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_role_psizone_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+      - user: user:c_platform_role_sched_app_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
+  - name: sched_app#clients_invite_all_clinical is conferred by exactly []
+    check:
+      - user: user:c_platform_administrator
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_auditor
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_break_glass_opener
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_changelog_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_grantor
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_model_releaser
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_org_eraser
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_org_restorer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_program_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_role_cms_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_role_cms_editor
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_role_cms_publisher
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_role_cms_reader
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_role_cms_site_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_role_hemisync_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_role_psizone_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_role_sched_app_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+  - name: sched_app#clients_invite_assigned_clinical is conferred by exactly []
+    check:
+      - user: user:c_platform_administrator
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_auditor
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_break_glass_opener
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_changelog_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_grantor
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_model_releaser
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_org_eraser
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_org_restorer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_program_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_role_cms_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_role_cms_editor
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_role_cms_publisher
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_role_cms_reader
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_role_cms_site_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_role_hemisync_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_role_psizone_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+      - user: user:c_platform_role_sched_app_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
+  - name: sched_app#clients_invite_own_clinical is conferred by exactly []
+    check:
+      - user: user:c_platform_administrator
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_auditor
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_break_glass_opener
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_changelog_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_grantor
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_model_releaser
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_org_eraser
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_org_restorer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_program_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_role_cms_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_role_cms_editor
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_role_cms_publisher
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_role_cms_reader
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_role_cms_site_manager
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_role_hemisync_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_role_psizone_reception
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_role_sched_app_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
   - name: sched_app#report_aba_view_all is conferred by exactly []
     check:
       - user: user:c_platform_administrator

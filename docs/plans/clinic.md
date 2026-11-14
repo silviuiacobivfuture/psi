@@ -294,3 +294,54 @@ The console has three kinds of settings, each in its own place and gated on its 
 
 "Plan cabinete" (the live occupancy) is a daily screen and stays in the main navigation. `/admin` leads to `/settings`,
 `/audit` to `/settings/audit`, `/settings/notifications` to `/me/settings`.
+
+## 12. Online accounts and notifications (2026-11-13)
+
+Owner: "transform a customer into a registered user from the panel" and "Novu integrated for notifications via e-mail and
+push for customers and operators of all kinds, with notifications specific to what they need."
+
+**Customer to registered user.** `clients_invite` (reception, admin, owner) on the client page: pick the client's or the
+guardian's e-mail (the person must be allowed to read that contact), preview the e-mail as it will go, send. The service
+finds the address in Authentik or creates the user in the customers group (never resets an existing account), links the
+account to the client, and Novu sends the branded RO/EN e-mail. Its button leads to `/v1/public/invites/<token>`: a page
+with one button (a mail scanner opening it changes nothing) that sends the person to set a password, or, for an account that
+existed, to the site's sign-in. The link works a week, stops when withdrawn or replaced by a resend, and is not single use.
+Status on the client: invitat, activ (the sign-in provider says the account signed in after the invitation, asked every five
+minutes, and at once when a site calls the account routes), expirat (derived from the date, no job), retras. Withdrawing never touches the sign-in account. "Programările mele" (`visitor.mine`) now also
+lists the clinic's own appointments of every client the account was invited for (a guardian's account covers each child) and
+lets the person cancel an upcoming one. Until the sites move to the SDK (slice 6) the sites' own account page still reads
+Convex directly and does not show them.
+
+**Catalogue.** Every event is for one audience and has RO/EN templates; routing is by permission (`needs` in the entry),
+resolved to people at send time, never a Novu topic, the person who did it left out. A person's choices (channel by kind,
+quiet hours, language) are `GET/PUT /v1/apps/:app/me/notifications` (and `/me/account/notifications` for a registered
+customer); the preferences page lists what each kind offers and which channels are locked (an invitation or a booking's
+e-mail, the owners' security notice). Scheduled ones run in the API (`engagement/scheduler.ts`, every minute, each thing
+claimed once across replicas): reminders 24 h and 2 h, the desk's list 07:30, the therapists' tomorrow 19:00, the owners'
+day 20:00 and week on Monday 08:00 (the clinic's own wall clock, so summer time moves nothing), the report waiting, the
+feedback request, conflicts (two sessions at once, or a session on a day the therapist does not work). Every step of a
+delivery is logged (`GET /v1/apps/:app/notifications/deliveries`): Novu's open-source server reports no delivery webhooks,
+so the ladder ends at "Novu accepted it". A message given up on tells the owners once; that notice cannot loop.
+
+**No clinical content.** A payload is a closed list of fields (`catalogue/payloads.ts`); a field not named there is dropped
+before anything is queued. A service name is treated as a booking label, not clinical (an appointment e-mail to its own
+client already prints it); diagnoses, notes, reports, files, questionnaires and the staff-only blacklist reason never are
+fields. Push says only "you have a new notification".
+
+**Deploy.** Novu: the estate's one bridge serves `@psi/notify`'s workflows; after a release that changes the catalogue the
+estate runs `novu-bootstrap.sh <env>` (SEB) to sync, and `pnpm --filter @psi/notify workflows:check` (env `NOVU_API_URL`,
+`NOVU_SECRET_KEY`) says what is missing. Plunk: the integration `plunk-<app>` per sender (`psizone`, `hemisync`), declared in
+`gitops/services/plunk/senders/`. Push: VAPID pair at `secret/apps/pwa/vapid`; the push webhook integration's HMAC key is `NOVU_PUSH_SECRET` of each app that receives it. Only
+the console mounts `/__pwa/novu` today: customers' push (their devices on `psizone:client:<id>`) needs the sites to mount the
+hook and sync devices (not done), so for customers e-mail is what arrives. The senders `psizone` and `hemisync` are not yet
+declared in `gitops/services/plunk/senders/` (genesis's): until they are, every e-mail step fails in Novu. The bridge rebuild
+and the sync must come BEFORE the API rolls out (an unsynced workflow is refused and given up). The sign-in: `secret/apps/scheduling-api/sso` (`AUTHENTIK_URL`,
+`AUTHENTIK_API_TOKEN`), optional. The permission catalogue gained `clients_invite`: the OpenFGA model must be re-released and
+`OPENFGA_MODEL_ID` re-pinned; roles that already exist gain the new key only when an owner adds it in the console.
+
+**Decisions taken for you (change any):** a client with no e-mail is not mailed (reception is told, to reach them another
+way); the day-before reminder is skipped for a booking made less than 26 h ahead; the 2-hour nudge is a push by default and
+its e-mail is off until chosen; new requests default to the bell, push and e-mail; appointment changes and conflicts to the bell and push (a
+confirmation to the bell only); the lists to the bell and e-mail; the owners' numbers to e-mail; the feedback e-mail is switched off for an app until its site has the page that opens the link
+(`off` in the app's notification settings); revoking an invitation leaves the sign-in account as it was.
+

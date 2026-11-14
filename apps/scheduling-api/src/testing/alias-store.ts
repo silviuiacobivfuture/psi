@@ -108,6 +108,7 @@ export function aliasApps(inner: StorePort, aliases: Readonly<Record<string, str
 			replace: (app, rows) => inner.series.replace(to(app), rows.map(rowIn)),
 			list: async (app, seriesId) => (await inner.series.list(to(app), seriesId)).map(rowOut),
 		},
+		keyed: forApp(inner.keyed, to),
 		ping: () => inner.ping(),
 	};
 }

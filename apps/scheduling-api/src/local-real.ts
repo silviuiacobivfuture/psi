@@ -68,6 +68,7 @@ const config: Config = {
 	mail: undefined,
 	objects,
 	notify: undefined,
+	sso: undefined,
 	callerHashes: new Map([["psizone-web", hashSecret("dev-psizone-web")]]),
 };
 // The convex store is built by buildDeps; the memory authorization and its access check are ours.

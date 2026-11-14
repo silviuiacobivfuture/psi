@@ -79,6 +79,7 @@ export function routeOf(
 			case "appointment.cancelled":
 				return CLIENT("booking.cancelled", "high");
 			case "reminder.day_before":
+			case "reminder.two_hours":
 				return CLIENT("booking.reminder", "normal");
 			default:
 				return undefined;
@@ -93,7 +94,12 @@ export function routeOf(
 		case "appointment.confirmed":
 		case "appointment.moved":
 		case "appointment.cancelled":
-			return audience === "practitioner" ? STAFF.appointment : undefined;
+			return audience === "practitioner" || audience === "reception"
+				? STAFF.appointment
+				: undefined;
+		case "appointment.conflict":
+		case "schedule.changed":
+			return STAFF.appointment;
 		case "reminder.confirmed":
 		case "reminder.declined":
 			return audience === "reception" ? STAFF.reminder : undefined;

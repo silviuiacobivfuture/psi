@@ -164,13 +164,7 @@ export const appHandlers: HandlersOf<
 		const { id, name, timeZone, ownerSubject } = ctx.body;
 		if (await ctx.deps.store.c.apps.get(id, id)) throw fail("conflict", "the app exists");
 		const made = await provisionApp(ctx.deps, { id, name, timeZone, ownerSubject });
-		await syncMember(
-			ctx,
-			id,
-			ownerSubject,
-			undefined,
-			await ctx.deps.store.c.members.get(id, ownerSubject),
-		);
+		await syncMember(ctx, id, ownerSubject, await ctx.deps.store.c.members.get(id, ownerSubject));
 		return made;
 	},
 
@@ -261,7 +255,7 @@ export const appHandlers: HandlersOf<
 			},
 			tuples: () => change,
 		});
-		await syncMember(ctx, ctx.app, subject, held, next);
+		await syncMember(ctx, ctx.app, subject, next);
 		ctx.note({ roles: next.roles, created: held === undefined });
 		return {
 			subject,
@@ -284,7 +278,7 @@ export const appHandlers: HandlersOf<
 				await ctx.deps.store.c.members.remove(ctx.app, subject);
 			},
 		});
-		await syncMember(ctx, ctx.app, subject, held, undefined);
+		await syncMember(ctx, ctx.app, subject, undefined);
 		return { ok: true as const };
 	},
 

@@ -324,6 +324,7 @@ export const ACTIONS = [
 	"assign",
 	"price",
 	"pin",
+	"invite",
 ] as const;
 export const SCOPES = ["all", "assigned", "own"] as const;
 export const FIELD_GROUPS = ["contact", "guardian", "money", "clinical"] as const;
@@ -335,7 +336,7 @@ export const RESOURCE_ACTIONS: Readonly<
 	appointments: ["view", "create", "edit", "cancel", "assign", "export"],
 	calendars: ["view", "edit", "assign"],
 	groups: ["view", "create", "edit", "cancel"],
-	clients: ["view", "create", "edit", "archive", "cancel", "export"],
+	clients: ["view", "create", "edit", "archive", "cancel", "export", "invite"],
 	clinical: ["view", "create", "edit", "export"],
 	files: ["view", "create", "cancel", "export"],
 	blacklist: ["view", "create", "edit", "cancel", "approve"],
@@ -401,3 +402,43 @@ export const PushPrefsSchema = z.object({
 	reminders: z.boolean(),
 });
 export type PushPrefs = z.infer<typeof PushPrefsSchema>;
+
+/** Where a client stands with the online account: the service's words, `expired` being what a lapsed `invited` reads as. */
+export const InviteStatusSchema = z.enum(["invited", "active", "expired", "revoked"]);
+export type InviteStatus = z.infer<typeof InviteStatusSchema>;
+export const InviteContactSchema = z.enum(["client", "guardian"]);
+export type InviteContact = z.infer<typeof InviteContactSchema>;
+export const InviteLocaleSchema = z.enum(["ro", "en"]);
+
+export const InviteSchema = z.object({
+	status: InviteStatusSchema,
+	contact: InviteContactSchema,
+	/** The address with its middle hidden (`a***@gmail.com`). */
+	sentTo: z.string(),
+	locale: InviteLocaleSchema,
+	/** UTC milliseconds. */
+	invitedAt: z.number(),
+	expiresAt: z.number(),
+	sends: z.number().int().positive(),
+	activatedAt: z.number().optional(),
+	/** The address already had an online account, so nobody was asked to set a password. */
+	existingAccount: z.boolean(),
+});
+export type Invite = z.infer<typeof InviteSchema>;
+
+export const InvitePickSchema = z.object({
+	contact: InviteContactSchema,
+	locale: InviteLocaleSchema,
+});
+export type InvitePick = z.infer<typeof InvitePickSchema>;
+
+/** The e-mail as it would go, with a placeholder where the one-time link will be. */
+export const InvitePreviewSchema = z.object({
+	to: z.string(),
+	subject: z.string(),
+	html: z.string(),
+	text: z.string(),
+	expiresAt: z.number(),
+	existingAccount: z.boolean(),
+});
+export type InvitePreview = z.infer<typeof InvitePreviewSchema>;

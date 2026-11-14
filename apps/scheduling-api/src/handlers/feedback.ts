@@ -7,6 +7,9 @@ import { StoreRefused } from "../store/types";
 
 type C = Ctx<RouteSpec>;
 
+/** A rating this low or lower tells the owners. */
+const LOW_RATING = 2;
+
 /** The field groups the caller holds on feedback: `core` (rating, text, replies) and `contact` (who wrote it). */
 async function groupsOf(ctx: C): Promise<FeedbackGroups> {
 	const held: ("core" | "contact")[] = [];
@@ -73,6 +76,14 @@ export const feedbackHandlers: HandlersOf<
 				...(textSealed === undefined ? {} : { textSealed }),
 			}),
 		);
+		// A low rating is for the people who answer to the clinic, at once; what was written is for them to read in the console.
+		if (rest.rating !== undefined && rest.rating <= LOW_RATING)
+			await ctx.notify(
+				"feedback.negative",
+				{ kind: "team", permission: "feedback_view" },
+				{ feedbackId: id, rating: rest.rating },
+				id,
+			);
 		return { id };
 	},
 

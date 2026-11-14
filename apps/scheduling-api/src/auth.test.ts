@@ -182,6 +182,48 @@ describe("configuration", () => {
 		expect(() => loadConfig({ ...base, ...extra })).toThrow(/NOVU|REMINDER/);
 	});
 
+	it("the sign-in's settings are optional as a set: none means no invitations, and nothing else changes", () => {
+		expect(loadConfig(prod).sso).toBeUndefined();
+		expect(loadConfig(base).sso).toBeUndefined();
+	});
+
+	it("a complete sign-in set is carried through, with the customers group and the subject mode defaulted", () => {
+		expect(
+			loadConfig({
+				...prod,
+				AUTHENTIK_URL: "https://auth.psizone.ro/",
+				AUTHENTIK_API_TOKEN: "api-token",
+			}).sso,
+		).toEqual({
+			url: "https://auth.psizone.ro",
+			token: "api-token",
+			customersGroup: "customers",
+			subMode: "hashed_user_id",
+		});
+		expect(
+			loadConfig({
+				...prod,
+				AUTHENTIK_URL: "https://auth.psizone.ro",
+				AUTHENTIK_API_TOKEN: "t",
+				AUTHENTIK_CUSTOMERS_GROUP: "clients",
+				AUTHENTIK_SUB_MODE: "user_email",
+			}).sso,
+		).toMatchObject({ customersGroup: "clients", subMode: "user_email" });
+	});
+
+	it.each([
+		["an address alone", { AUTHENTIK_URL: "https://auth.psizone.ro" }],
+		["a token alone", { AUTHENTIK_API_TOKEN: "t" }],
+		["an address that is not a URL", { AUTHENTIK_URL: "auth", AUTHENTIK_API_TOKEN: "t" }],
+		[
+			"a subject mode we do not know",
+			{ AUTHENTIK_URL: "https://a.test", AUTHENTIK_API_TOKEN: "t", AUTHENTIK_SUB_MODE: "uuid" },
+		],
+	])("half a sign-in set, or a malformed one (%s), is refused, even outside production", (_what, extra) => {
+		expect(() => loadConfig({ ...base, ...extra })).toThrow(/AUTHENTIK/);
+		expect(() => loadConfig({ ...prod, ...extra })).toThrow(/AUTHENTIK/);
+	});
+
 	it("the error names the variable and never echoes a value", () => {
 		try {
 			loadConfig({ ...prod, CLINIC_MASTER_KEY: "very-secret-but-wrong" });

@@ -64,6 +64,13 @@ export const BY_API: Readonly<Record<string, Mapping>> = {
 	"client.assign": rec("client.practitioner_change", "client"),
 	"client.archive": rec("client.archive", "client"),
 	"client.restore": rec("client.unarchive", "client"),
+	// The closed log has no word for an online-account invitation; the API's own action travels as a field name.
+	"client.invite": own("client.update", "client"),
+	"client.invite_resend": own("client.update", "client"),
+	"client.invite_revoke": own("client.update", "client"),
+	"client.invite_activated": own("client.update", "client"),
+	"notifications.prefs": own("member.change", "member"),
+	"visitor.notifications": own("builder.change", "builder"),
 	"client.delete": rec("client.delete", "client"),
 	"appointment.create": rec("visit.create", "visit"),
 	"appointment.update": rec("visit.update", "visit"),

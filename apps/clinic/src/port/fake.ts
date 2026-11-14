@@ -6,6 +6,7 @@ import { createFakeAccess } from "./fake-caps";
 import { activeServices, calendarColumns, createFakeCatalog } from "./fake-catalog";
 import { createFakeClinical } from "./fake-clinical";
 import { createFakeFloorAndPrefs } from "./fake-floor";
+import { createFakeInvites } from "./fake-invites";
 import { createFakeProfile } from "./fake-profile";
 import { reportOf } from "./fake-report";
 import {
@@ -76,6 +77,12 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 	};
 	// The fake does not know who asks: what the console does is the first member's, as the service would record the subject.
 	const me = Object.keys(opts.members)[0] ?? "console";
+	const invites = createFakeInvites({
+		guard,
+		client: (app, id) => data(app).clients.find((c) => c.id === id),
+		now: Date.now,
+		log: (app, action, target) => log(data(app), me, action, target),
+	});
 	const log = (
 		d: AppData,
 		actor: string,
@@ -131,6 +138,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		...access,
 		...clinical,
 		...catalog,
+		...invites,
 		async *live(app, signal) {
 			const queue: LiveSignal[] = [];
 			let wake: (() => void) | undefined;

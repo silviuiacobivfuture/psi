@@ -12,6 +12,25 @@ export const NOTIFY_EVENTS = [
 	"leave.requested",
 	"leave.decided",
 	"package.low",
+	"reminder.day_before",
+	"reminder.two_hours",
+	"reminder.failed",
+	"feedback.requested",
+	"feedback.negative",
+	"account.invite",
+	"account.invite_existing",
+	"account.activated",
+	"blacklist.attempt",
+	"appointment.conflict",
+	"digest.reception_daily",
+	"digest.practitioner_evening",
+	"digest.owner_daily",
+	"digest.owner_weekly",
+	"schedule.changed",
+	"record.todo",
+	"client.assigned",
+	"delivery.failed",
+	"security.action",
 ] as const;
 export type NotifyEvent = (typeof NOTIFY_EVENTS)[number];
 
@@ -35,9 +54,6 @@ export interface Notification {
 	idempotencyKey: string;
 }
 
-/** The teams an app's staff belong to (Novu topics): everyone, reception, the owners. */
-export type TeamName = "team" | "reception" | "owners";
-
 /** A member of the staff, as the notifier needs to reach them. Never a name or an address in a log. */
 export interface StaffPerson {
 	subject: string;
@@ -45,26 +61,17 @@ export interface StaffPerson {
 	email?: string | undefined;
 }
 
-/** `notify` with the action's own idempotency key, and the directory the messages go through (subscribers and teams). */
+/** `notify` with the action's own idempotency key, and the directory the messages go through (subscribers). */
 export interface NotifyPort {
 	notify(notification: Notification): Promise<void>;
-	/** Keeps the notifier's subscriber in step with the member, and puts them in (or takes them out of) the teams. */
-	syncPerson(
-		app: string,
-		person: StaffPerson,
-		teams: { add: readonly TeamName[]; remove: readonly TeamName[] },
-	): Promise<void>;
+	/** Keeps the notifier's subscriber in step with the member (their name and address). */
+	syncPerson(app: string, person: StaffPerson): Promise<void>;
 }
 
 export interface MemoryNotify extends NotifyPort {
 	sent: Notification[];
 	/** The directory calls, in order. */
-	synced: {
-		app: string;
-		person: StaffPerson;
-		add: readonly TeamName[];
-		remove: readonly TeamName[];
-	}[];
+	synced: { app: string; person: StaffPerson }[];
 	/** Make the next sends fail, to prove a failed notification never fails the action. */
 	failing: boolean;
 }
@@ -75,9 +82,9 @@ export function createMemoryNotify(): MemoryNotify {
 		sent: [],
 		synced: [],
 		failing: false,
-		syncPerson(app, person, teams) {
+		syncPerson(app, person) {
 			if (self.failing) return Promise.reject(new Error("notifier down"));
-			self.synced.push({ app, person, ...teams });
+			self.synced.push({ app, person });
 			return Promise.resolve();
 		},
 		notify(n) {

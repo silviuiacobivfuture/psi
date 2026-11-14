@@ -1,4 +1,5 @@
 import { reaches } from "../authz/access";
+import { tellScheduleChanged } from "../engagement/schedule-alert";
 import type { HandlersOf } from "../http/context";
 import { fail } from "../http/errors";
 import type { LeaveRow, RosterRow } from "../store/types";
@@ -62,6 +63,12 @@ export const rosterHandlers: HandlersOf<
 		if (held === undefined) await ctx.deps.store.c.roster.insert(row);
 		else await ctx.deps.store.c.roster.replace(row);
 		await ctx.changed("roster", held === undefined ? "created" : "updated", id);
+		await tellScheduleChanged(
+			ctx,
+			personId,
+			date,
+			kind === "work" ? "hours" : kind === "free" ? "day_off" : "leave",
+		);
 		return rosterOut(row);
 	},
 
@@ -129,6 +136,7 @@ export const rosterHandlers: HandlersOf<
 				else await ctx.deps.store.c.roster.replace(day);
 			}
 			await ctx.changed("roster", "updated", row.personId);
+			await tellScheduleChanged(ctx, row.personId, row.from, "leave");
 		}
 		const person = await ctx.deps.store.c.people.get(ctx.app, row.personId);
 		if (person?.subject !== undefined)

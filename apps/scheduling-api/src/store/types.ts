@@ -25,7 +25,14 @@ import type {
 } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
 import type { KeyStore } from "../ports/crypto";
-import type { BlacklistPort, DocumentsPort, FeedbackPort, ReportsPort, SeriesPort } from "./ports";
+import type {
+	BlacklistPort,
+	DocumentsPort,
+	FeedbackPort,
+	KeyedPort,
+	ReportsPort,
+	SeriesPort,
+} from "./ports";
 
 type Out<T extends z.ZodType> = z.output<T>;
 type InApp<T> = T & { app: string };
@@ -361,6 +368,8 @@ export interface StorePort {
 	series: SeriesPort;
 	/** The reports: read-only counts and rates over the app's rows. */
 	reports: ReportsPort;
+	/** Online-account invitations, account links, notification preferences and the delivery log. */
+	keyed: KeyedPort;
 	/** Throws when the store cannot be reached (the readiness probe). */
 	ping(): Promise<void>;
 }
