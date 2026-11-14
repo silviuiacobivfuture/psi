@@ -37,8 +37,10 @@ import { RoleSummary } from "../entities-roles";
 import {
 	AppId,
 	AppParam,
+	countedPage,
 	Id,
 	IdParam,
+	NumberedQuery,
 	Ok,
 	PageQuery,
 	page,
@@ -136,8 +138,8 @@ export const ME_ROUTES = [
 		side: "team",
 		summary: "The app's team",
 		params: AppParam,
-		query: PageQuery,
-		response: page(Member),
+		query: NumberedQuery,
+		response: countedPage(Member),
 		permission: { key: "members_view", target: { kind: "app" } },
 	}),
 	route({

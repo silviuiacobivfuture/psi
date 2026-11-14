@@ -1,7 +1,7 @@
 import { extraCapabilities } from "./fake-caps-extra";
 import { type FakeTeam, type TeamEntry, withOverrides } from "./fake-members";
-import { offsetPage } from "./offset-page";
-import { type ClinicPort, LIST_PAGE, PortError, type TeamMember } from "./port";
+import { numberedOf } from "./numbered";
+import { type ClinicPort, PortError, type TeamMember } from "./port";
 import { capabilityMap } from "./role-map";
 import type { AppSlug } from "./schema";
 import type { AppData } from "./seed";
@@ -115,12 +115,12 @@ export function createFakeAccess(
 				...(e.email === undefined ? {} : { email: e.email }),
 			}));
 		},
-		async memberPage(app, cursor) {
+		async memberPage(app, at) {
 			guard("memberPage");
 			const all = [...(await this.members(app))].sort((a, b) =>
 				a.displayName.localeCompare(b.displayName),
 			);
-			return offsetPage(all, cursor, LIST_PAGE);
+			return numberedOf(all, at);
 		},
 		async startViewAs(subject, app, as) {
 			guard("startViewAs");

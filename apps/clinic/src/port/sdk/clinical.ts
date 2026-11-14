@@ -6,6 +6,7 @@ import {
 } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
 import { NO_CLIENTS, narrowedTo } from "../client-list";
+import { type Numbered, offsetAt, type PageAt, pageOfOffset } from "../numbered";
 import {
 	type ClientListAsk,
 	type ClientPage,
@@ -171,11 +172,16 @@ export function clinicalGroup(
 		formTemplates: async () => SEED_FORM_TEMPLATES,
 
 		/** One page of the active entries, newest first, and their clients' names in one batched read. */
-		blacklistPage: (app: AppSlug, cursor: string | null): Promise<Paged<ListedClient>> =>
+		blacklistPage: (app: AppSlug, at: PageAt): Promise<Numbered<ListedClient>> =>
 			run(async () => {
 				const [tz, got] = await Promise.all([
 					sdk.zone(app),
-					api.blacklist.list({ app, limit: LIST_PAGE, ...(cursor === null ? {} : { cursor }) }),
+					api.blacklist.list({
+						app,
+						clientsOnly: "true",
+						limit: at.size,
+						offset: offsetAt(at),
+					}),
 				]);
 				const ids = [
 					...new Set(got.items.flatMap((e) => (e.client === undefined ? [] : [e.client]))),
@@ -197,7 +203,8 @@ export function clinicalGroup(
 									},
 								],
 					),
-					nextCursor: got.nextCursor ?? null,
+					total: got.total,
+					page: pageOfOffset(got.offset, at.size),
 				};
 			}),
 

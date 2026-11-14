@@ -26,7 +26,17 @@ import {
 	WebRequest,
 	WhatsappLink,
 } from "../entities";
-import { AppParam, DateKey, Id, IdParam, Ok, PageQuery, page } from "../primitives";
+import {
+	AppParam,
+	countedPage,
+	DateKey,
+	Id,
+	IdParam,
+	NumberedQuery,
+	Ok,
+	PageQuery,
+	page,
+} from "../primitives";
 
 /** The permission resources a record can belong to (its form decides); `recordResourceFor` in @psi/scheduling/permissions is the map. */
 const RECORD_RESOURCES = [
@@ -125,8 +135,8 @@ export const OPERATION_ROUTES = [
 				to: z.coerce.number().int().nonnegative(),
 				state: z.enum(["open", "handled"]).optional(),
 			})
-			.extend(PageQuery.shape),
-		response: page(WebRequest),
+			.extend(NumberedQuery.shape),
+		response: countedPage(WebRequest),
 		permission: { key: "web_requests_view", target: { kind: "app" } },
 	}),
 	route({

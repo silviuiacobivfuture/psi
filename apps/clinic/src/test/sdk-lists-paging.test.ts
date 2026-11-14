@@ -1,17 +1,18 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { LIST_PAGE } from "../port/port";
 import { type SdkConsole, type Session, startSdkConsole } from "./sdk-harness";
 
 /**
- * Requests, the blacklist and a day's reminders over the real service, a page at a time: one page and a "show more"
- * that appends the next, gone on the last page; an empty list says so with no control; one page has no control.
+ * Requests, the blacklist, a day's reminders and the team over the real service, as numbered pages: every row once
+ * across the pages, the service's total in "1–50 din N", the last partial page, a page past the end showing the last,
+ * a size change keeping the first row in view, the in-place answer, a live update re-rendering the page shown, an
+ * empty list saying so with no pager, and each list refused to who may not see it.
  */
 const A = "/v1/apps/psizone";
 const DATASTAR = { headers: { "datastar-request": "true" } };
 /** 2026-11-19 in Bucharest: the busy reminders day (the populated world has none on it). */
 const DAY = "2026-11-19";
 const MORNING = Date.UTC(2026, 10, 19, 6);
-const EXTRA = LIST_PAGE + 7;
+const EXTRA = 57;
 let k: SdkConsole;
 
 beforeAll(async () => {
@@ -21,6 +22,14 @@ beforeAll(async () => {
 		const r = await w.callKey("psizone-web", "POST", `${A}/book/callback-requests`, {
 			contact: { name: `Callback ${i}`, phone: `07330${String(i).padStart(5, "0")}` },
 			locale: "ro",
+		});
+		expect(r.status, JSON.stringify(r.json)).toBe(200);
+	}
+	for (let i = 0; i < EXTRA; i++) {
+		const r = await w.call("olga", "PUT", `${A}/members/paged-${String(i).padStart(3, "0")}`, {
+			displayName: `Membru Pagină ${String(i).padStart(3, "0")}`,
+			roles: [w.ids.roles.reception ?? "reception"],
+			coordinates: [],
 		});
 		expect(r.status, JSON.stringify(r.json)).toBe(200);
 	}
@@ -49,12 +58,6 @@ beforeAll(async () => {
 });
 afterAll(() => k.close());
 
-/** The `…/more` address a page carries, or null. */
-const moreOf = (html: string, path: string): string | null => {
-	const at = new RegExp(`(${path.replaceAll("/", "\\/")}\\?[^'"]*?)(?:'|&#39;)`).exec(html)?.[1];
-	return at === undefined ? null : at.replaceAll("&amp;", "&");
-};
-
 /** What a live stream carries until `needle` arrives (or a few seconds pass). */
 async function until(res: Response, needle: string, ms = 4000): Promise<string> {
 	const reader = res.body?.getReader();
@@ -78,33 +81,34 @@ async function until(res: Response, needle: string, ms = 4000): Promise<string> 
 	return seen;
 }
 
-/** Every row of a list, page after page through its "show more", and how many answers it took. */
-async function walk(
-	s: Session,
-	page: string,
-	more: string,
-	rows: RegExp,
-): Promise<{ first: number; all: string[]; answers: number; last: string }> {
-	const html = await (await s.get(page)).text();
-	const all = [...html.matchAll(rows)].map((x) => x[1] ?? "");
-	const first = all.length;
-	let next = moreOf(html, more);
-	let answers = 0;
-	let last = html;
-	while (next !== null) {
-		const res = await s.raw(next, DATASTAR);
-		expect(res.headers.get("content-type")).toContain("text/event-stream");
-		last = await res.text();
-		expect(last).toContain("mode append");
-		all.push(...[...last.matchAll(rows)].map((x) => x[1] ?? ""));
-		next = moreOf(last, more);
-		answers++;
+const range = (html: string): string => /data-range[^>]*>([^<]+)</.exec(html)?.[1] ?? "";
+const current = (html: string): string => /aria-current="page"[^>]*>(\d+)</.exec(html)?.[1] ?? "";
+const rowsOf = (html: string, row: RegExp): string[] =>
+	[...html.matchAll(row)].map((x) => x[1] ?? "");
+
+/** Every row of a numbered list, page after page at `size`, and the pages it took. */
+async function walk(s: Session, path: string, size: number, row: RegExp) {
+	const sep = path.includes("?") ? "&" : "?";
+	const first = await (await s.get(`${path}${sep}page=1&size=${size}`)).text();
+	const total = Number(/din (\d+)/.exec(range(first))?.[1] ?? "0");
+	const pages = Math.max(1, Math.ceil(total / size));
+	const all = rowsOf(first, row);
+	let last = first;
+	for (let p = 2; p <= pages; p++) {
+		last = await (await s.get(`${path}${sep}page=${p}&size=${size}`)).text();
+		expect(current(last)).toBe(String(p));
+		all.push(...rowsOf(last, row));
 	}
-	return { first, all, answers, last };
+	return { first, last, total, pages, all };
 }
 
-describe("requests, a page at a time", () => {
-	it("many open: one page, then the rest appended, the control gone with the last page", async () => {
+const REQ = /id="req-([^"]+)"/g;
+const LISTED = /data-listed="([^"]+)"/g;
+const REM = /id="rem-([^"-]+)"/g;
+const MEM = /data-member="([^"]+)"/g;
+
+describe("requests in numbered pages", () => {
+	it("every open request once, the service's count, the last page partial", async () => {
 		const s = await k.as("olga");
 		const open = (
 			(
@@ -115,98 +119,109 @@ describe("requests, a page at a time", () => {
 				)
 			).json.items as unknown[]
 		).length;
-		expect(open).toBeGreaterThan(LIST_PAGE);
-		const { first, all, answers, last } = await walk(
-			s,
-			"/requests",
-			"/requests/more",
-			/id="req-([^"]+)"/g,
-		);
-		expect(first).toBe(LIST_PAGE);
-		expect(all).toHaveLength(open);
-		expect(new Set(all).size).toBe(all.length);
-		expect(answers).toBe(Math.ceil(open / LIST_PAGE) - 1);
-		expect(last).toContain('id="requests-more"');
-		expect(moreOf(last, "/requests/more")).toBeNull();
+		expect(open).toBeGreaterThan(25);
+		const { first, last, total, pages, all } = await walk(s, "/requests", 25, REQ);
+		expect(total).toBe(open);
+		expect(rowsOf(first, REQ)).toHaveLength(25);
+		expect(rowsOf(last, REQ)).toHaveLength(open - 25 * (pages - 1));
+		expect(new Set(all).size).toBe(open);
+		expect(last).not.toContain('rel="next"');
+		expect(first).toContain(`(${open})`);
 	});
 
-	it("the open count says '50+' while more follow", async () => {
-		const html = await (await (await k.as("olga")).get("/requests")).text();
-		expect(html).toContain(`(${LIST_PAGE}+)`);
-	});
-
-	it("handled: none yet, the empty state and no control", async () => {
+	it("handled: none yet, the empty state and no pager", async () => {
 		const html = await (await (await k.as("olga")).get("/requests?show=handled")).text();
 		expect(html).toContain("requests-live");
 		expect(html).not.toContain('id="req-');
-		expect(moreOf(html, "/requests/more")).toBeNull();
+		expect(html).not.toContain('id="requests-pager"');
 	});
 
-	it("a live update re-renders the first page (what was appended folds back)", async () => {
+	it("a live update re-renders the page shown, not the first", async () => {
 		const s = await k.as("olga");
-		const stream = await s.open("/live?screen=requests&show=open");
+		const stream = await s.open("/live?screen=requests&show=open&page=2&size=25");
 		await new Promise((r) => setTimeout(r, 300));
 		await k.api.world.callKey("psizone-web", "POST", `${A}/book/callback-requests`, {
 			contact: { name: "Callback live", phone: "0733099999" },
 			locale: "ro",
 		});
-		const seen = await until(stream, 'id="requests-more"');
+		const seen = await until(stream, 'id="requests-pager"');
 		expect(seen).toContain('id="requests-live"');
-		expect([...seen.matchAll(/id="req-([^"]+)"/g)]).toHaveLength(LIST_PAGE);
-		expect(moreOf(seen, "/requests/more")).not.toBeNull();
+		expect(current(seen)).toBe("2");
+		expect(rowsOf(seen, REQ)).toHaveLength(25);
 	});
 
-	it("the control is refused to who may not see the requests", async () => {
-		const res = await (await k.as("dora")).raw(
-			"/requests/more?show=open&cursor=x&shown=50",
-			DATASTAR,
-		);
+	it("is refused to who may not see the requests, answering none of them", async () => {
+		const res = await (await k.as("dora")).raw("/requests?page=2&size=25", DATASTAR);
 		expect(res.status).toBe(403);
+		expect(await res.text()).not.toContain('id="req-');
 	});
 });
 
-describe("the blacklist, a page at a time", () => {
-	it("many: one page, the rest appended, every client once, named", async () => {
+describe("the blacklist in numbered pages", () => {
+	it("every listed client once, named, counted as the clients listed (never a phone-only entry)", async () => {
 		const s = await k.as("olga");
-		const { first, all, last } = await walk(
-			s,
-			"/settings/blacklist",
-			"/settings/blacklist/more",
-			/data-listed="([^"]+)"/g,
-		);
-		expect(first).toBe(LIST_PAGE);
-		expect(all.length).toBeGreaterThanOrEqual(EXTRA);
-		expect(new Set(all).size).toBe(all.length);
-		expect(moreOf(last, "/settings/blacklist/more")).toBeNull();
-		const html = await (await s.get("/settings/blacklist")).text();
-		// Named, never by their ids.
-		expect(html).toContain("Listed Client ");
+		await k.api.world.call("olga", "POST", `${A}/blacklist`, {
+			phone: "0733 777 777",
+			reason: "synthetic phone-only",
+			category: "other",
+			severity: "warn",
+		});
+		const { first, total, all } = await walk(s, "/settings/blacklist", 25, LISTED);
+		expect(all).toHaveLength(total);
+		expect(new Set(all).size).toBe(total);
+		expect(total).toBeGreaterThanOrEqual(EXTRA);
+		expect(first).toContain("Listed Client ");
 	});
 });
 
-describe("a day's reminders, a page at a time", () => {
-	it("many: one page, the rest appended, the control gone with the last", async () => {
+describe("a day's reminders in numbered pages", () => {
+	it("every reminder once, the day kept in every page's address, past the end the last", async () => {
 		const s = await k.as("olga");
-		const { first, all, last } = await walk(
-			s,
-			`/reminders?date=${DAY}`,
-			"/reminders/more",
-			/id="rem-([^"-]+)"/g,
-		);
-		expect(first).toBe(LIST_PAGE);
-		expect(all).toHaveLength(EXTRA);
+		const { total, pages, all, last } = await walk(s, `/reminders?date=${DAY}`, 25, REM);
+		expect(total).toBe(EXTRA);
 		expect(new Set(all).size).toBe(EXTRA);
-		expect(moreOf(last, "/reminders/more")).toBeNull();
+		expect(last).toContain(`/reminders?date=${DAY}&amp;page=1&amp;size=25`);
+		const past = await (await s.get(`/reminders?date=${DAY}&page=99&size=25`)).text();
+		expect(current(past)).toBe(String(pages));
 	});
 
-	it("one page: a quiet day has no control", async () => {
-		const html = await (await (await k.as("olga")).get("/reminders?date=2026-11-14")).text();
-		expect(moreOf(html, "/reminders/more")).toBeNull();
+	it("a quiet day fits one page; a day with none says so with no pager", async () => {
+		const s = await k.as("olga");
+		expect(await (await s.get("/reminders?date=2026-11-14")).text()).not.toContain(
+			'class="adm-pager__pages"',
+		);
+		const none = await (await s.get("/reminders?date=2028-03-01")).text();
+		expect(none).not.toContain('id="rem-');
+		expect(none).not.toContain('id="reminders-pager"');
+	});
+});
+
+describe("the team in numbered pages", () => {
+	it("every member once, by name, the service's count", async () => {
+		const s = await k.as("olga");
+		const team = (
+			(await k.api.world.call("olga", "GET", `${A}/members?limit=500`)).json.items as {
+				subject: string;
+			}[]
+		).map((m) => m.subject);
+		const { total, all } = await walk(s, "/settings/members", 25, MEM);
+		expect(total).toBe(team.length);
+		expect(all).toEqual(team);
 	});
 
-	it("empty: a day with none says so", async () => {
-		const html = await (await (await k.as("olga")).get("/reminders?date=2028-03-01")).text();
-		expect(html).not.toContain('id="rem-');
-		expect(moreOf(html, "/reminders/more")).toBeNull();
+	it("a size change keeps the first row in view; the in-place answer patches and pushes", async () => {
+		const s = await k.as("olga");
+		const html = await (await s.get("/settings/members?from=50&size=25&via=size")).text();
+		expect(current(html)).toBe("3");
+		const res = await s.raw("/settings/members?page=2&size=25", DATASTAR);
+		const body = await res.text();
+		expect(body).toContain('id="members-region"');
+		expect(body).toContain('history.pushState(null, "", "/settings/members?page=2&size=25")');
+	});
+
+	it("is refused to who may not see the team, answering nothing of it", async () => {
+		const res = await (await k.as("vera")).raw("/settings/members?page=1&size=25", DATASTAR);
+		expect(res.status).toBe(403);
+		expect(await res.text()).not.toContain("data-member=");
 	});
 });

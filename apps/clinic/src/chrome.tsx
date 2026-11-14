@@ -169,16 +169,11 @@ export async function Page({
 	const { locale } = ctx;
 	const o = at(locale);
 	const { can } = ctx;
-	// The badge counts the first page of open requests (never every request): "50+" when more follow; the live inbox
-	// stream then patches the service's exact count.
+	// The badge is the service's count of open requests (one row asked, never every request).
 	let open: number | string = 0;
 	if (can.has("web_requests_view")) {
 		try {
-			const first = await ctx.port.requestPage(ctx.app, "open", null);
-			open =
-				first.nextCursor === null
-					? first.items.length
-					: m.ls_count_more({ n: String(first.items.length) }, o);
+			open = (await ctx.port.requestPage(ctx.app, "open", { page: 1, size: 1 })).total;
 		} catch {
 			open = 0;
 		}

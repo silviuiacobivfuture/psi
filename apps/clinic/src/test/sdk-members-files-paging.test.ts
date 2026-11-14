@@ -4,9 +4,10 @@ import { LIST_PAGE } from "../port/port";
 import { type SdkConsole, type Session, startSdkConsole } from "./sdk-harness";
 
 /**
- * The team and a client's files over the real service, a page at a time (members.list and files.list with their
- * cursors): one page and "Mai multe", which appends the next page and goes with the last, every row once; a file whose
- * upload never finished is never shown, and a page short of rows still offers the next while the service has more.
+ * A client's files over the real service, a page at a time (files.list with its cursor): one page and "Mai multe",
+ * which appends the next page and goes with the last, every row once; a file whose upload never finished is never
+ * shown, and a page short of rows still offers the next while the service has more. (The team is numbered pages:
+ * sdk-lists-paging.test.ts.)
  */
 const A = "/v1/apps/psizone";
 const DATASTAR = { headers: { "datastar-request": "true" } };
@@ -22,14 +23,6 @@ const pending: string[] = [];
 beforeAll(async () => {
 	k = await startSdkConsole();
 	const w = k.api.world;
-	for (let i = 0; i < EXTRA; i++) {
-		const r = await w.call("olga", "PUT", `${A}/members/paged-${String(i).padStart(3, "0")}`, {
-			displayName: `Membru Pagină ${String(i).padStart(3, "0")}`,
-			roles: [w.ids.roles.reception ?? "reception"],
-			coordinates: [],
-		});
-		expect(r.status, JSON.stringify(r.json)).toBe(200);
-	}
 	client = String(
 		(await w.call("olga", "POST", `${A}/clients`, { name: "Client Fișiere" })).json.id,
 	);
@@ -83,36 +76,6 @@ async function walk(
 	}
 	return { first, all, answers, last };
 }
-
-describe("the team over the real service, a page at a time", () => {
-	it("a page by name, then the rest appended, every member once, the control gone with the last", async () => {
-		const team = (
-			(await k.api.world.call("olga", "GET", `${A}/members?limit=500`)).json.items as {
-				subject: string;
-			}[]
-		).map((m) => m.subject);
-		expect(team.length).toBeGreaterThan(LIST_PAGE);
-		const { first, all, answers, last } = await walk(
-			await k.as("olga"),
-			"/settings/members",
-			"/settings/members/more",
-			/data-member="([^"]+)"/g,
-		);
-		expect(first).toBe(LIST_PAGE);
-		expect(all).toEqual(team);
-		expect(answers).toBe(Math.ceil(team.length / LIST_PAGE) - 1);
-		expect(moreOf(last, "/settings/members/more")).toBeNull();
-	});
-
-	it("is refused to who may not see the team, answering nothing of it", async () => {
-		const res = await (await k.as("vera")).raw(
-			"/settings/members/more?cursor=50&shown=50",
-			DATASTAR,
-		);
-		expect(res.status).toBe(403);
-		expect(await res.text()).not.toContain("data-member=");
-	});
-});
 
 describe("a client's files over the real service, a page at a time", () => {
 	it("every finished file once, newest first, none pending; the control gone with the last", async () => {
