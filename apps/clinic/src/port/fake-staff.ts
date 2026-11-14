@@ -11,6 +11,8 @@ export interface FakeAccount {
 	displayName: string;
 	email: string;
 	active?: boolean;
+	/** Has signed in at least once: no new set-password link is made for them. */
+	signedIn?: boolean;
 	/** A client's account (the customers group), never staff. */
 	customer?: boolean;
 }
@@ -25,7 +27,9 @@ export interface StaffDeps {
 }
 
 /** The add-member search and the invitation over a fake sign-in, with the service's refusals. */
-export function createFakeStaff(deps: StaffDeps): Pick<ClinicPort, "searchStaff" | "inviteMember"> {
+export function createFakeStaff(
+	deps: StaffDeps,
+): Pick<ClinicPort, "searchStaff" | "inviteMember" | "newSignInLink"> {
 	const { accounts, team, guard, data, log } = deps;
 	let n = 0;
 	const inTeam = (app: AppSlug, subject: string): boolean => team.get(app)?.has(subject) === true;
@@ -92,6 +96,25 @@ export function createFakeStaff(deps: StaffDeps): Pick<ClinicPort, "searchStaff"
 				signInLink:
 					found === undefined ? `https://sso.example.test/recovery/${account.subject}` : null,
 			};
+		},
+		async newSignInLink(app, subject) {
+			guard("newSignInLink");
+			if (subject === deps.self) throw new PortError("forbidden", "self", [], "self");
+			const member = team.get(app)?.get(subject);
+			if (member === undefined) throw new PortError("not-found", subject);
+			if (member.email === undefined) throw new PortError("conflict", "email", [], "no_email");
+			const account = accounts.find(
+				(a) => a.subject === subject && a.email.toLowerCase() === member.email?.toLowerCase(),
+			);
+			if (account === undefined || account.customer === true)
+				throw new PortError("conflict", "account", [], "no_account");
+			if (account.active === false)
+				throw new PortError("conflict", "disabled", [], "account_disabled");
+			if (account.signedIn === true)
+				throw new PortError("conflict", "signed in", [], "already_signed_in");
+			n += 1;
+			log(data(app), "console", "member.link", `members:${subject}`);
+			return `https://sso.example.test/recovery/${subject}-${n}`;
 		},
 	};
 }

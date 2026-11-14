@@ -29,6 +29,14 @@ const INVITE_PROBLEM: Partial<Record<keyof typeof STATUS, string>> = {
 	unavailable: "invite-unavailable",
 };
 
+/** A new link refused for what can be told: the editor opens again with the reason. */
+const LINK_PROBLEM: Partial<Record<keyof typeof STATUS, string>> = {
+	conflict: "link-conflict",
+	unavailable: "link-unavailable",
+};
+
+const LinkMade = z.object({ signInLink: z.string().url() });
+
 /** The words of a `problem=` the page was sent back with. */
 function problemText(code: string | undefined, locale: Locale): string | undefined {
 	const o = at(locale);
@@ -39,6 +47,10 @@ function problemText(code: string | undefined, locale: Locale): string | undefin
 			return m.mb_invite_conflict({}, o);
 		case "invite-unavailable":
 			return m.mb_invite_unavailable({}, o);
+		case "link-conflict":
+			return m.mb_link_conflict({}, o);
+		case "link-unavailable":
+			return m.mb_link_unavailable({}, o);
 		default:
 			return m.mb_problem({}, o);
 	}
@@ -173,6 +185,36 @@ export function registerMembers(app: Hono<Env>): void {
 		}
 		if (result.status === "refused" && INVITE_PROBLEM[result.code] !== undefined)
 			return c.redirect(`${BASE}?invite=1&problem=${INVITE_PROBLEM[result.code]}`, 303);
+		return c.text(
+			result.status === "refused" ? result.code : "confirmation",
+			result.status === "refused" ? STATUS[result.code] : 400,
+		);
+	});
+
+	// A new set-password link answers the page itself, as the invitation does: the link is never in a URL.
+	app.post(`${BASE}/:subject/link`, async (c) => {
+		const ctx = c.var.ctx;
+		const subject = c.req.param("subject");
+		const result = await runAction(actionCtx(ctx), "member.link", { subject }, { confirmed: true });
+		if (result.status === "ok") {
+			const made = LinkMade.safeParse(result.data);
+			if (!made.success) return c.redirect(editing(subject), 303);
+			const member = (await ctx.port.members(ctx.app)).find((x) => x.subject === subject);
+			return c.html(
+				await renderMembers(
+					ctx,
+					{ create: false, invite: false, edit: null, confirm: null },
+					undefined,
+					undefined,
+					undefined,
+					{ name: member?.displayName ?? subject, link: made.data.signInLink },
+				),
+				200,
+				NOCACHE,
+			);
+		}
+		if (result.status === "refused" && LINK_PROBLEM[result.code] !== undefined)
+			return c.redirect(`${editing(subject)}&problem=${LINK_PROBLEM[result.code]}`, 303);
 		return c.text(
 			result.status === "refused" ? result.code : "confirmation",
 			result.status === "refused" ? STATUS[result.code] : 400,

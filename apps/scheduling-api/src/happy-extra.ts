@@ -96,6 +96,15 @@ export const EXTRA_HAPPY = {
 		w.staff.seed("happy.search@example.test", "Happy Search");
 		return olga(w, "GET", "/staff-accounts?q=happy");
 	},
+	"staff.link": async (w) => {
+		const made = await olga(w, "POST", "/staff-accounts", {
+			email: "happy.link@example.test",
+			displayName: "Happy Link",
+			roles: [],
+		});
+		const subject = (made.json.member as { subject: string }).subject;
+		return olga(w, "POST", `/members/${subject}/sign-in-link`, {});
+	},
 	"staff.invite": (w) =>
 		olga(w, "POST", "/staff-accounts", {
 			email: "happy.invite@example.test",

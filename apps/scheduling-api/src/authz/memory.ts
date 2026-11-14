@@ -1,9 +1,11 @@
 import { buildModel, type Clause, type Model, platformModel } from "./model";
-import { type AuthzPort, objectOf, type Tuple, type TupleChange } from "./port";
+import { type AuthzPort, AuthzUnavailable, objectOf, type Tuple, type TupleChange } from "./port";
 
 const MAX_DEPTH = 16;
 
 export interface MemoryAuthz extends AuthzPort {
+	/** Make the next writes fail as an unreachable OpenFGA (reads still answer), to prove a write rolls back. */
+	failing: boolean;
 	/** Every tuple now held, for tests that assert what was (not) written. */
 	tuples(): Tuple[];
 }
@@ -98,7 +100,8 @@ export function createMemoryAuthz(
 		}
 	}
 
-	return {
+	const self: MemoryAuthz = {
+		failing: false,
 		check: (user, relation, object) => Promise.resolve(holds(user, relation, object, 0)),
 		checkMany: (checks) =>
 			Promise.resolve(checks.map((q) => holds(q.user, q.relation, q.object, 0))),
@@ -109,12 +112,15 @@ export function createMemoryAuthz(
 			);
 		},
 		write(change: TupleChange) {
+			if (self.failing)
+				return Promise.reject(new AuthzUnavailable("the authorizer is unreachable"));
 			for (const t of change.deletes) remove(t);
 			for (const t of change.writes) add(t);
 			return Promise.resolve();
 		},
 		tuples: () => [...held.values()],
 	};
+	return self;
 }
 
 /** Seeds the platform: this user is the estate's administrator and holds the scheduling platform role. */

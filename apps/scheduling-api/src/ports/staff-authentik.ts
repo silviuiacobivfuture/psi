@@ -17,6 +17,9 @@ export interface AuthentikStaffOptions extends AuthentikHttpOptions {
 	customersGroup: string;
 }
 
+/** What a sign-in left on the user: `last_login` is null until the person has signed in once. */
+const Seen = z.object({ last_login: z.string().datetime({ offset: true }).nullable() });
+
 /** People, not service accounts. */
 const PEOPLE = new Set(["internal", "external"]);
 
@@ -75,6 +78,16 @@ export function createAuthentikStaff(options: AuthentikStaffOptions): StaffDirec
 			await call("POST", `/core/groups/${encodeURIComponent(group)}/add_user/`, z.unknown(), {
 				pk: Number(userId),
 			});
+		},
+		async leave(userId) {
+			const group = await groupPk(call, options.staffGroup);
+			await call("POST", `/core/groups/${encodeURIComponent(group)}/remove_user/`, z.unknown(), {
+				pk: Number(userId),
+			});
+		},
+		async lastLogin(userId) {
+			const user = await call("GET", `/core/users/${encodeURIComponent(userId)}/`, Seen);
+			return user.last_login === null ? undefined : Date.parse(user.last_login);
 		},
 		async recoveryLink(userId) {
 			return (
