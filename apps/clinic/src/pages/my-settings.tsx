@@ -6,7 +6,7 @@ import { z } from "zod";
 import { actionCtx } from "../actions/context";
 import { runAction } from "../actions/engine";
 import type { Env } from "../app";
-import { Page, roleName } from "../chrome";
+import { Page, rolesText } from "../chrome";
 import type { Ctx } from "../lib/context";
 import { at } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
@@ -147,7 +147,7 @@ export async function renderMySettings(
 					<Fact label={m.me_email({}, o)} value={ctx.person.email ?? "—"} />
 					<Fact
 						label={m.me_roles({}, o)}
-						value={ctx.caps.roles.map((r) => roleName(r, ctx.locale)).join(", ")}
+						value={rolesText(ctx.caps.roles, ctx.locale, ctx.caps.roleNames)}
 					/>
 				</section>
 				{/* The language and theme the person sees now (the top bar may have changed them on this device): saving

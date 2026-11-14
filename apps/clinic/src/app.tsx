@@ -3,6 +3,7 @@ import type { StaffEngine } from "@psi/engine/staff";
 import type { Pwa } from "@psi/pwa";
 import { toastElement } from "@psi/ui/admin";
 import { Hono } from "hono";
+import { compress } from "hono/compress";
 import { setCookie } from "hono/cookie";
 import { registerAssets } from "./assets";
 import { assistantModeOf } from "./assistant/mode";
@@ -75,6 +76,8 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	registerAssets(root);
 	deps.mount?.(root);
 	const app = new Hono<Env>({ strict: false });
+	// Pages, the stylesheet and Datastar travel gzip-compressed (event streams never are: they must flush as they go).
+	app.use("*", compress());
 	const bell =
 		deps.notifications === undefined
 			? undefined
@@ -123,7 +126,8 @@ export function createApp(deps: AppDeps): Hono<Env> {
 		}
 		// Who this person is and what they may do HERE, asked of the service for this request and never kept for the next.
 		const real = await own.capabilities(person.subject, active);
-		const mayViewAs = real.platformAdmin || Object.hasOwn(real.permissions, "roles_edit");
+		// "Vezi ca…" is the estate administrator's alone: an app's owners and admins never see or start it.
+		const mayViewAs = real.platformAdmin;
 		// A sign-in that only knows a subject (the development one) is named as the service names it.
 		const self: Person =
 			person.name === person.subject && real.displayName !== undefined
@@ -135,7 +139,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
 		const wanted = await readViewAs(c, deps.viewAsSecret, person.subject, active);
 		if (wanted !== null) {
 			try {
-				if (!mayViewAs) throw new PortError("forbidden", "roles administrators only");
+				if (!mayViewAs) throw new PortError("forbidden", "estate administrators only");
 				const flagged = await deps.ports.forPerson(c, wanted.as);
 				caps = await flagged.capabilities(person.subject, active, wanted.as);
 				port = scopedPort(flagged, caps);

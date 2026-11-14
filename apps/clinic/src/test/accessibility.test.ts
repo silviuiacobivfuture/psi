@@ -24,6 +24,8 @@ const SCREENS = [
 	"/settings/blacklist",
 	"/settings/builder",
 	"/settings/audit",
+	"/settings/members",
+	"/settings/members?edit=mock-ana-7f3c",
 	"/more",
 ] as const;
 

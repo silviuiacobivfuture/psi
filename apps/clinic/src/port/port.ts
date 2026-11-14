@@ -51,6 +51,7 @@ import type {
 	NotePatch,
 	RecordPatch,
 } from "./schema-clinical";
+import type { MemberDetail, MemberInput, OverridesInput } from "./schema-members";
 import type { MySettings, MySettingsView } from "./schema-settings";
 
 export type ClientFilter = "current" | "archived";
@@ -62,6 +63,15 @@ export interface CalendarData {
 	services: ReadonlyArray<Service>;
 	/** What to flag on a client's tiles, by client id (the console fills it in for the days it shows). */
 	flags?: Readonly<Record<string, ClientFlag>>;
+}
+
+/** How many clients one page of the list shows. */
+export const CLIENT_PAGE_SIZE = 50;
+
+export interface ClientPage {
+	clients: ReadonlyArray<Client>;
+	summaries: ReadonlyArray<ClientSummary>;
+	nextCursor: string | null;
 }
 
 export interface ReminderItem {
@@ -84,6 +94,7 @@ export interface TeamMember {
 	subject: string;
 	displayName: string;
 	roles: ReadonlyArray<string>;
+	email?: string;
 }
 
 /** Something changed in the app: the screen that shows it asks again. Carries no data, only what to refresh. */
@@ -170,6 +181,8 @@ export interface ClinicPort extends ProfilePort {
 	search(app: AppSlug, query: string): Promise<ReadonlyArray<SearchHit>>;
 	clients(app: AppSlug, filter: ClientFilter, query: string): Promise<ReadonlyArray<Client>>;
 	client(app: AppSlug, id: string): Promise<Client | null>;
+	/** These clients, whatever their standing (the ones not found or not visible are absent), in batched reads. */
+	clientsByIds(app: AppSlug, ids: ReadonlyArray<string>): Promise<ReadonlyArray<Client>>;
 	clientAppointments(app: AppSlug, id: string): Promise<ReadonlyArray<Appointment>>;
 	archiveClient(app: AppSlug, id: string): Promise<void>;
 	deleteClient(app: AppSlug, id: string): Promise<void>;
@@ -230,8 +243,25 @@ export interface ClinicPort extends ProfilePort {
 	report(app: AppSlug, query: ReportQuery): Promise<Report>;
 	/** The person's own capabilities in the app, or — with `as` — those a role or member would hold (roles administrators). */
 	capabilities(subject: string, app: AppSlug, as?: ViewAsTarget): Promise<Capabilities>;
-	/** The app's team, for the "Vezi ca…" picker. */
+	/** The app's team, for the "Vezi ca…" picker and the members' list. */
 	members(app: AppSlug): Promise<ReadonlyArray<TeamMember>>;
+	/** One member for their editor: roles, grants, denials, linked calendars, what they may do in the end. */
+	member(app: AppSlug, subject: string): Promise<MemberDetail | null>;
+	/**
+	 * Adds the sign-in account to the team or changes their name, roles and coordinated calendars (the whole set: a role
+	 * left out is taken away). Refuses (`forbidden`) one's own membership, (`invalid`) an unknown role or person.
+	 */
+	saveMember(app: AppSlug, subject: string, input: MemberInput): Promise<TeamMember>;
+	/** Replaces the member's individual grants and denials; a denial wins over every role and grant. */
+	saveMemberOverrides(
+		app: AppSlug,
+		subject: string,
+		input: OverridesInput,
+	): Promise<{ grant: ReadonlyArray<string>; deny: ReadonlyArray<string> }>;
+	/** Takes the person out of the team: their roles, grants and denials go with them. */
+	removeMember(app: AppSlug, subject: string): Promise<void>;
+	/** Binds a calendar column (a person) to the member's sign-in: their `own` reach is that calendar. */
+	linkCalendar(app: AppSlug, subject: string, personId: string): Promise<void>;
 	/** Starts / ends looking at the app as someone else: audited events of the administrator. */
 	startViewAs(subject: string, app: AppSlug, as: ViewAsTarget): Promise<Capabilities>;
 	stopViewAs(subject: string, app: AppSlug): Promise<void>;
@@ -255,6 +285,16 @@ export interface ClinicPort extends ProfilePort {
 		filter: ClientFilter,
 		query: string,
 	): Promise<ReadonlyArray<ClientSummary>>;
+	/**
+	 * ONE page of the client list (`cursor` null: the first) with the rich rows of those clients only: what the list
+	 * screen shows, a page at a time, however many clients the clinic has. `nextCursor` null: the last page.
+	 */
+	clientPage(
+		app: AppSlug,
+		filter: ClientFilter,
+		query: string,
+		cursor: string | null,
+	): Promise<ClientPage>;
 	/** What to flag on the calendar and the editor for these clients (blacklist, newest pinned note), by client id. */
 	clientFlags(
 		app: AppSlug,

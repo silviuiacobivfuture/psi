@@ -120,10 +120,10 @@ export async function prepare(deps: Deps, spec: RouteSpec, c: Context<HttpEnv>):
 
 	if (spec.side === "team") {
 		if (principal.kind === "service") throw forbidden("service keys reach the visitor routes only");
-		if (spec.platform === true) {
-			if (!(await deps.access.isPlatformAdmin(subject)))
-				throw forbidden("estate administrators only");
-		} else if (app !== "") {
+		// An estate-administrator route on an app (view-as) is ALSO held to the app's membership checks below.
+		if (spec.platform === true && !(await deps.access.isPlatformAdmin(subject)))
+			throw forbidden("estate administrators only");
+		if (app !== "") {
 			if (!(await deps.access.isMember(subject, app))) throw notFound("app");
 			const row = await deps.store.c.apps.get(app, app);
 			if (row === undefined) throw notFound("app");
@@ -179,6 +179,7 @@ export async function prepare(deps: Deps, spec: RouteSpec, c: Context<HttpEnv>):
 	if (Object.keys(parsed.body).length === 0) parsed.body = await parseBody(spec, c);
 	const audit: Prepared["audit"] = { id: undefined, detail: {}, skip: false };
 	const dynamic = { required: spec.permission?.target.kind === "dynamic", asked: false };
+	const scopes = new Map<string, Promise<("all" | "assigned" | "own")[]>>();
 	const now = deps.clock();
 	const ctx: Ctx<RouteSpec> = {
 		deps,
@@ -196,7 +197,10 @@ export async function prepare(deps: Deps, spec: RouteSpec, c: Context<HttpEnv>):
 		reachOf: (key, type) => deps.access.reach(subject, app, key, type),
 		async scopesOf(key) {
 			dynamic.asked = true;
-			return deps.access.scopesHeld(subject, app, key);
+			// Asked once per key and request: a list of notes asks it for every note, and each ask is OpenFGA checks.
+			const held = scopes.get(key) ?? deps.access.scopesHeld(subject, app, key);
+			scopes.set(key, held);
+			return held;
 		},
 		async authorizeAny(keys, type, id) {
 			dynamic.asked = true;

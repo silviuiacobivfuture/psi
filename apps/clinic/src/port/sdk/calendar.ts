@@ -1,3 +1,4 @@
+import { MAX_IDS, MAX_WINDOW_DAYS } from "@psi/scheduling-sdk/contract";
 import { addDays } from "../../lib/dates";
 import type { CalendarData, ReminderItem } from "../port";
 import type { Appointment, AppSlug, Client, Column, RosterEntry, SearchHit } from "../schema";
@@ -6,6 +7,11 @@ import type { SdkContext } from "./context";
 import { toPortError } from "./errors";
 import { appointmentOf, clientOf, column, drain, rosterOf, serviceOf } from "./map";
 import { instantOf, wallOf } from "./time";
+
+/** How many clients a search shows. */
+const SEARCH_HITS = 6;
+/** Days one calendar call asks for: the service's widest window less a day, so a DST-long day still fits. */
+const WINDOW_DAYS = MAX_WINDOW_DAYS - 1;
 
 /** The calendar, appointments, search, reminders and the roster. */
 export function calendarGroup(sdk: SdkContext) {
@@ -69,20 +75,51 @@ export function calendarGroup(sdk: SdkContext) {
 		return all.map(clientOf);
 	}
 
+	/** These clients, whatever their standing, in batches of MAX_IDS: one call per hundred clients, not one per client. */
+	async function clientsByIds(app: AppSlug, ids: ReadonlyArray<string>): Promise<Client[]> {
+		const batches: string[][] = [];
+		for (let at = 0; at < ids.length; at += MAX_IDS) batches.push(ids.slice(at, at + MAX_IDS));
+		const pages = await Promise.all(
+			batches.map((batch) => api.clients.list({ app, ids: batch.join(","), limit: MAX_IDS })),
+		);
+		return pages.flatMap((p) => p.items.map(clientOf));
+	}
+
 	return {
 		columns: (app: AppSlug): Promise<Column[]> => run(() => columns(app)),
 		services: (app: AppSlug) => run(() => services(app)),
 		clientsPage,
+		clientsByIds: (app: AppSlug, ids: ReadonlyArray<string>): Promise<Client[]> =>
+			run(() => clientsByIds(app, ids)),
 
 		calendar: (app: AppSlug, from: string, to: string): Promise<CalendarData> =>
 			run(async () => {
 				const tz = await sdk.zone(app);
-				const result = await api.calendar.get({
-					app,
-					from: instantOf(from, 0, tz),
-					to: instantOf(addDays(to, 1), 0, tz),
-					columns: "person",
-				});
+				// The service answers at most MAX_WINDOW_DAYS a call: a longer span (a quarter's statistics) is read window
+				// by window, the columns once, the visits of every window.
+				const windows: { from: string; to: string }[] = [];
+				for (let day = from; day <= to; day = addDays(day, WINDOW_DAYS)) {
+					const last = addDays(day, WINDOW_DAYS - 1);
+					windows.push({ from: day, to: last < to ? last : to });
+				}
+				const answers = await Promise.all(
+					windows.map((w) =>
+						api.calendar.get({
+							app,
+							from: instantOf(w.from, 0, tz),
+							to: instantOf(addDays(w.to, 1), 0, tz),
+							columns: "person",
+						}),
+					),
+				);
+				const result = {
+					columns: (answers[0]?.columns ?? []).map((c) => ({
+						...c,
+						appointments: answers.flatMap(
+							(a) => a.columns.find((x) => x.id === c.id)?.appointments ?? [],
+						),
+					})),
+				};
 				// The sheet that creates an appointment needs clients and services; the grid does not. A person who may
 				// not list them still sees the calendar.
 				const soft = async <T>(list: Promise<T[]>): Promise<T[]> =>
@@ -90,20 +127,20 @@ export function calendarGroup(sdk: SdkContext) {
 						if (toPortError(error).code === "forbidden") return [];
 						throw error;
 					});
-				// Clients are listed (and their clinical data opened and audited by the service) only for someone who can
-				// create an appointment with them.
-				const me = await sdk.me(app);
+				const appointments = result.columns.flatMap((c) =>
+					c.appointments.map((a) => appointmentOf(a, tz)),
+				);
+				// The tiles name their clients: only the clients of the visits shown, in batches, never the whole list.
+				const named = [
+					...new Set(appointments.flatMap((a) => (a.clientId === null ? [] : [a.clientId]))),
+				];
 				const [svc, clients] = await Promise.all([
 					soft(services(app)),
-					Object.hasOwn(me.permissions, "appointments_create")
-						? soft(clientsPage(app, "active", ""))
-						: Promise.resolve([]),
+					soft(clientsByIds(app, named)),
 				]);
 				return {
 					columns: result.columns.map((c, i) => column("person", c.id, c.name, i)),
-					appointments: result.columns.flatMap((c) =>
-						c.appointments.map((a) => appointmentOf(a, tz)),
-					),
+					appointments,
 					clients,
 					services: svc,
 				};
@@ -131,8 +168,12 @@ export function calendarGroup(sdk: SdkContext) {
 			run(async () => {
 				const q = query.trim();
 				if (q === "") return [];
-				const tz = await sdk.zone(app);
-				const clients = (await clientsPage(app, "active", q)).slice(0, 6);
+				// Six hits are shown: six are asked for, never every client the text matches.
+				const [tz, first] = await Promise.all([
+					sdk.zone(app),
+					api.clients.list({ app, status: "active", q, limit: SEARCH_HITS }),
+				]);
+				const clients = first.items.map(clientOf);
 				const hits: SearchHit[] = clients.map((c) => ({
 					kind: "client",
 					id: c.id,
@@ -140,19 +181,23 @@ export function calendarGroup(sdk: SdkContext) {
 					detail: c.phone ?? "",
 				}));
 				const now = Date.now();
-				for (const c of clients.slice(0, 3)) {
-					const appts = await api.appointments.list({
-						app,
-						clientId: c.id,
-						from: now - 30 * 86_400_000,
-						to: now + 90 * 86_400_000,
-						limit: 3,
-					});
-					for (const a of appts.items) {
+				const visits = await Promise.all(
+					clients.slice(0, 3).map((c) =>
+						api.appointments.list({
+							app,
+							clientId: c.id,
+							from: now - 30 * 86_400_000,
+							to: now + 90 * 86_400_000,
+							limit: 3,
+						}),
+					),
+				);
+				clients.slice(0, 3).forEach((c, i) => {
+					for (const a of visits[i]?.items ?? []) {
 						const date = wallOf(a.start, tz).date;
 						hits.push({ kind: "appointment", id: a.id, label: c.name, detail: date, date });
 					}
-				}
+				});
 				return hits;
 			}),
 

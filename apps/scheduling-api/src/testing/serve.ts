@@ -16,10 +16,14 @@ export interface RunningApi {
 /**
  * The service itself on a real port, in-process, on its in-memory adapters and the populated synthetic world, with the
  * local run's development routes (`/dev/token`, `/dev/people`). For tests of a client of the service; never started in
- * production (nothing in the server entry imports it).
+ * production (nothing in the server entry imports it). `grow` adds to the world before it listens (the load test grows
+ * it to ten times the clinic).
  */
-export async function startApi(): Promise<RunningApi> {
+export async function startApi(
+	options: { grow?: (world: Populated) => Promise<unknown> } = {},
+): Promise<RunningApi> {
 	const world = await createWorld();
+	await options.grow?.(world);
 	const outer = new Hono();
 	outer.get("/dev/people", (c) =>
 		c.json({

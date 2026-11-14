@@ -4,7 +4,7 @@ import {
 	type FormDefinition,
 	REASON_MAX,
 } from "@psi/scheduling/clinic";
-import { FILE_TYPES as CONTRACT_FILE_TYPES } from "@psi/scheduling-sdk/contract";
+import { FILE_TYPES as CONTRACT_FILE_TYPES, NOTE_MAX_CHARS } from "@psi/scheduling-sdk/contract";
 import { z } from "zod";
 import { IsoDateSchema } from "./schema";
 
@@ -23,7 +23,8 @@ export const NOTE_CATEGORIES = [
 export const NoteCategorySchema = z.enum(NOTE_CATEGORIES);
 export type NoteCategory = z.infer<typeof NoteCategorySchema>;
 
-export const NOTE_MAX = 4_000;
+/** A note's longest text: the service's own bound, never a second number beside it. */
+export const NOTE_MAX = NOTE_MAX_CHARS;
 
 export const ClientNoteSchema = z.object({
 	id: z.string(),

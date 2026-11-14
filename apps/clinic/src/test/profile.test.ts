@@ -88,7 +88,7 @@ describe("Profilul meu", () => {
 	});
 
 	it("a write while looking at the app as someone else is refused", async () => {
-		await open();
+		await open(["owner"], { platformAdmins: new Set([MEMBER.sub]) });
 		await c.post("/view-as", "as=role%3Areception&label=Recep%C8%9Bie", {
 			"content-type": "application/x-www-form-urlencoded",
 		});

@@ -118,11 +118,13 @@ export const OPERATION_ROUTES = [
 		side: "team",
 		summary: "Web requests (callbacks and held slots) in a window",
 		params: AppParam,
-		query: z.object({
-			from: z.coerce.number().int().nonnegative(),
-			to: z.coerce.number().int().nonnegative(),
-		}),
-		response: z.object({ items: z.array(WebRequest) }),
+		query: z
+			.object({
+				from: z.coerce.number().int().nonnegative(),
+				to: z.coerce.number().int().nonnegative(),
+			})
+			.extend(PageQuery.shape),
+		response: page(WebRequest),
 		permission: { key: "web_requests_view", target: { kind: "app" } },
 	}),
 	route({
@@ -170,7 +172,8 @@ export const OPERATION_ROUTES = [
 		side: "team",
 		summary: "A client's records (content only where the caller may read clinical data)",
 		params: IdParam,
-		response: z.object({ items: z.array(RecordFull) }),
+		query: PageQuery,
+		response: page(RecordFull),
 		permission: {
 			key: "record:dynamic",
 			target: { kind: "dynamic", type: "sched_client", candidates: recordKeys("view") },
@@ -241,7 +244,8 @@ export const OPERATION_ROUTES = [
 		side: "team",
 		summary: "A client's files",
 		params: IdParam,
-		response: z.object({ items: z.array(FileMeta) }),
+		query: PageQuery,
+		response: page(FileMeta),
 		permission: { key: "files_view", target: { kind: "object", type: "sched_client" } },
 	}),
 	route({
@@ -321,7 +325,8 @@ export const OPERATION_ROUTES = [
 		side: "team",
 		summary: "Builder definitions of a kind (fields, forms, views, actions, catalogues)",
 		params: AppParam.extend({ kind: DefinitionKind }),
-		response: z.object({ items: z.array(Definition) }),
+		query: PageQuery,
+		response: page(Definition),
 		permission: { key: "builder_view", target: { kind: "app" } },
 	}),
 	route({
@@ -354,7 +359,8 @@ export const OPERATION_ROUTES = [
 		side: "team",
 		summary: "Import runs and their counts",
 		params: AppParam,
-		response: z.object({ items: z.array(ImportRun) }),
+		query: PageQuery,
+		response: page(ImportRun),
 		permission: { key: "imports_exports_imports_view", target: { kind: "app" } },
 	}),
 ] as const;

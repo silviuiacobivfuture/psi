@@ -2,6 +2,7 @@ import type { HandlersOf } from "../http/context";
 import { forbidden, notFound } from "../http/errors";
 import type { BlacklistRow } from "../store/ports";
 import { StoreRefused } from "../store/types";
+import { paginate } from "./shared";
 
 /** `severity_not_allowed` is the caller's role being too weak for what they asked: a refusal of permission, not of input. */
 async function asked<T>(run: () => Promise<T>): Promise<T> {
@@ -27,7 +28,12 @@ export const blacklistHandlers: HandlersOf<
 > = {
 	async "blacklist.list"(ctx) {
 		const rows = await ctx.deps.store.blacklist.list(ctx.app, ctx.query.includeInactive === "true");
-		return { items: rows.sort((a, b) => b.createdAt - a.createdAt).map(out) };
+		const page = paginate(
+			rows.sort((a, b) => b.createdAt - a.createdAt),
+			ctx.query.limit,
+			ctx.query.cursor,
+		);
+		return { ...page, items: page.items.map(out) };
 	},
 
 	async "blacklist.create"(ctx) {

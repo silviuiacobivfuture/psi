@@ -144,6 +144,13 @@ export interface Query<R> {
 	eq?: Partial<R>;
 	/** A half-open range `[gte, lt)` on a numeric field. */
 	range?: { field: keyof R & string; gte?: number; lt?: number };
+	/**
+	 * A HINT for a page: the caller wants the first `limit` rows in this order (by a numeric field; rows of one value in the
+	 * order they were written, reversed for `desc`, as an index keeps them). An adapter
+	 * that can read only those (an index in that order) does; one that cannot may answer more, in any order. It never
+	 * answers fewer of the matching rows than the first `limit`, so the caller always sorts and cuts the answer itself.
+	 */
+	order?: { field: keyof R & string; dir: "asc" | "desc"; limit: number };
 }
 
 export class StoreConflict extends Error {

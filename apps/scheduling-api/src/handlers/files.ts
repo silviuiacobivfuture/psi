@@ -7,6 +7,7 @@ import type { FileRow } from "../store/types";
 import {
 	must,
 	newId,
+	paginate,
 	removeTuplesThenRow,
 	stamps,
 	writeRowThenTuples,
@@ -63,14 +64,13 @@ export const fileHandlers: HandlersOf<
 > = {
 	async "files.list"(ctx) {
 		const visible = await ctx.reachOf("files_view", "sched_file");
-		return {
-			items: (
-				await ctx.deps.store.c.files.list(ctx.app, { eq: { clientId: String(ctx.params.id) } })
-			)
-				.filter((f) => reaches(visible, f.id))
-				.sort((a, b) => b.createdAt - a.createdAt)
-				.map(fileOut),
-		};
+		const rows = (
+			await ctx.deps.store.c.files.list(ctx.app, { eq: { clientId: String(ctx.params.id) } })
+		)
+			.filter((f) => reaches(visible, f.id))
+			.sort((a, b) => b.createdAt - a.createdAt);
+		const page = paginate(rows, ctx.query.limit, ctx.query.cursor);
+		return { ...page, items: page.items.map(fileOut) };
 	},
 
 	async "files.init"(ctx) {

@@ -1,8 +1,8 @@
 {
 	"st_area_profile": "Organisation profile",
 	"st_area_profile_hint": "Name, time zone and identity of this organisation.",
-	"st_area_people": "Members",
-	"st_area_people_hint": "Who belongs to the team.",
+	"st_area_people": "People and calendars",
+	"st_area_people_hint": "Who appears in the calendar: therapists, reception, staff.",
 	"st_area_roles": "Roles and permissions",
 	"st_area_roles_hint": "What each role may see and do.",
 	"st_area_services": "Services and prices",

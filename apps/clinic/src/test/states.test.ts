@@ -106,6 +106,7 @@ describe("other screens' error and empty states", () => {
 		["/settings/audit", "audit"],
 		["/settings/services", "services"],
 		["/settings/roles", "roles"],
+		["/settings/members", "members"],
 	] as const)("%s shows the error state when the port is down", async (path, method) => {
 		const html = await open({ failing: failing(method) }, path);
 		expect(html).toContain("Nu am putut încărca datele");

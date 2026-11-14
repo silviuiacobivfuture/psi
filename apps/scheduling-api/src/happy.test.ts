@@ -158,8 +158,9 @@ const OWN: Record<
 	},
 	"me.get": (w) => w.call("rita", "GET", "/v1/me"),
 	"me.capabilities": (w) => w.call("rita", "GET", `${A}/me`),
-	"viewAs.start": (w) => olga(w, "POST", "/view-as", { as: `role:${w.ids.roles.reception}` }),
-	"viewAs.stop": (w) => olga(w, "DELETE", "/view-as"),
+	"viewAs.start": (w) =>
+		w.call("root", "POST", `${A}/view-as`, { as: `role:${w.ids.roles.reception}` }),
+	"viewAs.stop": (w) => w.call("root", "DELETE", `${A}/view-as`),
 	"apps.create": (w) =>
 		w.call("root", "POST", "/v1/apps", {
 			id: "newapp",
@@ -170,6 +171,7 @@ const OWN: Record<
 	"apps.get": (w) => olga(w, "GET", ""),
 	"apps.update": (w) => olga(w, "PATCH", "", { name: "Psizone Galați" }),
 	"members.list": (w) => olga(w, "GET", "/members"),
+	"members.get": (w) => olga(w, "GET", "/members/rita"),
 	"members.put": (w) =>
 		olga(w, "PUT", "/members/newcomer", {
 			displayName: "Newcomer",
@@ -284,6 +286,7 @@ const OWN: Record<
 	"reports.revenue": (w) => olga(w, "GET", `/reports/revenue${REPORT_RANGE}`),
 	"reports.csv": (w) => olga(w, "GET", `/reports/rates/csv${REPORT_RANGE}`),
 	"notes.list": (w) => olga(w, "GET", `/clients/${w.ids.c1}/notes`),
+	"notes.pinned": (w) => olga(w, "GET", `/notes/pinned?clients=${w.ids.c1},${w.ids.c2}`),
 	"notes.create": (w) =>
 		olga(w, "POST", `/clients/${w.ids.c1}/notes`, { category: "plata", text: "pays by card" }),
 	"notes.update": async (w) =>

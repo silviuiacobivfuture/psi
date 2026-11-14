@@ -182,6 +182,7 @@ const TYPE_ALIAS: Readonly<Record<string, ObjectType>> = {
 	"floor-plan": "plan",
 	floorplan: "plan",
 	view_as: "member",
+	members: "member",
 	blacklist: "client",
 	roster: "leave",
 	calendar: "appointment",
@@ -232,6 +233,11 @@ const FIELD_SAY: Readonly<Record<string, Say>> = {
 	name: (l) => m.jr_fld_name({}, at(l)),
 	guardian: (l) => m.jr_fld_guardian({}, at(l)),
 	birthYear: (l) => m.jr_fld_birthYear({}, at(l)),
+	roles: (l) => m.jr_fld_roles({}, at(l)),
+	grants: (l) => m.jr_fld_grants({}, at(l)),
+	denies: (l) => m.jr_fld_denies({}, at(l)),
+	coordinates: (l) => m.jr_fld_coordinates({}, at(l)),
+	displayName: (l) => m.jr_fld_displayName({}, at(l)),
 };
 
 export const fieldLabel = (field: string, locale: Locale): string =>

@@ -68,14 +68,27 @@ export function adminGroup(sdk: SdkContext) {
 				const all = await drain((cursor) =>
 					api.members.list({ app, limit: 500, ...(cursor === undefined ? {} : { cursor }) }),
 				);
-				return all.map((m) => ({ subject: m.subject, displayName: m.displayName, roles: m.roles }));
+				return all.map((m) => ({
+					subject: m.subject,
+					displayName: m.displayName,
+					roles: m.roles,
+					...(m.email === undefined ? {} : { email: m.email }),
+				}));
 			}),
 
 		requests: (app: AppSlug): Promise<WebRequest[]> =>
 			run(async () => {
 				const now = Date.now();
-				const got = await api.requests.list({ app, from: now - 90 * DAY, to: now + 365 * DAY });
-				return got.items.map(requestOf).sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
+				const got = await drain((cursor) =>
+					api.requests.list({
+						app,
+						from: now - 90 * DAY,
+						to: now + 365 * DAY,
+						limit: 500,
+						...(cursor === undefined ? {} : { cursor }),
+					}),
+				);
+				return got.map(requestOf).sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
 			}),
 
 		/** The console's "handled": the team answered the request. */
@@ -83,8 +96,16 @@ export function adminGroup(sdk: SdkContext) {
 			run(async () => {
 				const now = Date.now();
 				const found = (
-					await api.requests.list({ app, from: now - 90 * DAY, to: now + 365 * DAY })
-				).items.find((r) => r.reference === id);
+					await drain((cursor) =>
+						api.requests.list({
+							app,
+							from: now - 90 * DAY,
+							to: now + 365 * DAY,
+							limit: 500,
+							...(cursor === undefined ? {} : { cursor }),
+						}),
+					)
+				).find((r) => r.reference === id);
 				if (found === undefined) throw new PortError("not-found", id);
 				// A held slot is confirmed; a callback has no slot, it was called back.
 				await api.requests.decide({
@@ -96,8 +117,13 @@ export function adminGroup(sdk: SdkContext) {
 
 		roles: (app: AppSlug): Promise<Role[]> =>
 			run(async () => {
-				const [list, counts] = await Promise.all([api.roles.list({ app }), memberCounts(app)]);
-				return list.items.map((r) => ({
+				const [list, counts] = await Promise.all([
+					drain((cursor) =>
+						api.roles.list({ app, limit: 500, ...(cursor === undefined ? {} : { cursor }) }),
+					),
+					memberCounts(app),
+				]);
+				return list.map((r) => ({
 					id: r.id,
 					name: r.name,
 					description: r.description ?? "",

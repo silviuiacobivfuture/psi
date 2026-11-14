@@ -2,6 +2,7 @@ import { CATALOG_ACTIONS } from "./registry-catalog";
 import { CLIENT_ACTIONS } from "./registry-client";
 import { DAILY_ACTIONS } from "./registry-daily";
 import { ME_ACTIONS } from "./registry-me";
+import { MEMBER_ACTIONS } from "./registry-members";
 import type { ActionDef } from "./types";
 
 /**
@@ -15,6 +16,7 @@ export const ACTIONS: ReadonlyArray<ActionDef> = [
 	...CLIENT_ACTIONS,
 	...CATALOG_ACTIONS,
 	...ME_ACTIONS,
+	...MEMBER_ACTIONS,
 ];
 
 const ids = ACTIONS.map((a) => a.id);
