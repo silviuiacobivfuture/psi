@@ -81,6 +81,11 @@ spec:
     deletionPolicy: Retain
     template:
       type: kubernetes.io/basic-auth
+      # CNPG acts on a change to a secret only when it carries this label: without it a rotated password reached the
+      # secret and the console at once, and the database only at CNPG's next full reconcile (minutes later).
+      metadata:
+        labels:
+          cnpg.io/reload: "true"
       data:
         username: "{{ .username }}"
         password: "{{ .password }}"
