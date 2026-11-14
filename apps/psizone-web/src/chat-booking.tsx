@@ -104,6 +104,9 @@ function startingChoices(offer: BookingOffer): Record<string, string> {
 		week: date,
 		day: date,
 		slot: offer.chosen?.slotId ?? "",
+		// The organisation's terms for booking in the chat, when its settings govern the guide.
+		horizon: offer.limits === undefined ? "" : String(offer.limits.horizonDays),
+		nocall: offer.limits?.offerCallback === false ? "1" : "",
 	};
 }
 

@@ -184,6 +184,7 @@ describe("what the form may send", () => {
 			mode: "teleport",
 			who: "<script>",
 			slot: "x".repeat(300),
+			horizon: "365",
 		});
 		expect(parsed).toEqual({
 			service: "",
@@ -193,6 +194,7 @@ describe("what the form may send", () => {
 			mode: "",
 			who: "",
 			slot: "",
+			horizon: "",
 		});
 	});
 });

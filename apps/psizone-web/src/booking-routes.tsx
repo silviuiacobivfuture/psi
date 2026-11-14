@@ -32,7 +32,15 @@ export async function scheduleOf(
 		options.taken === true && view.kind === "ready"
 			? { kind: "ready", data: { ...view.data, taken: true, selected: undefined } }
 			: view;
-	return { view: shown, callback: raw.callback === "1", cards: raw.cards === "1" };
+	const choices = PickerChoices.parse(raw);
+	const noCallback = raw.nocall === "1";
+	return {
+		view: shown,
+		callback: raw.callback === "1" && !noCallback,
+		cards: raw.cards === "1",
+		horizon: choices.horizon,
+		noCallback,
+	};
 }
 
 /** The chat's forms are the compact ones; the page's own form id is "booking". */
