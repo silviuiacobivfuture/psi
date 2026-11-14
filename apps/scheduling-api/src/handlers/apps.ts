@@ -1,5 +1,3 @@
-import { allAppRelations, appRelation, permissionOf } from "../authz/catalogue";
-import { roleGrant } from "../authz/links";
 import { seedRoles } from "../authz/roles-seed";
 import { memberTuples, objectLinks, platformLink, roleTuples } from "../authz/tuples";
 import type { Deps, HandlersOf } from "../http/context";
@@ -7,18 +5,8 @@ import { fail, forbidden } from "../http/errors";
 import type { MemberRow, RoleRow } from "../store/types";
 import { capabilitiesOf } from "./capabilities";
 import { syncMember } from "./directory";
-import { catalogueMatrix } from "./matrix";
 import { isOwnerRole } from "./roles";
-import {
-	diff,
-	must,
-	newId,
-	paginate,
-	removeTuplesThenRow,
-	replaced,
-	stamps,
-	writeRowThenTuples,
-} from "./shared";
+import { must, stamps } from "./shared";
 
 /** Creates an app with its seed roles and its first owner, and the tuples that make them real. */
 export async function provisionApp(
