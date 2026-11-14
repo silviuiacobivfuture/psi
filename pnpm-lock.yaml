@@ -978,6 +978,9 @@ importers:
       '@psi/scheduling-api':
         specifier: workspace:*
         version: link:../../apps/scheduling-api
+      '@psi/scheduling-sdk':
+        specifier: workspace:*
+        version: link:../../packages/scheduling-sdk
       zod:
         specifier: ^3.25.76
         version: 3.25.76
