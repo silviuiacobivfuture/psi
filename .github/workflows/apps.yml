@@ -1,7 +1,12 @@
-# Build → Harbor → deploy, for every application under apps/ that has a Dockerfile and changed in
-# the push. The branch is the environment: the image is tagged with the commit, pushed to the
-# estate's Harbor (REGISTRY_HOST / REGISTRY_PROJECT_APPS from estate/identity.yaml), and its tag
-# written into gitops/services/<app>/overlays/<branch>/kustomization.yaml, which Argo deploys.
+# Build → Harbor → deploy, for every application under apps/ that has a Dockerfile and whose image on the
+# branch is behind it. The branch is the environment: the image is tagged with the commit it was built
+# from, pushed to the estate's Harbor (REGISTRY_HOST / REGISTRY_PROJECT_APPS from estate/identity.yaml),
+# and its tag written into gitops/services/<app>/overlays/<branch>/kustomization.yaml, which Argo deploys.
+#
+# ONE job, the apps built one after another in one builder. It was a matrix job per app: on the single
+# ARC runner each app then paid a pod handover, a checkout, the SEB bundle install and a buildkit boot
+# (~1.5 min) before a ~1 min build, and every estate-gates job queued in between waited in line with it.
+# Measured over 2026-11-13/14 (42 runs, ~10 apps each): a run held the runner 30-35 min and took 55-115.
 name: apps
 
 on:
@@ -12,10 +17,17 @@ on:
       - "packages/**"
       - "pnpm-lock.yaml"
       - "estate/platform.lock"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      apps:
+        description: "Space-separated apps to rebuild regardless of the plan (empty: what is behind)"
+        required: false
+        default: ""
 
-# Never cancel a deploy mid-flight: an image pushed with no tag bump (or the reverse) is a state
-# nobody can reason about. GitHub keeps one running and one pending run per group.
+# Never cancel a deploy mid-flight: an image pushed with no tag bump (or the reverse) is a state nobody
+# can reason about. GitHub keeps one running and one pending run per group, and the pending one is
+# replaced by each newer push; nothing is lost by that, because the plan is not the push's diff but
+# everything whose deployed image is behind the branch tip (scripts/affected-apps.mjs --since-deployed).
 concurrency:
   group: apps-${{ github.ref }}
   cancel-in-progress: false
@@ -25,46 +37,12 @@ permissions:
   id-token: write
 
 jobs:
-  plan:
-    # dev only, a dispatch included: this workflow never writes another environment's overlays (production is
-    # deployed by the promote workflow alone).
+  deploy:
+    # dev only, a dispatch included: this workflow never writes another environment's overlays (production
+    # is deployed by the promote workflow alone).
     if: github.ref == 'refs/heads/dev'
     runs-on: k8s
-    outputs:
-      apps: ${{ steps.changed.outputs.apps }}
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
-        with:
-          fetch-depth: 0
-      # Node for scripts/affected-apps.mjs (the runner image has none); the version the repo pins.
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
-        with:
-          node-version-file: .nvmrc
-          # v5 caches the package manager package.json names (pnpm), which this job never installs.
-          package-manager-cache: false
-      - id: changed
-        run: |
-          set -euo pipefail
-          # Every app whose image on this branch is behind the checkout (scripts/affected-apps.mjs
-          # --since-deployed): its overlay's tag names the commit it was built from, and anything the
-          # image builds from that changed since then rebuilds it. Not the push's own diff: GitHub drops a
-          # pending run when the next one queues, and a change only the dropped run carried was then never
-          # built (2026-11-14: the API rebuilt, the Convex functions it waited for left behind). A dispatch
-          # plans the same way, so it rebuilds what is behind and nothing else.
-          list="$(node scripts/affected-apps.mjs --since-deployed "$GITHUB_REF_NAME")"
-          # An app with a DEPRECATED.md is retired: it is not built or deployed.
-          list="$(printf '%s\n' "$list" | while read -r a; do [ -n "$a" ] && [ ! -f "apps/$a/DEPRECATED.md" ] && echo "$a"; done || true)"
-          echo "apps=$(printf '%s\n' "$list" | sed '/^$/d' | jq -R . | jq -cs .)" >> "$GITHUB_OUTPUT"
-
-  deploy:
-    needs: [plan]
-    if: needs.plan.outputs.apps != '[]'
-    runs-on: k8s
-    strategy:
-      fail-fast: false
-      max-parallel: 2
-      matrix:
-        app: ${{ fromJSON(needs.plan.outputs.apps) }}
+    timeout-minutes: 120
     steps:
       - name: The CI host's settings are all present
         env:
@@ -92,21 +70,55 @@ jobs:
             ${{ vars.REGISTRY_PUSH_SECRET }} username | HARBOR_USERNAME ;
             ${{ vars.REGISTRY_PUSH_SECRET }} password | HARBOR_PASSWORD ;
             ${{ vars.GIT_PUSH_SECRET }} token | GIT_PUSH_TOKEN
+      # The branch TIP, not the pushed commit: a queued run starts after the one before it bumped tags, and
+      # planning from the pushed commit's overlays rebuilt what that run had just deployed. The image is
+      # tagged with the commit checked out here, so the tag always names what it was built from.
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           ref: ${{ github.ref_name }}
           token: ${{ env.GIT_PUSH_TOKEN }}
-      # The image's pnpm install reads the locked SEB bundle; install it here, by digest, so the
-      # build context carries it current and the install inside fetches nothing (it has no
-      # registry login). Pulled with this job's own robot: the deploy tier reads ci-robot.
-      - uses: ./.github/actions/seb-bundle
+          fetch-depth: 0
+      # Node for scripts/affected-apps.mjs (the runner image has none); the version the repo pins.
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - id: plan
+        name: Plan — the apps whose image is behind the branch
+        env:
+          FORCE: ${{ inputs.apps }}
+        run: |
+          set -euo pipefail
+          sha="$(git rev-parse HEAD)"
+          echo "tag=${sha::7}" >> "$GITHUB_OUTPUT"
+          if [ -n "${FORCE:-}" ]; then
+            list="$(printf '%s\n' $FORCE)"
+          else
+            list="$(node scripts/affected-apps.mjs --since-deployed "$GITHUB_REF_NAME")"
+          fi
+          # An app with a DEPRECATED.md is retired: it is not built or deployed. A name with no Dockerfile
+          # (a mistyped dispatch) stops the run by name.
+          apps=""
+          for a in $list; do
+            [ -f "apps/$a/Dockerfile" ] || { echo "::error::$a has no apps/$a/Dockerfile"; exit 1; }
+            [ -f "apps/$a/DEPRECATED.md" ] || apps="$apps $a"
+          done
+          echo "apps=${apps# }" >> "$GITHUB_OUTPUT"
+          echo "plan at ${sha::7}:${apps:- nothing}"
+      # The image's pnpm install reads the locked SEB bundle; install it here, by digest, so the build
+      # context carries it current and the install inside fetches nothing (it has no registry login).
+      # Pulled with this job's own robot: the deploy tier reads ci-robot.
+      - if: steps.plan.outputs.apps != ''
+        uses: ./.github/actions/seb-bundle
         with:
           openbao-addr: ${{ vars.OPENBAO_ADDR }}
           openbao-mount: ${{ vars.OPENBAO_JWT_MOUNT }}
           openbao-audience: ${{ vars.OPENBAO_AUDIENCE }}
           openbao-role: ${{ vars.OPENBAO_ROLE_DEPLOY }}
           pull-secret: ${{ vars.REGISTRY_PUSH_SECRET }}
-      - name: The estate's registry, from its identity
+          package-manager-cache: "false"
+      - if: steps.plan.outputs.apps != ''
+        name: The estate's registry, from its identity
         run: |
           set -euo pipefail
           for key in REGISTRY_HOST REGISTRY_PROJECT_APPS REGISTRY_PROJECT_MIRROR; do
@@ -114,39 +126,60 @@ jobs:
             [ -n "$value" ] || { echo "::error::MISSING REQUIRED ESTATE VALUE: $key"; exit 1; }
             echo "$key=$value" >> "$GITHUB_ENV"
           done
-      - name: Log in to Harbor
+      - if: steps.plan.outputs.apps != ''
+        name: Log in to Harbor
         run: echo "$HARBOR_PASSWORD" | docker login "$REGISTRY_HOST" -u "$HARBOR_USERNAME" --password-stdin
-      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
-      - name: Build + push
+      - if: steps.plan.outputs.apps != ''
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      # Each app: build + push, then its tag bump at once (→ Argo deploys it while the next one builds).
+      # No registry build cache: every Dockerfile copies the whole repository before installing, so the
+      # exported cache was dead at the next commit, and exporting it (mode=max) took 50-87 s per app —
+      # longer than the build. The one builder's own cache is shared by the apps built in this job.
+      # One app failing does not stop the others; the job fails at the end naming it.
+      # The bumps run in a worktree of their own: resetting to origin/<branch> in the build checkout
+      # would change the context of every app built after it.
+      - if: steps.plan.outputs.apps != ''
+        name: Build, push and deploy each app
         env:
-          APP: ${{ matrix.app }}
-        run: |
-          set -euo pipefail
-          TAG="${GITHUB_SHA::7}"
-          IMG="$REGISTRY_HOST/$REGISTRY_PROJECT_APPS/$APP"
-          docker buildx build -f "apps/$APP/Dockerfile" \
-            --build-arg REGISTRY_HOST="$REGISTRY_HOST" --build-arg REGISTRY_PROJECT_MIRROR="$REGISTRY_PROJECT_MIRROR" \
-            --cache-from "type=registry,ref=$IMG:buildcache" --cache-to "type=registry,ref=$IMG:buildcache,mode=max" \
-            -t "$IMG:$TAG" --push .
-          echo "TAG=$TAG" >> "$GITHUB_ENV"
-      - name: Bump the image tag on this environment (→ Argo deploys)
-        env:
-          APP: ${{ matrix.app }}
+          APPS: ${{ steps.plan.outputs.apps }}
+          TAG: ${{ steps.plan.outputs.tag }}
           ENV_BRANCH: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          OVERLAY="gitops/services/$APP/overlays/$ENV_BRANCH/kustomization.yaml"
-          [ -f "$OVERLAY" ] || { echo "::error::$APP has no overlay for $ENV_BRANCH ($OVERLAY)"; exit 1; }
           git config user.name "estate-ci"
           git config user.email "estate-ci@users.noreply.github.com"
-          for attempt in 1 2 3; do
-            git fetch -q origin "$ENV_BRANCH"
-            git reset -q --hard "origin/$ENV_BRANCH"
-            sed -i "s/^\(\s*newTag:\s*\).*/\1\"$TAG\"/" "$OVERLAY"
-            git add "$OVERLAY"
-            if git diff --cached --quiet; then echo "$APP already at $TAG"; exit 0; fi
-            git commit -q --no-verify -m "ci($APP): deploy $TAG to $ENV_BRANCH [skip ci] [PATCH]"
-            if git push -q --no-verify origin "HEAD:$ENV_BRANCH"; then exit 0; fi
-            sleep 5
+          bump_dir="$RUNNER_TEMP/bump"
+          git worktree add -q --detach "$bump_dir" "origin/$ENV_BRANCH"
+          bump() {
+            local app="$1" overlay="gitops/services/$1/overlays/$ENV_BRANCH/kustomization.yaml"
+            for attempt in 1 2 3; do
+              git -C "$bump_dir" fetch -q origin "$ENV_BRANCH"
+              git -C "$bump_dir" reset -q --hard "origin/$ENV_BRANCH"
+              [ -f "$bump_dir/$overlay" ] || { echo "::error::$app has no overlay for $ENV_BRANCH ($overlay)"; return 1; }
+              sed -i "s/^\(\s*newTag:\s*\).*/\1\"$TAG\"/" "$bump_dir/$overlay"
+              git -C "$bump_dir" add "$overlay"
+              if git -C "$bump_dir" diff --cached --quiet; then echo "$app already at $TAG"; return 0; fi
+              git -C "$bump_dir" commit -q --no-verify -m "ci($app): deploy $TAG to $ENV_BRANCH [skip ci] [PATCH]"
+              if git -C "$bump_dir" push -q --no-verify origin "HEAD:$ENV_BRANCH"; then return 0; fi
+              sleep 5
+            done
+            echo "::error::could not push the tag bump of $app after 3 attempts"; return 1
+          }
+          failed=""
+          for app in $APPS; do
+            echo "::group::$app"
+            start=$SECONDS
+            img="$REGISTRY_HOST/$REGISTRY_PROJECT_APPS/$app"
+            if docker buildx build -f "apps/$app/Dockerfile" \
+                 --build-arg REGISTRY_HOST="$REGISTRY_HOST" --build-arg REGISTRY_PROJECT_MIRROR="$REGISTRY_PROJECT_MIRROR" \
+                 -t "$img:$TAG" --push . && bump "$app"; then
+              echo "::endgroup::"
+              echo "$app deployed at $TAG in $((SECONDS - start)) s"
+            else
+              echo "::endgroup::"
+              echo "::error::$app failed after $((SECONDS - start)) s"
+              failed="$failed $app"
+            fi
           done
-          echo "::error::could not push the tag bump after 3 attempts"; exit 1
+          git worktree remove --force "$bump_dir"
+          [ -z "$failed" ] || { echo "::error::not deployed:$failed"; exit 1; }
