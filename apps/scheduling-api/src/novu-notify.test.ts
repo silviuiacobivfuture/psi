@@ -207,6 +207,43 @@ describe("the catalogue's events, from what the handlers say happened", () => {
 		expect(w.logs.some((l) => l.event === "notify_unknown_app")).toBe(true);
 	});
 
+	it("an invited member is e-mailed at the address they were added with, with their name and no link; one who left gets nothing", async () => {
+		await w.call("olga", "PUT", "/v1/apps/psizone/members/invited-one", {
+			displayName: "Nou Venit",
+			email: "nou.venit@example.test",
+			roles: [],
+			coordinates: [],
+		});
+		const told = (subject: string, key: string) =>
+			adapter().notify({
+				app: "psizone",
+				event: "team.invite",
+				payload: { subject, locale: "en" },
+				to: { kind: "person", subject },
+				idempotencyKey: key,
+			});
+		await told("invited-one", "k1");
+		expect(calls).toHaveLength(1);
+		expect(calls[0]).toMatchObject({
+			event: "team.invite",
+			payload: { name: "Nou Venit" },
+			to: [
+				{
+					audience: "invitee",
+					subject: "invited-one",
+					email: "nou.venit@example.test",
+					name: "Nou Venit",
+					locale: "en",
+				},
+			],
+		});
+		expect(Object.keys(calls[0]?.payload ?? {}).sort()).toEqual(["inviteId", "name"]);
+		await told("nobody-here", "k2");
+		// rita has no e-mail in the populated world: nothing can be sent to her either
+		await told("rita", "k3");
+		expect(calls).toHaveLength(1);
+	});
+
 	it("a member is a subscriber with their name and address, and no team topic is touched: teams are resolved when sending", async () => {
 		await adapter().syncPerson("psizone", {
 			subject: "rita",

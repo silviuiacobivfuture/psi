@@ -150,6 +150,8 @@ export const PAYLOADS = {
 		failedEvent: z.string().min(1).max(60),
 		attempts: z.number().int().min(1).max(100),
 	}),
+	/** A new member of the team: their name and where to sign in. Never a password or a set-password link. */
+	"team.invite": z.object({ inviteId: Id, name: Text }),
 	"security.action": z.object({
 		securityId: Id,
 		action: z.enum(["delete", "roles", "members", "settings"]),
@@ -177,6 +179,7 @@ export const DOMAIN_FIELDS = [
 	"feedbackId",
 	"deliveryId",
 	"securityId",
+	"inviteId",
 	"entryId",
 	"clientId",
 ] as const;

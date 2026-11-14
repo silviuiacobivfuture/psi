@@ -31,6 +31,7 @@ export const NOTIFY_EVENTS = [
 	"client.assigned",
 	"delivery.failed",
 	"security.action",
+	"team.invite",
 ] as const;
 export type NotifyEvent = (typeof NOTIFY_EVENTS)[number];
 

@@ -120,6 +120,7 @@ export const SAMPLES: Readonly<Record<EventId, Record<string, unknown>>> = {
 	"client.assigned": { clientId: "cli_1", clientName: "Ana Popescu", changedBy: "Iuliana" },
 	"feedback.negative": { feedbackId: "fb_1", rating: 2 },
 	"delivery.failed": { deliveryId: "d_1", failedEvent: "reminder.day_before", attempts: 8 },
+	"team.invite": { inviteId: "inv_1", name: "Ana Popescu" },
 	"security.action": {
 		securityId: "sec_1",
 		action: "delete",

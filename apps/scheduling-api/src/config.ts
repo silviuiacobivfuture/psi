@@ -105,6 +105,11 @@ const Sso = z.object({
 	AUTHENTIK_API_TOKEN: z.string().min(1),
 	/** The group the site accounts live in (customers, never staff). */
 	AUTHENTIK_CUSTOMERS_GROUP: z.string().min(1).default("customers"),
+	/**
+	 * The group whose members reach the console (`app-clinic-member` on dev, `app-clinic-prod-member` in production): the
+	 * one the team's search reads and an invited member's account is made in. Absent: those two routes answer 503.
+	 */
+	AUTHENTIK_STAFF_GROUP: z.string().min(1).optional(),
 	/** The subject a site sees for a user: Authentik's provider setting, `hashed_user_id` by default. */
 	AUTHENTIK_SUB_MODE: z
 		.enum(["hashed_user_id", "user_id", "user_username", "user_email"])
@@ -159,6 +164,8 @@ export interface Config {
 				url: string;
 				token: string;
 				customersGroup: string;
+				/** Absent: the team's search and invitation answer 503 (the client invitation is unaffected). */
+				staffGroup: string | undefined;
 				subMode: "hashed_user_id" | "user_id" | "user_username" | "user_email";
 		  }
 		| undefined;
@@ -226,6 +233,9 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
 	const sso = Sso.safeParse(env);
 	const anySso = ["AUTHENTIK_URL", "AUTHENTIK_API_TOKEN"].some((name) => (env[name] ?? "") !== "");
 	if (anySso && !sso.success) throw new ConfigError(problems(sso.error));
+	// A client made staff, or staff made a client, by one mistyped group: refused at boot.
+	if (sso.success && sso.data.AUTHENTIK_STAFF_GROUP === sso.data.AUTHENTIK_CUSTOMERS_GROUP)
+		throw new ConfigError("AUTHENTIK_STAFF_GROUP: must not be the customers group");
 
 	const callerHashes = new Map<string, string>();
 	for (const caller of common.data.SERVICE_CALLERS) {
@@ -280,6 +290,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
 					url: sso.data.AUTHENTIK_URL.replace(/\/+$/, ""),
 					token: sso.data.AUTHENTIK_API_TOKEN,
 					customersGroup: sso.data.AUTHENTIK_CUSTOMERS_GROUP,
+					staffGroup: sso.data.AUTHENTIK_STAFF_GROUP,
 					subMode: sso.data.AUTHENTIK_SUB_MODE,
 				}
 			: undefined,

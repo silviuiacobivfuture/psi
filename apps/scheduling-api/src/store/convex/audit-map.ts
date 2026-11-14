@@ -37,6 +37,8 @@ export const BY_API: Readonly<Record<string, Mapping>> = {
 	"member.put": rec("member.change", "member"),
 	"member.remove": rec("member.change", "member"),
 	"member.overrides": rec("override.change", "override"),
+	// The addition itself is the wrapper's member.change; this event says it came by invitation (and whether an account was made).
+	"member.invite": own("member.change", "member"),
 	// Looking at the app as someone else changes nothing: the log has no word for it, so it is a settings-level event.
 	"view_as.start": own("builder.change", "builder"),
 	"view_as.stop": own("builder.change", "builder"),

@@ -92,6 +92,16 @@ export const EXTRA_HAPPY = {
 		return olga(w, "POST", `/clients/${id}/invite/resend`, {});
 	},
 	"invites.revoke": async (w) => olga(w, "DELETE", `/clients/${await invited(w)}/invite`),
+	"staff.search": (w) => {
+		w.staff.seed("happy.search@example.test", "Happy Search");
+		return olga(w, "GET", "/staff-accounts?q=happy");
+	},
+	"staff.invite": (w) =>
+		olga(w, "POST", "/staff-accounts", {
+			email: "happy.invite@example.test",
+			displayName: "Happy Invite",
+			roles: [],
+		}),
 	"notifications.deliveries": (w) => olga(w, "GET", "/notifications/deliveries"),
 	"me.notifications": (w) => olga(w, "GET", "/me/notifications"),
 	"me.notificationsSave": (w) =>

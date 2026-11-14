@@ -41,6 +41,7 @@ patches:
                   # when this line is removed (docs/plans/clinic.md, cut-over).
                   - { name: NOTIFY_DELIVERY, value: hold }
                   - { name: AUTHENTIK_CUSTOMERS_GROUP, value: app-clinic-prod-customer }
+                  - { name: AUTHENTIK_STAFF_GROUP, value: app-clinic-prod-member }
   - target: { kind: Ingress, name: scheduling-api }
     patch: |-
       - op: replace

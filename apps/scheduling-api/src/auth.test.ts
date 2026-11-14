@@ -198,6 +198,7 @@ describe("configuration", () => {
 			url: "https://auth.psizone.ro",
 			token: "api-token",
 			customersGroup: "customers",
+			staffGroup: undefined,
 			subMode: "hashed_user_id",
 		});
 		expect(
@@ -209,6 +210,30 @@ describe("configuration", () => {
 				AUTHENTIK_SUB_MODE: "user_email",
 			}).sso,
 		).toMatchObject({ customersGroup: "clients", subMode: "user_email" });
+	});
+
+	it("the staff group is carried through, and may never be the customers group", () => {
+		const sso = { ...prod, AUTHENTIK_URL: "https://auth.psizone.ro", AUTHENTIK_API_TOKEN: "t" };
+		expect(
+			loadConfig({
+				...sso,
+				AUTHENTIK_STAFF_GROUP: "app-clinic-prod-member",
+				AUTHENTIK_CUSTOMERS_GROUP: "app-clinic-prod-customer",
+			}).sso,
+		).toMatchObject({
+			staffGroup: "app-clinic-prod-member",
+			customersGroup: "app-clinic-prod-customer",
+		});
+		expect(() =>
+			loadConfig({
+				...sso,
+				AUTHENTIK_STAFF_GROUP: "app-clinic-customer",
+				AUTHENTIK_CUSTOMERS_GROUP: "app-clinic-customer",
+			}),
+		).toThrow(/AUTHENTIK_STAFF_GROUP/);
+		expect(() => loadConfig({ ...sso, AUTHENTIK_STAFF_GROUP: "customers" })).toThrow(
+			/AUTHENTIK_STAFF_GROUP/,
+		);
 	});
 
 	it.each([

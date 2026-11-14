@@ -38,6 +38,7 @@ export const EVENT_IDS = [
 	"account.invite",
 	"account.invite_existing",
 	"account.activated",
+	"team.invite",
 	"blacklist.attempt",
 	"appointment.conflict",
 	"reminder.failed",
