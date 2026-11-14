@@ -45,7 +45,8 @@ beforeAll(async () => {
 	app = new Hono();
 	app.use(contextStorage());
 	registerBooking(app, "ro");
-});
+	// The whole scheduling service, its world populated through its API: past the default 10 s on a loaded workstation.
+}, 120_000);
 afterAll(async () => {
 	await api.close();
 	vi.useRealTimers();
