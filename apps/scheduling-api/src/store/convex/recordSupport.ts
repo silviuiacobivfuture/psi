@@ -12,6 +12,11 @@ export function matches<R>(row: R, query: Query<R> | undefined): boolean {
 	if (query.eq !== undefined)
 		for (const [k, v] of Object.entries(query.eq))
 			if (v !== undefined && Object.getOwnPropertyDescriptor(row, k)?.value !== v) return false;
+	if (
+		query.absent !== undefined &&
+		Object.getOwnPropertyDescriptor(row, query.absent)?.value !== undefined
+	)
+		return false;
 	if (query.range !== undefined) {
 		const value = Object.getOwnPropertyDescriptor(row, query.range.field)?.value;
 		if (typeof value !== "number") return false;

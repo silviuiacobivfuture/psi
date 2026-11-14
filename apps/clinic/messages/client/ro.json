@@ -200,5 +200,10 @@
 	"al_done_dismissed": "Am reținut: nu e niciunul dintre ei.",
 	"al_conflict": "Clientul are deja alt cont online. Nu s-a schimbat nimic.",
 	"al_banner": "Conturi online de confirmat: {n}",
-	"al_open": "Vezi"
+	"al_open": "Vezi",
+	"orphan_records_title": "Rapoarte fără client",
+	"orphan_records_lead": "Rapoarte păstrate din aplicația veche, al căror client a fost șters acolo. Rămân legate de ședința lor; le vede doar cine are acces clinic la toată aplicația.",
+	"orphan_records_group": "Fără client",
+	"orphan_records_empty": "Niciun raport fără client",
+	"orphan_records_empty_text": "Toate rapoartele aparțin unui client."
 }

@@ -39,6 +39,7 @@ import { registerOrgAreas } from "./pages/org-areas";
 import { registerOrgSettings } from "./pages/org-settings";
 import { registerPlatform } from "./pages/platform";
 import { registerPrint } from "./pages/print-routes";
+import { registerRecordsWithoutClient } from "./pages/records-without-client";
 import { registerReminders } from "./pages/reminders";
 import { registerRequests } from "./pages/requests";
 import { renderRoster } from "./pages/roster";
@@ -240,6 +241,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
 	registerMySettings(app);
 	registerPlatform(app);
 	registerStats(app);
+	registerRecordsWithoutClient(app);
 	registerProfile(app, deps);
 	registerRolesMatrix(app);
 	registerReminders(app);

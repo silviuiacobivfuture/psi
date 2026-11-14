@@ -37,7 +37,11 @@ export const formResponses = defineTable({
 	definition: v.id("formDefinitions"),
 	definitionKey: v.string(),
 	definitionVersion: v.number(),
-	client: v.id("clients"),
+	/**
+	 * Absent: a response that belongs to no client (an old-app report whose client was deleted there, kept with its
+	 * visit). Only the app-wide clinical scope reaches it; no client's page, grant or own/assigned scope does.
+	 */
+	client: v.optional(v.id("clients")),
 	visit: v.optional(v.id("visits")),
 	practitioner: v.optional(v.id("practitioners")),
 	/** The answers, as JSON, encrypted whole. */
