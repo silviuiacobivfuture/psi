@@ -3,16 +3,19 @@
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
-	"description": "psi's scheduling operations: derive the Convex admin key, and reconcile the store's authorization tuples into OpenFGA",
+	"description": "psi's scheduling operations: derive the Convex admin key, reconcile the store's authorization tuples into OpenFGA, and apply a clinic's rooms and organisation from its seed",
 	"scripts": {
 		"reconcile-authz": "tsx reconcile-authz/main.ts",
 		"reseed-roles": "tsx reseed-roles/main.ts",
+		"apply-rooms": "tsx apply-org/main.ts --only rooms",
+		"apply-org": "tsx apply-org/main.ts",
 		"type-check": "tsc --noEmit",
 		"test": "vitest run --maxWorkers=2"
 	},
 	"dependencies": {
 		"@psi/scheduling": "workspace:*",
 		"@psi/scheduling-api": "workspace:*",
+		"@psi/scheduling-sdk": "workspace:*",
 		"zod": "^3.25.76"
 	},
 	"devDependencies": {

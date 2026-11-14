@@ -7,5 +7,5 @@
 		"jsxImportSource": "hono/jsx",
 		"types": ["node"]
 	},
-	"include": ["reconcile-authz"]
+	"include": ["reconcile-authz", "reseed-roles", "apply-org"]
 }
