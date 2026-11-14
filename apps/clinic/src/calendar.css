@@ -276,7 +276,9 @@
 			box-shadow 0.15s ease;
 	}
 	.cal__appt[data-status="requested"] {
-		animation: cal-breathe 3.2s ease-in-out infinite;
+		/* Three breaths when the page opens, then still: a breathing shadow on every requested tile repaints the grid on
+		   every frame for as long as the calendar is open. */
+		animation: cal-breathe 3.2s ease-in-out 3;
 	}
 }
 @keyframes cal-breathe {
