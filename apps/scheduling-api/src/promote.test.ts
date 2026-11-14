@@ -44,6 +44,14 @@ describe("tools/scheduling/promote.sh", () => {
 				);
 			}
 		}
+		// Production starts unpromoted in the sandbox, whatever the repository's overlays hold today (a real promotion
+		// moves them), so every case starts from the same state.
+		for (const service of Object.keys(SERVICES))
+			execFileSync("sed", [
+				"-i",
+				's/newTag: ".*"/newTag: "unpromoted"/',
+				overlay(dir, service, "prod"),
+			]);
 		for (const source of new Set(Object.values(SERVICES)))
 			execFileSync("sed", [
 				"-i",
