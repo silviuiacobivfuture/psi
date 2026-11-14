@@ -75,7 +75,12 @@ describe("booking in the guide's chat", () => {
 		expect(html).toContain('href="tel:');
 		expect(html).toContain('name="consent"');
 		expect(html).not.toContain("pz-slots");
-		expect(html).not.toMatch(/eroare|error/i);
+		// The text a visitor sees: the details field's blur-time message waits hidden in the markup.
+		const shown = html
+			.replace(/<(\w+)[^>]*style="display: none"[^>]*>[\s\S]*?<\/\1>/g, "")
+			.replace(/<[^>]*>/g, " ");
+		expect(shown).not.toMatch(/eroare|error/i);
+		expect(html).toContain('id="cb-');
 	});
 	it("switched off: the way to the contact page instead, no free times", async () => {
 		const off = siteSettingsFor({ psizone: { bookingInChat: "off" } }, "psizone");

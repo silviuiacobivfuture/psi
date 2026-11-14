@@ -1,33 +1,34 @@
 /** @jsxRuntime automatic @jsxImportSource hono/jsx */
+import { FIELD_LIMITS } from "@psi/scheduling";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { Button } from "../components/button";
+import { ChoiceGroup } from "../components/choice-group";
+import { signalName } from "../components/signal-name";
+import { TAKE_FOCUS } from "../components/take-focus";
+import { TextArea } from "../components/text-area";
 import { TextField } from "../components/text-field";
-import { cx } from "../cx";
 import { type Schedule, ScheduleSection } from "./schedule";
-import { fieldPrefix } from "./schemas";
+import { fieldPrefix, PERIODS, periodsOf } from "./schemas";
 import type { AccountLine, BookingEnv, BookingErrors, BookingValues } from "./types";
 
-function Choice({
-	name,
-	value,
-	label,
-	checked,
-}: {
-	name: string;
-	value: string;
-	label: string;
-	checked: boolean;
-}): JSX.Element {
-	return (
-		<label class="pz-chip cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent-soft">
-			<input class="sr-only" type="radio" name={name} value={value} checked={checked} />
-			{label}
-		</label>
-	);
+/** The "when" boxes ticked: what was sent, or "any time" when nothing was. */
+function whenChecked(raw: string | undefined): ReadonlyArray<string> {
+	const chosen = periodsOf(raw);
+	return chosen.length === 0 ? ["any"] : chosen;
+}
+
+/**
+ * Datastar's fetch events for this form: an answer that patched the page means the server heard it;
+ * a request that finished without one (a network failure, a 5xx) is said on the form, so the person
+ * is never left with a button that silently came back.
+ */
+function transportWatch(lost: string): string {
+	const sent = `$${lost}Sent`;
+	return `evt.detail.el === el && (evt.detail.type === 'started' ? (${sent} = false, $${lost} = false) : evt.detail.type === 'datastar-patch-elements' ? (${sent} = true) : evt.detail.type === 'finished' ? ($${lost} = !${sent}) : false)`;
 }
 
 /** The first field with an error, in the order the form shows them: it takes the focus. */
-const ORDER = ["name", "age", "phone", "email", "details", "forWhom", "consent"] as const;
+const ORDER = ["name", "age", "phone", "email", "details", "forWhom", "when", "consent"] as const;
 function firstError(errors: BookingErrors): (typeof ORDER)[number] | undefined {
 	return ORDER.find((field) => errors[field] !== undefined);
 }
@@ -38,10 +39,8 @@ function attrs(
 	errors: BookingErrors,
 	own: Record<string, string>,
 ): Record<string, string> {
-	return firstError(errors) === field ? { ...own, autofocus: "autofocus" } : own;
+	return firstError(errors) === field ? { ...own, ...TAKE_FOCUS } : own;
 }
-
-const PERIODS = ["morning", "afternoon", "any"] as const;
 
 /** The form region, re-rendered by the server after every submit (patched by id). */
 export function BookingForm({
@@ -69,6 +68,7 @@ export function BookingForm({
 }): JSX.Element {
 	const { copy, routes } = env;
 	const f = fieldPrefix(id);
+	const lost = `${signalName(id)}Lost`;
 	const view = schedule?.view;
 	const [onlyAudience] = env.audiences;
 	// A time is being chosen: the contact fields wait for one; a call, or a store that cannot be read, skips it.
@@ -84,8 +84,13 @@ export function BookingForm({
 			action={routes.booking}
 			class="space-y-7"
 			novalidate
-			data-on:submit__prevent={`@post('${routes.booking}', {contentType: 'form'})`}
+			// One request at a time: Enter in a field submits even while the button is disabled. A
+			// request is never retried by the browser: a retry after a lost answer would send it twice.
+			data-on:submit__prevent={`$sending || @post('${routes.booking}', {contentType: 'form', retry: 'never'})`}
 			data-indicator="sending"
+			data-attr:aria-busy="$sending ? 'true' : 'false'"
+			data-signals={JSON.stringify({ [`${lost}Sent`]: false, [lost]: false })}
+			data-on:datastar-fetch__document={transportWatch(lost)}
 		>
 			<input type="hidden" name="form" value={id} />
 			{account === undefined ? null : account.signedIn ? (
@@ -160,78 +165,80 @@ export function BookingForm({
 						required
 						attrs={attrs("email", errors, { inputmode: "email", maxlength: "120" })}
 					/>
-					<div class={cx("pz-field", errors.details !== undefined && "pz-field--error")}>
-						<label class="pz-field__label" for={`${f}-details`}>
-							{copy.fields.details}
-						</label>
-						<textarea
-							class="pz-input"
-							id={`${f}-details`}
-							name="details"
-							rows={5}
-							required
-							minlength={10}
-							maxlength={2000}
-							aria-invalid={errors.details !== undefined ? "true" : undefined}
-							aria-describedby={`${f}-details-hint`}
-							{...(firstError(errors) === "details" ? { autofocus: true } : {})}
-						>
-							{values.details ?? ""}
-						</textarea>
-						<span class="pz-field__hint" id={`${f}-details-hint`}>
-							{errors.details ?? copy.fields.detailsHint}
-						</span>
-					</div>
+					<TextArea
+						id={`${f}-details`}
+						name="details"
+						label={copy.fields.details}
+						value={values.details ?? ""}
+						hint={copy.fields.detailsHint}
+						minLength={FIELD_LIMITS.detailsMin}
+						maxLength={FIELD_LIMITS.detailsMax}
+						minHint={copy.fields.detailsMin}
+						invalid={copy.errors.details}
+						{...(errors.details === undefined ? {} : { error: errors.details })}
+						required
+						attrs={attrs("details", errors, {})}
+					/>
 					{onlyAudience !== undefined && env.audiences.length === 1 ? (
 						<input type="hidden" name="forWhom" value={onlyAudience} />
 					) : (
-						<fieldset class="space-y-3">
-							<legend class="pz-field__label">{copy.audience.legend}</legend>
-							<div class="flex flex-wrap gap-2">
-								{env.audiences.map((audience) => (
-									<Choice
-										name="forWhom"
-										value={audience}
-										label={copy.audience.labels[audience] ?? audience}
-										checked={values.forWhom === audience}
-									/>
-								))}
-							</div>
-							{errors.forWhom ? <p class="text-body-sm text-danger">{errors.forWhom}</p> : null}
-						</fieldset>
+						<ChoiceGroup
+							id={`${f}-for`}
+							name="forWhom"
+							type="radio"
+							legend={copy.audience.legend}
+							options={env.audiences.map((audience) => ({
+								value: audience,
+								label: copy.audience.labels[audience] ?? audience,
+							}))}
+							checked={values.forWhom === undefined ? [] : [values.forWhom]}
+							required
+							autofocus={firstError(errors) === "forWhom"}
+							{...(errors.forWhom === undefined ? {} : { error: errors.forWhom })}
+						/>
 					)}
 					{picking ? (
 						<input type="hidden" name="when" value="any" />
 					) : (
-						<fieldset class="space-y-3">
-							<legend class="pz-field__label">{copy.when.legend}</legend>
-							<div class="flex flex-wrap gap-2">
-								{PERIODS.map((period) => (
-									<Choice
-										name="when"
-										value={period}
-										label={copy.when.labels[period]}
-										checked={
-											period === "any"
-												? values.when === undefined || values.when === "any"
-												: values.when === period
-										}
-									/>
-								))}
-							</div>
-						</fieldset>
-					)}
-					<label class="flex items-start gap-3 text-body-sm text-ink">
-						<input
+						<ChoiceGroup
+							id={`${f}-when`}
+							name="when"
 							type="checkbox"
-							name="consent"
-							value="yes"
-							checked={values.consent === "yes"}
-							class="mt-1 size-5 accent-[var(--accent)]"
+							legend={copy.when.legend}
+							options={PERIODS.map((period) => ({
+								value: period,
+								label: copy.when.labels[period],
+							}))}
+							checked={whenChecked(values.when)}
+							exclusive="any"
+							autofocus={firstError(errors) === "when"}
+							{...(errors.when === undefined ? {} : { error: errors.when })}
 						/>
-						<span>{copy.fields.consent}</span>
-					</label>
-					{errors.consent ? <p class="-mt-4 text-body-sm text-danger">{errors.consent}</p> : null}
+					)}
+					<div class="space-y-2">
+						<label class="flex min-h-11 cursor-pointer items-start gap-3 py-2 text-body-sm text-ink">
+							<input
+								type="checkbox"
+								name="consent"
+								value="yes"
+								checked={values.consent === "yes"}
+								required
+								aria-invalid={errors.consent !== undefined ? "true" : undefined}
+								aria-describedby={errors.consent !== undefined ? `${f}-consent-error` : undefined}
+								class="mt-0.5 size-5 flex-none cursor-pointer accent-[var(--accent)]"
+								{...(firstError(errors) === "consent" ? TAKE_FOCUS : {})}
+							/>
+							<span>{copy.fields.consent}</span>
+						</label>
+						{errors.consent ? (
+							<p class="pz-field__error" id={`${f}-consent-error`}>
+								{errors.consent}
+							</p>
+						) : null}
+					</div>
+					<p class="pz-field__error" role="alert" data-show={`$${lost}`} style="display: none">
+						{`${copy.failed.title}. ${copy.failed.text}`}
+					</p>
 					<Button type="submit" size="lg" arrow attrs={{ "data-attr:disabled": "$sending" }}>
 						{copy.fields.submit}
 					</Button>

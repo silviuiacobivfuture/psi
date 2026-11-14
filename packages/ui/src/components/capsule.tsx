@@ -136,7 +136,9 @@ export function CapsuleSheet({
 
 /** Said once, politely, when the conversation goes full screen by itself. */
 export function CapsuleLive({ text }: { text: string }): JSX.Element {
-	return <p class="sr-only pz-compass__fs-live" role="status" aria-live="polite" data-on={text} />;
+	return (
+		<p class="sr-only pz-compass__fs-live" role="status" aria-live="polite" data-announce={text} />
+	);
 }
 
 export interface CapsuleBarProps {
