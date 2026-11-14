@@ -28,6 +28,9 @@ export const StaffInviteBody = z.object({
 	locale: Locale.default("ro"),
 });
 
+/** A new one-time set-password link for a member who never signed in: for the inviter to pass on, shown once. */
+export const StaffLinkResult = z.object({ signInLink: z.url() });
+
 export const StaffInviteResult = z.object({
 	member: Member,
 	/** `created`: a new sign-in account, with no password yet. `existing`: the person already had one. */
