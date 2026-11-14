@@ -93,7 +93,7 @@ export interface GuideOptions {
 	 */
 	scheduling?: SchedulingPort;
 	/**
-	 * The organisation's visitor assistant settings and meters (`schedulingFromEnv(...).scheduling.assistant`): on a brand
+	 * The organisation's visitor assistant settings and meters (`visitorAssistantPort(createSiteAssistant(...))`, over the scheduling service): on a brand
 	 * that schedules, the store's limits, budget and model govern the guide over `settings` (which keep the content).
 	 */
 	visitorAssistant?: VisitorAssistantPort;

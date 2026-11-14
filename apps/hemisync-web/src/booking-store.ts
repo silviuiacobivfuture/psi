@@ -1,6 +1,8 @@
+import { visitorAssistantPort } from "@psi/guide";
 import { callbackListUrl, createSmtpMailer, readMailEnv } from "@psi/scheduling";
 import {
 	createBookingDeps,
+	createSiteAssistant,
 	createVisitorScheduling,
 	readSchedulingApiEnv,
 	type VisitorScheduling,
@@ -24,6 +26,15 @@ export const scheduling: VisitorScheduling | undefined = SCHEDULING.ok
 	? createVisitorScheduling(SCHEDULING.config, site.tenant)
 	: undefined;
 
+/**
+ * The organisation's governance of the site's assistant (Setări → Asistent, the site's surface), asked of the
+ * scheduling service with the same key: the guide's limits, budget, model and meters, and whether this site may
+ * offer a call back. No store credentials on the site; without the service, the CMS's settings and the engine's.
+ */
+export const siteAssistant = SCHEDULING.ok
+	? visitorAssistantPort(createSiteAssistant(SCHEDULING.config))
+	: undefined;
+
 /** The team's e-mail: optional; without it requests are only stored (and listed in the CMS). */
 const MAIL = readMailEnv(process.env);
 if (!MAIL.ok && MAIL.problem === "invalid") {
@@ -38,6 +49,9 @@ if (!MAIL.ok && MAIL.problem === "invalid") {
 export const bookingDeps = createBookingDeps({
 	site,
 	scheduling,
+	...(siteAssistant === undefined
+		? {}
+		: { callbackOffered: () => siteAssistant.callbackOffered(site.tenant) }),
 	mailer: MAIL.ok ? createSmtpMailer(MAIL.config) : undefined,
 	notifyTo: MAIL.ok ? MAIL.config.notifyTo : [],
 	mailCopy: callbackMailCopy(),

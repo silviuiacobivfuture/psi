@@ -94,6 +94,11 @@ export interface Picker {
 	view(choices: PickerChoices, preferred?: string): Promise<PickerView>;
 	/** The store's active services, or none when it cannot be read. */
 	services(): Promise<ReadonlyArray<ServiceInfo>>;
+	/**
+	 * Whether the organisation lets the site offer a call back instead of a time (`booking.offerCallback` of its
+	 * visitor settings); absent, the site's own form decides.
+	 */
+	callbackOffered?(): Promise<boolean>;
 }
 
 function utc(date: string): number {
@@ -124,6 +129,7 @@ export function createPicker(
 	tenant: string,
 	now: () => number = Date.now,
 	log: (error: unknown) => void = () => {},
+	callbackOffered?: () => Promise<boolean>,
 ): Picker {
 	async function catalogue() {
 		if (client === undefined) return undefined;
@@ -136,6 +142,7 @@ export function createPicker(
 		}
 	}
 	return {
+		...(callbackOffered === undefined ? {} : { callbackOffered }),
 		enabled: client !== undefined,
 		async services() {
 			return (await catalogue())?.services ?? [];

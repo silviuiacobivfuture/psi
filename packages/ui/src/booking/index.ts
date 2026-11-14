@@ -36,6 +36,7 @@ export {
 	type SchedulingApiConfig,
 	type SchedulingApiProblem,
 } from "./service-env";
+export { createSiteAssistant, type SiteAssistant } from "./site-assistant";
 export { registerBookingSubmit } from "./submit";
 export {
 	type AccountLine,

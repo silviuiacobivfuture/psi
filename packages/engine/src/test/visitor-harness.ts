@@ -1,4 +1,9 @@
-import { ASSISTANT_DEFAULT_MODEL } from "@psi/scheduling-sdk/contract";
+import {
+	ASSISTANT_DEFAULT_MODEL,
+	AssistantOrgDocument,
+	AssistantPlatformDocument,
+	orgSettings,
+} from "@psi/scheduling-sdk/contract";
 import type { EngineFailure, EngineTranscript } from "../ask-context";
 import { createEngine, type EngineOptions } from "../engine";
 import type { Profile } from "../profile";
@@ -52,7 +57,10 @@ const ZERO: VisitorUsageRecord = {
 	limitHits: 0,
 };
 
-/** The organisation's store as the port sees it: its documents (JSON text), its meters, and what was recorded. */
+/**
+ * The scheduling service as the port sees it: the documents it holds (JSON text), merged as the service merges them
+ * (a document it cannot read fails the read, as the service answers 500), its meters, and what was recorded.
+ */
 export class FakeVisitorStore implements VisitorAssistantPort {
 	platform: string | undefined;
 	org: string | undefined;
@@ -60,6 +68,8 @@ export class FakeVisitorStore implements VisitorAssistantPort {
 	day: VisitorUsageRecord = { ...ZERO };
 	failing = false;
 	missing = false;
+	/** Settings the service answers in place of the merge (a shape the engine must refuse). */
+	raw: unknown;
 	readonly records: Array<{ tenant: string; usage: VisitorUsageRecord }> = [];
 	readonly reads: Array<string> = [];
 
@@ -81,9 +91,14 @@ export class FakeVisitorStore implements VisitorAssistantPort {
 		this.reads.push(tenant);
 		if (this.failing) throw new Error("store unreachable for visitor@example.com");
 		if (this.missing) return undefined;
+		const platform =
+			this.platform === undefined
+				? undefined
+				: AssistantPlatformDocument.parse(JSON.parse(this.platform));
+		const org =
+			this.org === undefined ? undefined : AssistantOrgDocument.parse(JSON.parse(this.org));
 		return {
-			...(this.platform === undefined ? {} : { platform: this.platform }),
-			...(this.org === undefined ? {} : { org: this.org }),
+			settings: this.raw ?? orgSettings({ platform, org }, "visitor"),
 			usage: { month: this.month, day: this.day },
 		};
 	}

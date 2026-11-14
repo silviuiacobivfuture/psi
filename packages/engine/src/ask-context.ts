@@ -14,6 +14,7 @@ import type { ScreeningRules } from "./screening/chain";
 import type { RateLimiter } from "./screening/rate-limit";
 import type { SettingsSource } from "./settings";
 import type { EngineTiming } from "./timing";
+import type { ModelUsage } from "./usage";
 import type { GovernanceSource } from "./visitor-governance";
 import type { RefusalCounter } from "./visitor-turn";
 
@@ -132,7 +133,10 @@ export interface AskContext {
 	 * Builds the model the guardrail processors call, telling `onError` what failed; undefined when
 	 * model screening is off.
 	 */
-	screeningModel: ((onError: (error: Error) => void) => ChatModel) | undefined;
+	/** The strict level's guardrail model; `onUsage` hears what each of its calls used, for the organisation's meters. */
+	screeningModel:
+		| ((onError: (error: Error) => void, onUsage?: (usage: ModelUsage) => void) => ChatModel)
+		| undefined;
 	/** The agent with no memory, or undefined when there is no API key. */
 	agent: Agent | undefined;
 	/** The agent with memory, opened on first use; undefined when memory is not configured. */

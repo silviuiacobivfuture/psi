@@ -1,6 +1,7 @@
 import type { MastraModelConfig } from "@mastra/core/llm";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { z } from "zod";
+import { type ModelUsage, providerUsage } from "./usage";
 
 /** An OpenRouter model slug: `vendor/model`, optionally with a `:variant`. */
 export const ModelIdSchema: z.ZodType<string> = z
@@ -61,7 +62,10 @@ async function drain(reader: ReadableStreamDefaultReader<OpenRouterStreamPart>):
  *   A cancel is therefore never forwarded; the request is stopped by its abort signal and what is
  *   left of the stream is drained.
  */
-function shielded(source: ReadableStream<OpenRouterStreamPart>): ReadableStream<MastraStreamPart> {
+function shielded(
+	source: ReadableStream<OpenRouterStreamPart>,
+	onFinish: ((part: OpenRouterStreamPart) => void) | undefined,
+): ReadableStream<MastraStreamPart> {
 	const reader = source.getReader();
 	return new ReadableStream<MastraStreamPart>({
 		async pull(controller) {
@@ -75,6 +79,7 @@ function shielded(source: ReadableStream<OpenRouterStreamPart>): ReadableStream<
 					controller.enqueue({ type: "error", error: sanitized(next.value.error) });
 					return;
 				}
+				if (next.value.type === "finish") onFinish?.(next.value);
 				if (next.value.type !== "ping") {
 					controller.enqueue(next.value);
 					return;
@@ -130,6 +135,7 @@ function sanitized(error: unknown): Error {
 function forMastra(
 	model: OpenRouterChatModel,
 	onError: ((error: ProviderError | Error) => void) | undefined,
+	onUsage: ((usage: ModelUsage) => void) | undefined,
 ): MastraModelV4 {
 	const fail = (error: unknown): Error => {
 		const clean = sanitized(error);
@@ -143,7 +149,9 @@ function forMastra(
 		supportedUrls: model.supportedUrls,
 		doGenerate: async (options) => {
 			try {
-				return await model.doGenerate(options);
+				const result = await model.doGenerate(options);
+				onUsage?.(providerUsage(result.usage, result.providerMetadata));
+				return result;
 			} catch (error) {
 				throw fail(error);
 			}
@@ -151,7 +159,14 @@ function forMastra(
 		doStream: async (options) => {
 			try {
 				const result = await model.doStream(options);
-				return { ...result, stream: shielded(result.stream) };
+				const finished =
+					onUsage === undefined
+						? undefined
+						: (part: OpenRouterStreamPart) => {
+								if (part.type === "finish")
+									onUsage(providerUsage(part.usage, part.providerMetadata));
+							};
+				return { ...result, stream: shielded(result.stream, finished) };
 			} catch (error) {
 				throw fail(error);
 			}
@@ -186,6 +201,11 @@ export interface ModelOptions {
 	fallbacks?: ReadonlyArray<string>;
 	/** Ask OpenRouter for each answer's tokens and cost (its usage accounting), for the meters. */
 	usage?: boolean;
+	/**
+	 * Told what each call of this model used, read from the provider's own answer: for a model the engine does not drive
+	 * itself (the guardrail processors' internal agents), how its calls still reach the meters. Implies `usage`.
+	 */
+	onUsage?: (usage: ModelUsage) => void;
 }
 
 /** How OpenRouter orders the providers it may route to. */
@@ -208,8 +228,9 @@ export function openRouterModel(opts: ModelOptions): ChatModel {
 				? {}
 				: // As extra body: the provider drops the sampling settings when it is told of `models` itself.
 					{ extraBody: { models: [opts.modelId, ...opts.fallbacks] } }),
-			...(opts.usage === true ? { usage: { include: true } } : {}),
+			...(opts.usage === true || opts.onUsage !== undefined ? { usage: { include: true } } : {}),
 		}),
 		opts.onError,
+		opts.onUsage,
 	);
 }

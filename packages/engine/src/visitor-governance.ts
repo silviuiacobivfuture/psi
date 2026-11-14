@@ -1,10 +1,8 @@
 import {
-	AssistantOrgDocument,
-	AssistantPlatformDocument,
+	AssistantSettings,
 	type AssistantSettingsType,
 	type AssistantStopName,
 	BUILT_IN_SETTINGS,
-	orgSettings,
 	stopFor,
 } from "@psi/scheduling-sdk/contract";
 import { z } from "zod";
@@ -12,7 +10,8 @@ import { within } from "./deadline";
 
 /**
  * The visitor assistant's settings as the organisation stored them (Setări → Asistent, the site's surface), over the
- * estate's defaults and within its ceilings, read once per turn from the scheduling store through the app's port.
+ * estate's defaults and within its ceilings, merged by the scheduling service and read once per turn through the app's
+ * port (its `visitor.assistant` route, with the site's service key).
  *
  * Precedence against the CMS's `ai-settings` (`RetrievalSettings`): on a site the store governs, THE STORE WINS for
  * whether the assistant runs (`enabled`; the CMS's `guideEnabled` no longer switches it), its model and fallbacks, its
@@ -42,17 +41,19 @@ const Meter = z.object({
 });
 export type VisitorUsageRecord = z.infer<typeof Meter>;
 
-/** What the port answers for an organisation: its tiers as stored (JSON text) and its visitor meters. */
+/**
+ * What the port answers for an organisation: the visitor settings the service merged (parsed here with the contract's
+ * own schema) and its visitor meters.
+ */
 export const VisitorStoreReadSchema = z.object({
-	platform: z.string().optional(),
-	org: z.string().optional(),
+	settings: z.unknown(),
 	usage: z.object({ month: Meter, day: Meter }),
 });
 export type VisitorStoreRead = z.infer<typeof VisitorStoreReadSchema>;
 
 /**
- * The app's way to the scheduling store for the visitor assistant (`@psi/guide`'s `visitorAssistantPort` over
- * `@psi/scheduling`). `read` answers `VisitorStoreRead` (parsed here), or undefined when the organisation is not
+ * The app's way to the scheduling service for the visitor assistant (`@psi/guide`'s `visitorAssistantPort` over
+ * `@psi/ui`'s `createSiteAssistant`). `read` answers `VisitorStoreRead` (parsed here), or undefined when the organisation is not
  * there; `record` adds one turn's use to its meters.
  */
 export interface VisitorAssistantPort {
@@ -85,18 +86,6 @@ export interface GovernanceSource {
 	retentionDays(): number;
 }
 
-/** A stored document, parsed with the contract's own schema; one that does not parse is a failed read. */
-function parsed<T>(
-	parse: (v: unknown) => { success: true; data: T } | { success: false },
-	body: string | undefined,
-	what: string,
-): T | undefined {
-	if (body === undefined) return undefined;
-	const doc = parse(JSON.parse(body));
-	if (!doc.success) throw new Error(`the stored ${what} cannot be read`);
-	return doc.data;
-}
-
 /** The governance of one organisation's visitor turns, read through `port`. */
 export function createGovernance(
 	port: VisitorAssistantPort,
@@ -116,22 +105,9 @@ export function createGovernance(
 				);
 				if (raw === undefined) throw new Error(`the store has no app ${tenant}`);
 				const read = VisitorStoreReadSchema.parse(raw);
-				const settings = orgSettings(
-					{
-						platform: parsed(
-							(v) => AssistantPlatformDocument.safeParse(v),
-							read.platform,
-							"estate document",
-						),
-						org: parsed(
-							(v) => AssistantOrgDocument.safeParse(v),
-							read.org,
-							"organisation document",
-						),
-					},
-					"visitor",
-				);
-				last = { settings, usage: read.usage };
+				const settings = AssistantSettings.safeParse(read.settings);
+				if (!settings.success) throw new Error("the service's visitor settings cannot be read");
+				last = { settings: settings.data, usage: read.usage };
 			} catch (error) {
 				onError(error, "settings");
 			}
