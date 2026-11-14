@@ -10,6 +10,7 @@ import { createFakeInvites } from "./fake-invites";
 import { createFakeMembers, membershipsOf, teamFrom } from "./fake-members";
 import { createFakeProfile } from "./fake-profile";
 import { reportOf } from "./fake-report";
+import { createFakeStaff, type FakeAccount } from "./fake-staff";
 import {
 	type CalendarData,
 	type ClientFilter,
@@ -41,6 +42,8 @@ export interface FakeOptions {
 	platformAdmins?: ReadonlySet<string>;
 	/** Methods that fail with `unavailable`, to show the error states. */
 	failing?: ReadonlySet<keyof ClinicPort>;
+	/** The fake sign-in's accounts the add-member search finds and an invitation reuses (none by default). */
+	staff?: ReadonlyArray<FakeAccount>;
 	/** Start with no clients, appointments, packages, requests or audit events (the empty states). */
 	empty?: boolean;
 }
@@ -123,6 +126,14 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 	const team = teamFrom(opts.members, opts.names);
 	const access = createFakeAccess({ team, platformAdmins: opts.platformAdmins, data, guard, log });
 	const members = createFakeMembers({ team, self: me, data, guard, log });
+	const staff = createFakeStaff({
+		team,
+		self: me,
+		accounts: [...(opts.staff ?? [])],
+		data,
+		guard,
+		log,
+	});
 
 	const floorAndPrefs = createFakeFloorAndPrefs({ data, guard, log });
 	const catalog = createFakeCatalog({ data, guard, log, nextId: (p) => `${p}${++seq}` });
@@ -133,6 +144,7 @@ export function createFakePort(opts: FakeOptions): ClinicPort {
 		...profile,
 		...access,
 		...members,
+		...staff,
 		...clinical,
 		...catalog,
 		...invites,

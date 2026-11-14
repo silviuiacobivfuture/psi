@@ -55,7 +55,14 @@ import type {
 	NotePatch,
 	RecordPatch,
 } from "./schema-clinical";
-import type { MemberDetail, MemberInput, OverridesInput } from "./schema-members";
+import type {
+	InviteInput,
+	InviteOutcome,
+	MemberDetail,
+	MemberInput,
+	OverridesInput,
+	StaffMatch,
+} from "./schema-members";
 
 export type ClientFilter = "current" | "archived";
 
@@ -268,6 +275,14 @@ export interface ClinicPort extends ProfilePort {
 	): Promise<{ grant: ReadonlyArray<string>; deny: ReadonlyArray<string> }>;
 	/** Takes the person out of the team: their roles, grants and denials go with them. */
 	removeMember(app: AppSlug, subject: string): Promise<void>;
+	/** People of the staff sign-in group matching a name or an e-mail (never a client's account); at most 20. */
+	searchStaff(app: AppSlug, query: string): Promise<ReadonlyArray<StaffMatch>>;
+	/**
+	 * Invites someone by e-mail: their account is found or made in the staff group, they are added with these roles and
+	 * e-mailed. Refuses (`conflict`, with the service's reason) a client's account, a switched-off one, someone already in
+	 * the team; (`unavailable`) when the sign-in cannot be reached or no staff group is configured.
+	 */
+	inviteMember(app: AppSlug, input: InviteInput): Promise<InviteOutcome>;
 	/** Binds a calendar column (a person) to the member's sign-in: their `own` reach is that calendar. */
 	linkCalendar(app: AppSlug, subject: string, personId: string): Promise<void>;
 	/** Starts / ends looking at the app as someone else: audited events of the administrator. */
