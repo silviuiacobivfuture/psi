@@ -10,4 +10,5 @@
 **/.env.*
 **/.data
 **/.credentials
-.seb-bundle
+# .seb-bundle is NOT ignored: pnpm install inside the build installs from it. CI installs the locked bundle
+# before the build (.github/actions/seb-bundle); without it pnpm tries the registry and gets HTTP 401.

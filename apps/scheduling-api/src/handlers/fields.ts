@@ -3,6 +3,7 @@ import { type Client, ClinicalData } from "@psi/scheduling-sdk/contract";
 import type { z } from "zod/v4";
 import { reaches } from "../authz/access";
 import type { Ctx } from "../http/context";
+import { FIELDS } from "../ports/crypto";
 import type { AppointmentRow, ClientRow } from "../store/types";
 
 type C = Ctx<RouteSpec>;
@@ -34,20 +35,17 @@ export async function clientGroupReach(ctx: C): Promise<ClientGroupReach> {
 	return { contact, guardian, money, clinical };
 }
 
-export const clinicalContext = (app: string, clientId: string): string =>
-	`${app}:client:${clientId}:clinical`;
-
 /**
  * A client as the caller may see it: the identity, and each field group only where their reach includes this client.
  * A group they may not see is absent from the object (not null, not masked). Clinical data is opened here and nowhere
  * else, and returns `clinicalRead` so the caller audits the read.
  */
-export function clientView(
+export async function clientView(
 	ctx: C,
 	row: ClientRow,
 	reach: ClientGroupReach,
 	include: ClientInclude = { contact: true, guardian: true, money: true, clinical: true },
-): { client: ClientOut; clinicalRead: boolean } {
+): Promise<{ client: ClientOut; clinicalRead: boolean }> {
 	const out: ClientOut = {
 		id: row.id,
 		name: row.name,
@@ -72,7 +70,7 @@ export function clientView(
 	let clinicalRead = false;
 	if (include.clinical && row.clinicalSealed !== undefined && reaches(reach.clinical, row.id)) {
 		out.clinical = ClinicalData.parse(
-			JSON.parse(ctx.deps.crypto.open(row.clinicalSealed, clinicalContext(row.app, row.id))),
+			JSON.parse(await ctx.deps.crypto.open(row.app, FIELDS.clinical, row.clinicalSealed)),
 		);
 		clinicalRead = true;
 	}

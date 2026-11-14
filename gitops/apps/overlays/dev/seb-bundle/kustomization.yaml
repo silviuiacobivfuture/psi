@@ -37,3 +37,13 @@ resources:
   - seb-nextcloud.yaml
   - seb-harbor.yaml
   - seb-arc-runners.yaml
+  - seb-n8n.yaml
+  - seb-nx-cache.yaml
+  - seb-otel-logging.yaml
+  - seb-health-digest.yaml
+  - seb-openfga.yaml
+  - seb-novu.yaml
+  - seb-openbao-store.yaml
+  - seb-plunk.yaml
+  - seb-plane.yaml
+  - seb-autorizare.yaml

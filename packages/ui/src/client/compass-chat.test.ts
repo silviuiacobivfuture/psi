@@ -146,6 +146,29 @@ describe("the compass chat's kept conversation", () => {
 		]);
 	});
 
+	it("keeps no booking detail on the device: the state resumes without the name, the phone or the description", () => {
+		const { chat, items } = browser();
+		chat.load(KEY);
+		const booking = {
+			stage: "details",
+			criteria: { service: "evaluation", days: 14, partOfDay: "any" },
+			shown: [],
+			asked: "phone",
+			details: { name: "Ana Pop", age: 34, details: "nu dorm de o lună" },
+		};
+		chat.save(KEY, {
+			turns: [{ role: "guide", text: "Ce telefon?", booking }],
+			pending: "",
+			draft: "",
+			remembered: false,
+		});
+		vi.advanceTimersByTime(200);
+		const kept = items.get(KEY) ?? "";
+		expect(kept).not.toContain("Ana Pop");
+		expect(kept).not.toContain("nu dorm");
+		expect(JSON.parse(kept).turns[0].booking).toMatchObject({ stage: "details", asked: "phone" });
+	});
+
 	it("keeps the page each turn was asked on across a reload, and nothing else it was given", () => {
 		const { chat, items } = browser();
 		chat.load(KEY);

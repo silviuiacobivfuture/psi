@@ -19,7 +19,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 spec:
-  version: registries-hold-4a849734
+  version: registries-hold-eca23e0e
   nodeSelector:
     matchExpressions:
       - { key: node-role.kubernetes.io/control-plane, operator: DoesNotExist }
@@ -43,7 +43,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "6"
 spec:
-  version: registries-hold-4a849734
+  version: registries-hold-eca23e0e
   nodeSelector:
     matchExpressions:
       - { key: node-role.kubernetes.io/control-plane, operator: In, values: ["true"] }

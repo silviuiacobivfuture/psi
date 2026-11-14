@@ -255,12 +255,14 @@ const OWN: Record<
 	"calendar.get": (w) =>
 		olga(w, "GET", `/calendar?from=${NOW}&to=${NOW + 3 * 24 * HOUR}&columns=person`),
 	"appointments.list": (w) => olga(w, "GET", `/appointments?from=${NOW}&to=${NOW + 3 * 24 * HOUR}`),
+	// At 22:00 in Bucharest, two days on: an hour no online booking can take, whatever the backend's own clock picks
+	// as the visitors' first free slot in the cases before this one.
 	"appointments.create": (w) =>
 		olga(w, "POST", "/appointments", {
 			practitionerId: w.ids.dora,
 			clientId: w.ids.c1,
-			start: NOW + 48 * HOUR,
-			end: NOW + 49 * HOUR,
+			start: NOW + 60 * HOUR,
+			end: NOW + 61 * HOUR,
 		}),
 	"appointments.get": (w) => olga(w, "GET", `/appointments/${w.ids.a1}`),
 	"appointments.update": (w) =>

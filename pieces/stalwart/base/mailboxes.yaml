@@ -10,3 +10,8 @@ metadata:
   name: stalwart-mailboxes
 data:
   mailboxes: ""
+  # Group addresses: one per line, `<group> <member> [<member>...]`, every member one of the
+  # mailboxes above; a mailing list, so mail to <group>@<MAILBOX_DOMAIN> lands in every member's
+  # own inbox (render-plan.sh). An estate's
+  # operations address (OPS_EMAIL) is one, so who reads it changes here, never at a sender.
+  groups: ""

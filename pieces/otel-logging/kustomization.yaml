@@ -8,6 +8,14 @@
 # Axiom dataset names carry the estate slug as the token WLSLUG (ESTATE_SLUG:
 # dataset-names.yaml + slug-replacements.yaml). Render is byte-identical for the
 # current values. To rebrand: edit estate/identity.yaml, regenerate the component.
+#
+# The collector's IMAGE is the estate's to build and pin (its layer,
+# ../../components/estate/otel-logging): SEB's pieces/otel-logging/image built from the release,
+# tagged seb-<commit:9> (the SEB commit, as every image SEB builds for an estate), signed with
+# SEB's key and pinned by digest. Never a shared, mutable version tag: an estate workflow once
+# rebuilt 0.111.0 over itself unsigned, and nodes kept running an older build cached under it.
+# The base names `:REPLACE_ME`, which makes the bundle ship the piece as a kustomization
+# (estateImages), so the estate's Application sets the pin between releases.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: observability
@@ -23,6 +31,7 @@ configMapGenerator:
       - cluster-config.yaml=files/cluster-config.yaml
 components:
   - ../../components/whitelabel
+  - ../../components/estate/otel-logging
 replacements:
   - path: whitelabel-replacements.yaml
   - path: slug-replacements.yaml

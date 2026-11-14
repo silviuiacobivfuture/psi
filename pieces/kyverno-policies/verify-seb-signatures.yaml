@@ -15,6 +15,14 @@
 # Application that deploys it, from spec.info (name seb-bundle, value <registry>/seb/bundle@sha256:…),
 # which the estate's upgrade step writes beside targetRevision. An Application labelled as deploying
 # from the bundle that does not name it there is reported by the second rule.
+#
+# CREDENTIALS. The images' project and the bundle's are PRIVATE, so Kyverno reads the signatures as
+# a robot: the Secret seb-signature-pull in Kyverno's namespace (seb-signature-pull.yaml), a
+# dockerconfigjson for the estate's registry, from the secret-store path the identity names
+# (REF_SIGNATURE_PULL_PATH, default secret/platform/harbor/verify; fields username, password).
+# The estate provides that robot: READ-ONLY, with pull on the images' project
+# AND on the bundle's (seb). Without it the registry answers UNAUTHORIZED, nothing is verified, and
+# Enforce would refuse every SEB image.
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy
 metadata:
@@ -52,6 +60,8 @@ spec:
             - "WLREGISTRY/WLAPPS/novu-bridge*"
             - "WLREGISTRY/WLAPPS/plunk-sso*"
             - "WLREGISTRY/WLAPPS/plane-backend-sso*"
+          imageRegistryCredentials:
+            secrets: [seb-signature-pull]
           mutateDigest: false
           verifyDigest: false
           required: true
@@ -80,6 +90,8 @@ spec:
         - failureAction: Audit
           imageReferences:
             - "WLREGISTRY/seb/bundle@*"
+          imageRegistryCredentials:
+            secrets: [seb-signature-pull]
           mutateDigest: false
           verifyDigest: true
           required: true

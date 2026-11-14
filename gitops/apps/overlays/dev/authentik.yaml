@@ -79,6 +79,10 @@ spec:
             - secretRef:
                 name: authentik-clinic-oidc
                 optional: true
+            # The production console's own client (clinic-prod-oidc-externalsecret.yaml), OPTIONAL likewise.
+            - secretRef:
+                name: authentik-clinic-prod-oidc
+                optional: true
             # AFFiNE's OIDC client (gitops/platform/authentik/affine-oidc-externalsecret.yaml).
             # OPTIONAL so a client not seeded yet never holds the directory down; the affine-oidc
             # provider shows an empty client id meanwhile and AFFiNE refuses to start, by name.
@@ -206,6 +210,8 @@ spec:
             - authentik-blueprints-cms
             # psi's clinic console (OIDC provider, application, team group). Also in the kustomization.
             - authentik-blueprints-clinic
+            # The same console in production (own provider, application and team group).
+            - authentik-blueprints-clinic-prod
         # securityContext satisfies the cluster Kyverno policies (Enforce):
         # require-run-as-non-root + disallow-privileged. Set on server/worker (pod =
         # securityContext, container = containerSecurityContext) and the bundled

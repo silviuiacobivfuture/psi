@@ -8,3 +8,12 @@ patches:
     patch: |-
       - { op: test, path: /spec/template/spec/containers/0/name, value: plane-api }
       - { op: replace, path: /spec/template/spec/containers/0/resources/requests/memory, value: 320Mi }
+# Slot `image` (schema/slots/plane.yaml, SEB 0.1.66): Plane's backend runs SEB's estate-neutral
+# signed build of apps/plane-sso (892a3ca6f441, plane_sso suite 120/120), copied into
+# registry.psizone.ro/psi with its signature. psi's mapping, brand and admin address reach it from
+# plane-platform (PLANE_SSO_MAPPING_YAML, PLANE_SSO_BRAND, PLANE_SSO_ADMIN_EMAIL).
+images:
+  - name: WLREGISTRY/WLAPPS/plane-backend-sso/f9b8831d4e3e
+    newName: WLREGISTRY/WLAPPS/plane-backend-sso/892a3ca6f441
+    newTag: v1.4.2
+    digest: sha256:51ccf2b8a1e699369b7fa8371017e9b29db59ff29619aace0a6dda9a7c008025

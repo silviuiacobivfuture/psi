@@ -8,10 +8,12 @@ import { buildDeps } from "../build";
 import type { Config } from "../config";
 import { createApp } from "../http/app";
 import type { Deps, HttpEnv, LogEvent } from "../http/context";
+import { createInviteActions, mountInviteRoutes } from "../invite-routes";
 import { createMemoryMailer, type MemoryMailer } from "../ports/mail";
 import { createMemoryNotify, type MemoryNotify } from "../ports/notify";
 import { createMemoryObjects, type MemoryObjects } from "../ports/objects";
 import { createLimiter } from "../ports/ratelimit";
+import { createFakeSso, type FakeSso } from "../ports/sso";
 import { createReminderActions } from "../reminder-actions";
 import { mountReminderRoutes } from "../reminder-routes";
 import { createMemoryStore, type MemoryStore } from "../store/memory";
@@ -44,6 +46,8 @@ export interface World {
 	mail: MemoryMailer;
 	objects: MemoryObjects;
 	notifier: MemoryNotify;
+	/** The sign-in: accounts in memory, every call recorded, and a switch to make it unreachable. */
+	sso: FakeSso;
 	issuer: TestIssuer;
 	/** What the reminder links told the notifier (`reminder.confirmed`, `reminder.declined`). */
 	linkNotices: {
@@ -112,11 +116,13 @@ export function testConfig(issuer: TestIssuer): Config {
 			{ id: "cms", app: "psizone" },
 		],
 		masterKey: MASTER_KEY,
+		delivery: "send",
 		store: { kind: "memory" },
 		authz: { kind: "memory" },
 		mail: undefined,
 		objects: undefined,
 		notify: undefined,
+		sso: undefined,
 		callerHashes: new Map(Object.entries(SECRETS).map(([id, secret]) => [id, hashSecret(secret)])),
 	};
 }
@@ -131,6 +137,7 @@ export async function createBareWorld(options: WorldOptions = {}): Promise<World
 	const mail = createMemoryMailer();
 	const objects = createMemoryObjects(() => clock.now);
 	const notifier = createMemoryNotify();
+	const sso = createFakeSso();
 	const logs: LogEvent[] = [];
 	const linkNotices: World["linkNotices"] = [];
 	const usedLinks = createMemoryUsedLinks(() => clock.now);
@@ -150,6 +157,17 @@ export async function createBareWorld(options: WorldOptions = {}): Promise<World
 		mailer: mail,
 		objects,
 		notifier,
+		sso,
+		links: {
+			secret: LINK_SECRET,
+			publicOrigin: "https://api-programari.test",
+			consoleUrl: "https://clinic.test",
+		},
+		invites: mountInviteRoutes({
+			secret: LINK_SECRET,
+			actions: createInviteActions(store, sso, () => clock.now),
+			now: () => clock.now,
+		}),
 		reminders: mountReminderRoutes({
 			secret: LINK_SECRET,
 			used: usedLinks,
@@ -208,6 +226,7 @@ export async function createBareWorld(options: WorldOptions = {}): Promise<World
 		mail,
 		objects,
 		notifier,
+		sso,
 		issuer,
 		linkNotices,
 		logs,
@@ -246,6 +265,7 @@ export async function createBareWorld(options: WorldOptions = {}): Promise<World
 				objects.removed,
 				notifier.sent,
 				linkNotices,
+				[...sso.accounts.values()],
 			]),
 	};
 }

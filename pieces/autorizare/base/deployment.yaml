@@ -47,6 +47,7 @@ spec:
       # route to OpenFGA's write surface.
       labels: { app: autorizare-svc }
     spec:
+      serviceAccountName: autorizare-svc
       imagePullSecrets:
         - name: harbor-pull
       securityContext:
@@ -263,7 +264,15 @@ spec:
             # own sender (noreply@polaris.<apex>, its own Plunk key), GENERATED
             # by apps/plunk-sso/bin/email-sync.mjs (email.generated.yaml).
             - secretRef: { name: email-sender }
+            # Error reporting (glitchtip-externalsecret.yaml): OPTIONAL — without it the
+            # service starts, logs once that telemetry is off, and doctor.sh names the slot.
+            - secretRef: { name: autorizare-glitchtip, optional: true }
+            # The console's DSN (glitchtip-console-externalsecret.yaml), served to the page at
+            # /telemetry/telemetry.json: OPTIONAL — without it the console reports nothing.
+            - secretRef: { name: autorizare-console-glitchtip, optional: true }
           env:
+            - { name: SENTRY_ENVIRONMENT, value: dev }
+            - { name: SENTRY_SERVER_NAME, value: autorizare-svc }
             - name: LISTEN_ADDR
               value: ":8080"
             # The in-cluster receivers, each subscribed as code by
@@ -274,6 +283,12 @@ spec:
             # estate's, so its layer sets them (components/estate/autorizare);
             # empty here: no receiver.
             - name: WEBHOOK_EGRESS_ALLOWLIST
+              value: ""
+            # The mirrors of every Convex instance the estate declares, the consumers' too
+            # (convex/instances/<name>/): FILLED by the bundle (tools/bundle/webhook-receivers.mjs),
+            # never by hand, so a new instance is told about revocations at once. Polaris takes
+            # only convex-backend.<namespace>.svc.cluster.local here.
+            - name: WEBHOOK_EGRESS_INSTANCES
               value: ""
             # RUN_RECONCILER, RUN_DRIFT, RUN_REAPER, RUN_DELIVERY and
             # RUN_ROLL_CLOSER (a rolled credential's old provider deleted at

@@ -158,6 +158,7 @@ describe("an article page", () => {
 			status: "in-review",
 			title: "Neurofeedback pentru atenție",
 			url: `${BLOG}/articole/in-revizuire-psi`,
+			brand: "psizone",
 			headings: [],
 		});
 	});

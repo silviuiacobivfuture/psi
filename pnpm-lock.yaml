@@ -117,6 +117,9 @@ importers:
       '@inlang/paraglide-js':
         specifier: ^3.2.2
         version: 3.2.2(typescript@5.9.3)(vite@5.4.21(@types/node@24.19.2)(lightningcss@1.33.0)(sass@1.77.4))
+      '@inlang/plugin-message-format':
+        specifier: 4.4.0
+        version: 4.4.0
       '@tailwindcss/cli':
         specifier: ^4.3.5
         version: 4.3.5
@@ -309,6 +312,9 @@ importers:
       '@inlang/paraglide-js':
         specifier: ^3.2.2
         version: 3.2.2(typescript@5.9.3)(vite@5.4.21(@types/node@24.19.2)(lightningcss@1.33.0)(sass@1.77.4))
+      '@inlang/plugin-message-format':
+        specifier: 4.4.0
+        version: 4.4.0
       '@tailwindcss/cli':
         specifier: ^4.3.5
         version: 4.3.5
@@ -354,6 +360,9 @@ importers:
       '@psi/pwa':
         specifier: workspace:*
         version: link:../../packages/pwa
+      '@psi/scheduling':
+        specifier: workspace:*
+        version: link:../../packages/scheduling
       '@psi/site-control':
         specifier: workspace:*
         version: link:../../packages/site-control
@@ -370,6 +379,9 @@ importers:
       '@inlang/paraglide-js':
         specifier: ^3.2.2
         version: 3.2.2(typescript@5.9.3)(vite@5.4.21(@types/node@24.19.2)(lightningcss@1.33.0)(sass@1.77.4))
+      '@inlang/plugin-message-format':
+        specifier: 4.4.0
+        version: 4.4.0
       '@tailwindcss/cli':
         specifier: ^4.3.5
         version: 4.3.5
@@ -427,9 +439,6 @@ importers:
       hono:
         specifier: ^4.13.18
         version: 4.13.18
-      nodemailer:
-        specifier: ^10.5.0
-        version: 10.5.0
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -437,12 +446,12 @@ importers:
       '@inlang/paraglide-js':
         specifier: ^3.2.2
         version: 3.2.2(typescript@5.9.3)(vite@5.4.21(@types/node@24.19.2)(lightningcss@1.33.0)(sass@1.77.4))
+      '@inlang/plugin-message-format':
+        specifier: 4.4.0
+        version: 4.4.0
       '@tailwindcss/cli':
         specifier: ^4.3.5
         version: 4.3.5
-      '@types/nodemailer':
-        specifier: ^8.0.2
-        version: 8.0.2
       esbuild:
         specifier: ^0.25.0
         version: 0.25.12
@@ -510,6 +519,9 @@ importers:
       '@psi/guide':
         specifier: workspace:*
         version: link:../guide
+      '@psi/scheduling':
+        specifier: workspace:*
+        version: link:../scheduling
       '@psi/ui':
         specifier: workspace:*
         version: link:../ui
@@ -591,6 +603,9 @@ importers:
       '@openrouter/ai-sdk-provider':
         specifier: ^3.1.0
         version: 3.1.0(ai@7.0.170(zod@3.25.76))(zod@3.25.76)
+      '@psi/scheduling':
+        specifier: workspace:*
+        version: link:../scheduling
       hono:
         specifier: ^4.13.18
         version: 4.13.18
@@ -791,6 +806,9 @@ importers:
       convex:
         specifier: 1.49.0
         version: 1.49.0(react@19.3.1)
+      nodemailer:
+        specifier: ^10.5.0
+        version: 10.5.0
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -798,6 +816,12 @@ importers:
       '@types/node':
         specifier: ^24.19.2
         version: 24.19.2
+      '@types/nodemailer':
+        specifier: ^8.0.2
+        version: 8.0.2
+      esbuild:
+        specifier: ^0.25.0
+        version: 0.25.12
       tsx:
         specifier: ^4.23.15
         version: 4.23.15
@@ -872,13 +896,16 @@ importers:
       '@psi/guide':
         specifier: workspace:*
         version: link:../guide
+      '@psi/scheduling':
+        specifier: workspace:*
+        version: link:../scheduling
       zod:
         specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
       axe-core:
-        specifier: 4.10.3
-        version: 4.10.3
+        specifier: ^4.14.0
+        version: 4.14.0
       esbuild:
         specifier: ^0.25.0
         version: 0.25.12
@@ -2984,6 +3011,9 @@ packages:
       vite:
         optional: true
 
+  '@inlang/plugin-message-format@4.4.0':
+    resolution: {integrity: sha512-n4aXt6XVg5kxhKoLAhi9nMgZtCA9iS0QOaXte56VqxWHcfj9O4c4gOkyVQZH7H9D8h7OZufCrO1sZGYOypPwEA==}
+
   '@inlang/recommend-sherlock@0.2.1':
     resolution: {integrity: sha512-ckv8HvHy/iTqaVAEKrr+gnl+p3XFNwe5D2+6w6wJk2ORV2XkcRkKOJ/XsTUJbPSiyi4PI+p+T3bqbmNx/rDUlg==}
 
@@ -4537,12 +4567,12 @@ packages:
     resolution: {integrity: sha512-kNOjDqAh7px0XWNI+4QbzoiR/nTkHAWNud2uvnJquD1/x5a7EQZMJT0AczqK0Qn67oY/TTQ1LbUKajZpp3I9tQ==}
     engines: {node: '>=8.0.0'}
 
-  axe-core@4.10.3:
-    resolution: {integrity: sha512-Xm7bpRXnDSX2YE2YFfBk2FnF0ep6tmG7xPh8iHee8MIcrgq762Nkce856dYtJYLkuIoYZvGfTs/PbZhideTcEg==}
-    engines: {node: '>=4'}
-
   axe-core@4.11.0:
     resolution: {integrity: sha512-ilYanEU8vxxBexpJd8cWM4ElSQq4QctCLKih0TSfjIfCQTeyH/6zVrmIJfLPrKTKJRbiG+cfnZbQIjAlJmF1jQ==}
+    engines: {node: '>=4'}
+
+  axe-core@4.14.0:
+    resolution: {integrity: sha512-9WTZxEjsZ7b13TH8JPmbV2z8CHbl80/2hm3XPEG4JgNdQLK81IBRXmSxHfMAOkSqQeRxT/0dwNDz2GOm3zzpcQ==}
     engines: {node: '>=4'}
 
   axios@1.21.1:
@@ -5507,6 +5537,11 @@ packages:
 
   flat@5.0.2:
     resolution: {integrity: sha512-b6suED+5/3rTpUBdG1gupIl8MPFCAMA0QXwmljLhvCUKcUvdE4gWky9zpuGCcXHOsz4J9wPGNWq6OKpmIzz3hQ==}
+    hasBin: true
+
+  flat@6.0.1:
+    resolution: {integrity: sha512-/3FfIa8mbrg3xE7+wAhWeV+bd7L2Mof+xtZb5dRDKZ+wDvYJK4WDYeIOuOhre5Yv5aQObZrlbRmk3RTSiuQBtw==}
+    engines: {node: '>=18'}
     hasBin: true
 
   flru@1.0.2:
@@ -9599,6 +9634,10 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
+  '@inlang/plugin-message-format@4.4.0':
+    dependencies:
+      flat: 6.0.1
+
   '@inlang/recommend-sherlock@0.2.1':
     dependencies:
       comment-json: 4.6.2
@@ -11263,9 +11302,9 @@ snapshots:
 
   atomic-sleep@1.0.0: {}
 
-  axe-core@4.10.3: {}
-
   axe-core@4.11.0: {}
+
+  axe-core@4.14.0: {}
 
   axios@1.21.1:
     dependencies:
@@ -12216,6 +12255,8 @@ snapshots:
       resolve-dir: 1.0.1
 
   flat@5.0.2: {}
+
+  flat@6.0.1: {}
 
   flru@1.0.2: {}
 

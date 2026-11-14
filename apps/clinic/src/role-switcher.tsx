@@ -47,6 +47,9 @@ export function RoleMenuBody({
 		<div id={ROLE_MENU_BODY} class="role-switch__body">
 			{ctx.platformAdmin ? (
 				<>
+					<div class="role-switch__group" id="role-menu-platform">
+						{m.view_as_group_platform({}, o)}
+					</div>
 					<div class="adm-menu__item role-switch__option" aria-current="true" data-view-as-platform>
 						<span class="role-switch__name">{m.role_platform_admin({}, o)}</span>
 						<span class="adm-muted role-switch__hint">{m.view_as_platform_hint({}, o)}</span>
@@ -55,7 +58,7 @@ export function RoleMenuBody({
 				</>
 			) : null}
 			<div class="role-switch__group" id="role-menu-roles">
-				{m.view_as_roles({}, o)}
+				{m.view_as_group_org({}, o)}
 			</div>
 			{roles.map((r) => (
 				<Option key={r.id} as={`role:${r.id}`} label={roleLabel(r)} hint="" />
@@ -78,7 +81,7 @@ export function RoleMenuBody({
 
 /**
  * The role switcher in the top bar, for the estate administrator alone (an app owner or admin gets nothing here):
- * "Rol: Administrator platformă" opens the view-as picker; while viewing, it turns amber ("Vezi ca Recepție · Ieși")
+ * "Rol: Administrator sistem · Proprietar" opens the view-as picker; while viewing, it turns amber ("Vezi ca Recepție · Ieși")
  * and one press leaves.
  */
 export function RoleSwitcher({ ctx, mine }: { ctx: Ctx; mine: string }): JSX.Element | null {

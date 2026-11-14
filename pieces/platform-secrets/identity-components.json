@@ -1,0 +1,5 @@
+{
+	"$comment": "Secrets this piece takes only when the estate deploys their consumer (tools/bundle/identity-components.mjs). mesh: the Tailscale operator's credentials, only with a hosted Tailscale tailnet: TAILNET_DOMAIN set in the identity (*.ts.net). Where it is not set the loader derives it as the mesh's own domain, and the operator is not deployed (tools/bundle/mesh-pieces.mjs). kutt: the link shortener's sign-in client in authentik-oidc-clients, only for an estate whose PLATFORM_APPS lists kutt.",
+	"mesh": { "key": "TAILNET_DOMAIN", "matches": "\\.ts\\.net$" },
+	"kutt": { "key": "PLATFORM_APPS", "lists": "kutt" }
+}

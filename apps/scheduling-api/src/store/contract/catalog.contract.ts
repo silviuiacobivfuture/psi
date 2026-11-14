@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { createFieldCrypto } from "../../ports/crypto";
+import { createFieldCrypto, FIELDS } from "../../ports/crypto";
 import { newId } from "../ids";
+import { memoryKeys } from "../memory-keys";
 import type { ClientRow, DeviceRow, GroupRow, PersonRow, RoomRow, ServiceRow } from "../types";
 import type { ContractSection } from "./env";
 
@@ -8,7 +9,7 @@ import type { ContractSection } from "./env";
  * People, rooms, devices, group activities, services and clients: the same rows in, the same rows out, on every
  * adapter. Timestamps are the store's to stamp (Convex keeps its own creation times), so rows are compared without them.
  */
-const crypto = createFieldCrypto("ab".repeat(32));
+const crypto = createFieldCrypto("ab".repeat(32), memoryKeys());
 const NOW = Date.UTC(2026, 10, 13, 8);
 const stamps = { createdAt: NOW, updatedAt: NOW };
 const DAY = 86_400_000;
@@ -263,10 +264,11 @@ export const catalogSection: ContractSection = (env) => {
 	});
 
 	describe("clients", () => {
-		const sealed = (app: string, id: string): string =>
+		const sealed = (app: string): Promise<string> =>
 			crypto.seal(
+				app,
+				FIELDS.clinical,
 				JSON.stringify({ diagnosis: "synthetic-diagnosis", notes: "synthetic-notes" }),
-				`${app}:client:${id}:clinical`,
 			);
 		const fullClient = (app: string, treating: string[]): ClientRow => ({
 			id: newId("c"),
@@ -296,15 +298,15 @@ export const catalogSection: ContractSection = (env) => {
 			const dora = await practitioner(app);
 			const draft = fullClient(app, [dora.id]);
 			const saved = await c.clients.insert(draft);
-			const withClinical: ClientRow = { ...saved, clinicalSealed: sealed(app, saved.id) };
+			const withClinical: ClientRow = { ...saved, clinicalSealed: await sealed(app) };
 			await c.clients.replace(withClinical);
 			const read = await c.clients.get(app, saved.id);
 			expect(read).toBeDefined();
 			expect(bareClient(read ?? saved)).toEqual(bareClient(withClinical));
 			expect(JSON.stringify(read)).not.toContain("synthetic");
-			expect(
-				crypto.open(read?.clinicalSealed ?? "", `${app}:client:${saved.id}:clinical`),
-			).toContain("synthetic-diagnosis");
+			expect(await crypto.open(app, FIELDS.clinical, read?.clinicalSealed ?? "")).toContain(
+				"synthetic-diagnosis",
+			);
 		});
 
 		it("a client with nothing but a name is a client", async () => {

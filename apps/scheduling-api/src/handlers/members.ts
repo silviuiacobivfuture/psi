@@ -103,7 +103,7 @@ export const memberHandlers: HandlersOf<
 			},
 			tuples: () => change,
 		});
-		await syncMember(ctx, ctx.app, subject, held, next);
+		await syncMember(ctx, ctx.app, subject, next);
 		ctx.note({
 			roles: next.roles,
 			created: held === undefined,
@@ -126,7 +126,7 @@ export const memberHandlers: HandlersOf<
 				await ctx.deps.store.c.members.remove(ctx.app, subject);
 			},
 		});
-		await syncMember(ctx, ctx.app, subject, held, undefined);
+		await syncMember(ctx, ctx.app, subject, undefined);
 		// The journal names someone who is gone from what it kept: their name and the roles they held.
 		ctx.note({
 			changes: changesOf({

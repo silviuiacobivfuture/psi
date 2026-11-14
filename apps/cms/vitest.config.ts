@@ -6,6 +6,8 @@ export default defineConfig({
 	esbuild: { jsx: "automatic" },
 	test: {
 		include: ["src/**/*.test.ts"],
+		// No key, no network beyond this machine: only in-process fakes answer.
+		setupFiles: ["../../.mono/vitest/hermetic.ts"],
 		maxWorkers: 2,
 		minWorkers: 1,
 		server: { deps: { inline: [/@payloadcms/, /react-image-crop/] } },

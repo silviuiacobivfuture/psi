@@ -1,0 +1,16 @@
+# psi's permissions bundle, mounted into Polaris (the control plane and the hub) at
+# /authz/bundle. The image carries the platform's permissions only (core + autorizare); psi's
+# modules (psizone, eqsync, hemisync, blog, cms, sched, agent), their role catalogs and the
+# composed model arrive here, so Polaris releases a model that includes them (its release-model
+# initContainer) and its module authority can place their types. Both generated files are
+# written, and refused by --check when stale, from psi's root by
+#   AUTHZ_ESTATE=$PWD/estate/authz.json AUTHZ_ESTATE_ROOT=$PWD \
+#     python3 .seb-bundle/authz/tools/permissions-bundle.py --estate $PWD/estate/authz/fga.mod \
+#     --platform-dir $PWD/.seb-bundle/authz --catalog $PWD/estate/authz/catalog \
+#     --k8s $PWD/gitops/services/autorizare-permissions
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+  - bundle.generated.yaml
+patches:
+  - path: patch.generated.yaml

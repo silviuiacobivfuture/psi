@@ -4,6 +4,9 @@
 		"eqsync-web": {
 			"none": "retired 2026-11-12 on the owner's order; not built, deployed or changed"
 		},
+		"scheduling-api": {
+			"none": "a headless service with no readers of its own: what people can do is announced by the console and the sites that call it"
+		},
 		"clinic": {
 			"none": "not yet live; the team's console ships with its changelog tenant"
 		}

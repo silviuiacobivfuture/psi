@@ -1,45 +1,39 @@
-import { createHash } from "node:crypto";
-import { type AppKey, type AppSettings, type EventId, inQuietHours } from "./apps";
-import { type Audience, type Channel, entryFor, PAYLOADS, workflowId } from "./catalogue";
-import { clientSubscriberId, type TeamAudience, topicKey } from "./identity";
+import type { AppKey, AppSettings, EventId } from "./apps";
 import {
-	createNovuHttp,
-	type NovuHttp,
-	NovuRefused,
-	type SubscriberFields,
-	type Target,
-} from "./novu-http";
+	AudienceSchema,
+	type Channel,
+	type Entry,
+	entryFor,
+	PAYLOADS,
+	workflowId,
+} from "./catalogue";
+import type { DeliveryEvent, DeliverySink, DeliveryStatus, SuppressedWhy } from "./delivery";
+import type { TeamAudience } from "./identity";
+import { createNovuHttp, type NovuHttp, NovuRefused, type SubscriberFields } from "./novu-http";
 import { createMemoryOutbox, type Job, type Outbox } from "./outbox";
+import { applyPrefs, type PreferenceSource, type Prefs, type PrefsOwner } from "./prefs";
+import {
+	idempotencyKey,
+	isPerson,
+	isTeam,
+	NO_CHANNELS,
+	type PersonRecipient,
+	type Recipient,
+	recipientKey,
+	refOf,
+	shortHash,
+	type TeamPerson,
+	type TeamRecipient,
+	target,
+} from "./recipients";
 import type { Meta } from "./render";
 
-/** Who a notification goes to: a person of the app, or one of its teams (a Novu topic). */
-export type Recipient =
-	| {
-			audience: "client";
-			clientId: string;
-			email?: string;
-			phone?: string;
-			name?: string;
-			locale?: "ro" | "en";
-	  }
-	| {
-			audience: "practitioner" | "requester" | "actor";
-			/** The estate sign-in subject. */
-			subject: string;
-			email?: string;
-			name?: string;
-			locale?: "ro" | "en";
-	  }
-	| { audience: "team" | "reception" | "owners" };
-
-export type TeamRecipient = Extract<Recipient, { audience: TeamAudience }>;
-export type PersonRecipient = Exclude<Recipient, TeamRecipient>;
-const isTeam = (r: Recipient): r is TeamRecipient =>
-	r.audience === "team" || r.audience === "reception" || r.audience === "owners";
+export type { PersonRecipient, Recipient, TeamPerson, TeamRecipient } from "./recipients";
+export { idempotencyKey } from "./recipients";
 
 export type NotifyOutcome =
 	| { status: "queued"; jobs: number }
-	| { status: "off"; reason: "event-off" | "receipts-off" | "no-channel" }
+	| { status: "off"; reason: "event-off" | "receipts-off" | "no-channel" | "no-recipient" }
 	| { status: "invalid"; reason: "payload" | "recipient" | "unknown-app" };
 
 export interface AppRuntime {
@@ -54,10 +48,23 @@ export type Logger = (line: {
 	[field: string]: string | number | boolean;
 }) => void;
 
+/** Who a team is, at send time: the people who hold the permission the entry names (the service resolves them). */
+export type TeamResolver = (
+	app: AppKey,
+	entry: Entry,
+	team: TeamRecipient,
+) => Promise<ReadonlyArray<TeamPerson>>;
+
 export interface NotifyOptions {
 	novu: { apiUrl: string; secretKey: string; fetch?: typeof globalThis.fetch };
 	apps: Readonly<Partial<Record<AppKey, AppRuntime>>>;
 	outbox?: Outbox;
+	/** A team recipient with no person is resolved here; without it the team is a Novu topic (the legacy shape). */
+	team?: TeamResolver;
+	/** What each person chose; a failure reading it means the catalogue's defaults, never a lost notification. */
+	preferences?: PreferenceSource;
+	/** Where each step of a delivery is recorded. */
+	deliveries?: DeliverySink;
 	now?: () => number;
 	log?: Logger;
 	/** Attempts before a job is given up on. */
@@ -93,67 +100,10 @@ export interface Notifier {
 	pending(): Promise<number>;
 }
 
-const DOMAIN_FIELDS = [
-	"requestId",
-	"appointmentId",
-	"packageId",
-	"leaveId",
-	"paymentId",
-	"actionId",
-] as const;
-
-function domainKey(payload: Record<string, unknown>): string {
-	for (const f of DOMAIN_FIELDS) {
-		const v = payload[f];
-		if (typeof v === "string") return v;
-	}
-	return "";
-}
-
-function recipientKey(app: AppKey, r: Recipient): string {
-	switch (r.audience) {
-		case "client":
-			return clientSubscriberId(app, r.clientId);
-		case "practitioner":
-		case "requester":
-		case "actor":
-			return r.subject;
-		case "team":
-		case "reception":
-		case "owners":
-			return topicKey(app, r.audience);
-		default: {
-			const never: never = r;
-			return never;
-		}
-	}
-}
-
-function shortHash(text: string): string {
-	return createHash("sha256").update(text).digest("hex").slice(0, 12);
-}
-
-/** The idempotency key of one delivery: the same event, object, time and recipient is sent once. */
-export function idempotencyKey(
-	app: AppKey,
-	event: EventId,
-	audience: Audience,
-	payload: Record<string, unknown>,
-	recipient: string,
-	occurrence = "",
-): string {
-	const startsAt = typeof payload.startsAt === "string" ? payload.startsAt : "";
-	const raw = [app, event, audience, domainKey(payload), startsAt, occurrence, recipient].join("|");
-	return `${app}:${event}:${shortHash(raw)}${shortHash(`${raw}#`)}`;
-}
-
-function effectiveChannels(channels: ReadonlyArray<Channel>, quiet: boolean): Meta["channels"] {
-	return {
-		in_app: channels.includes("in_app"),
-		push: !quiet && channels.includes("push"),
-		email: channels.includes("email"),
-	};
-}
+const ownerOf = (r: PersonRecipient): PrefsOwner =>
+	r.audience === "client"
+		? { side: "client", clientId: r.clientId }
+		: { side: "staff", subject: r.subject };
 
 export function createNotifier(options: NotifyOptions): Notifier {
 	const http: NovuHttp = createNovuHttp(options.novu);
@@ -163,14 +113,60 @@ export function createNotifier(options: NotifyOptions): Notifier {
 	const backoff = options.backoffMs ?? 5_000;
 	const log: Logger = options.log ?? ((line) => console.log(JSON.stringify(line)));
 
-	function target(app: AppKey, r: Recipient): Target {
-		if (isTeam(r)) return { topicKey: topicKey(app, r.audience) };
-		const fields: SubscriberFields = { subscriberId: recipientKey(app, r) };
-		if (r.email !== undefined) fields.email = r.email;
-		if (r.name !== undefined) fields.firstName = r.name;
-		if (r.locale !== undefined) fields.locale = r.locale;
-		if (r.audience === "client" && r.phone !== undefined) fields.phone = r.phone;
-		return { subscriberId: fields.subscriberId, fields };
+	async function record(
+		job: Pick<Job, "app" | "event" | "idempotencyKey" | "attempts">,
+		meta: { audience: DeliveryEvent["audience"]; to: string; ref: string | undefined },
+		step: {
+			status: DeliveryStatus;
+			channels?: Readonly<Record<Channel, boolean>>;
+			suppressed?: DeliveryEvent["suppressed"];
+			why?: SuppressedWhy;
+			httpStatus?: number;
+		},
+	): Promise<void> {
+		if (options.deliveries === undefined) return;
+		const app = job.app as AppKey;
+		const event = job.event as EventId;
+		try {
+			await options.deliveries.record({
+				app,
+				event,
+				audience: meta.audience,
+				key: job.idempotencyKey,
+				to: meta.to,
+				...(meta.ref === undefined ? {} : { ref: meta.ref }),
+				status: step.status,
+				channels: step.channels ?? NO_CHANNELS,
+				suppressed: step.suppressed ?? {},
+				...(step.why === undefined ? {} : { why: step.why }),
+				attempts: job.attempts,
+				...(step.httpStatus === undefined ? {} : { httpStatus: step.httpStatus }),
+				at: now(),
+			});
+		} catch {
+			log({ level: "warn", msg: "delivery step not recorded", app, event });
+		}
+	}
+
+	async function prefsOf(app: AppKey, r: PersonRecipient): Promise<Prefs | undefined> {
+		if (options.preferences === undefined) return undefined;
+		try {
+			return await options.preferences.resolve(app, ownerOf(r));
+		} catch {
+			log({ level: "warn", msg: "preferences unreadable, defaults used", app });
+			return undefined;
+		}
+	}
+
+	/** A team recipient becomes its people; anything else is itself. */
+	async function expand(
+		app: AppKey,
+		r: Recipient,
+		entry: Entry,
+	): Promise<ReadonlyArray<Recipient>> {
+		if (!isTeam(r) || r.subject !== undefined || options.team === undefined) return [r];
+		const people = await options.team(app, entry, r);
+		return people.map((p) => ({ ...p, audience: r.audience }));
 	}
 
 	return {
@@ -187,56 +183,72 @@ export function createNotifier(options: NotifyOptions): Notifier {
 				if (settings.off.includes(event)) return { status: "off", reason: "event-off" };
 				if (event === "payment.recorded" && !settings.receipts)
 					return { status: "off", reason: "receipts-off" };
-				const quiet = inQuietHours(settings.quietHours, now());
 				const jobs: Job[] = [];
-				for (const r of to) {
-					const entry = entryFor(event, r.audience);
+				let reachable = 0;
+				for (const asked of to) {
+					const entry = entryFor(event, asked.audience);
 					if (entry === undefined) return { status: "invalid", reason: "recipient" };
-					const channels = effectiveChannels(entry.channels, quiet);
-					if (!channels.in_app && !channels.push && !channels.email) continue;
-					const meta: Meta = {
-						event,
-						audience: r.audience,
-						channels,
-						brandName: settings.brandName,
-						theme: settings.theme,
-						timeZone: settings.timeZone,
-						siteUrl: runtime.siteUrl,
-						consoleUrl: runtime.consoleUrl,
-						place: settings.place,
-					};
-					const key = idempotencyKey(
-						app,
-						event,
-						r.audience,
-						parsed.data,
-						recipientKey(app, r),
-						occurrence,
-					);
-					const integration = `plunk-${app}`;
-					jobs.push({
-						id: key,
-						idempotencyKey: key,
-						body: {
-							workflow: workflowId(app, event, r.audience),
-							to: target(app, r),
-							payload: { ...parsed.data, meta },
-							overrides: {
-								email: {
-									integrationIdentifier: integration,
-									replyTo: settings.replyTo,
-									senderName: settings.senderName,
+					for (const r of await expand(app, asked, entry)) {
+						reachable++;
+						const person = isPerson(r) ? r : undefined;
+						const prefs = person === undefined ? undefined : await prefsOf(app, person);
+						const { channels, suppressed } = applyPrefs({
+							entry,
+							prefs,
+							appQuiet: settings.quietHours,
+							now: now(),
+							hasEmail: r.audience !== "client" || r.email !== undefined,
+						});
+						const who = recipientKey(app, r);
+						const key = idempotencyKey(app, event, r.audience, parsed.data, who, occurrence);
+						const base = { app, event, idempotencyKey: key, attempts: 0 };
+						const meta = { audience: r.audience, to: shortHash(who), ref: refOf(parsed.data) };
+						if (!channels.in_app && !channels.push && !channels.email) {
+							await record(base, meta, {
+								status: "suppressed",
+								channels,
+								suppressed,
+								why: Object.values(suppressed)[0] ?? "no-channel",
+							});
+							continue;
+						}
+						const body: Meta = {
+							event,
+							audience: r.audience,
+							channels,
+							brandName: settings.brandName,
+							theme: settings.theme,
+							timeZone: settings.timeZone,
+							siteUrl: runtime.siteUrl,
+							consoleUrl: runtime.consoleUrl,
+							place: settings.place,
+						};
+						jobs.push({
+							id: key,
+							idempotencyKey: key,
+							body: {
+								workflow: workflowId(app, event, r.audience),
+								to: target(app, r, prefs?.locale ?? r.locale),
+								payload: { ...parsed.data, meta: body },
+								overrides: {
+									email: {
+										integrationIdentifier: `plunk-${app}`,
+										replyTo: settings.replyTo,
+										senderName: settings.senderName,
+									},
 								},
 							},
-						},
-						app,
-						event,
-						attempts: 0,
-						replays: 0,
-						dueAt: now(),
-					});
+							app,
+							event,
+							attempts: 0,
+							replays: 0,
+							dueAt: now(),
+						});
+						await record(base, meta, { status: "queued", channels, suppressed });
+					}
 				}
-				if (jobs.length === 0) return { status: "off", reason: "no-channel" };
+				if (jobs.length === 0)
+					return { status: "off", reason: reachable === 0 ? "no-recipient" : "no-channel" };
 				for (const j of jobs) await outbox.add(j);
 				return { status: "queued", jobs: jobs.length };
 			} catch {
@@ -248,6 +260,11 @@ export function createNotifier(options: NotifyOptions): Notifier {
 		async drain() {
 			let delivered = 0;
 			for (const job of await outbox.due(now(), 50)) {
+				const meta = {
+					audience: audienceOf(job),
+					to: shortHash(recipientOf(job)),
+					ref: refOf(job.body.payload),
+				};
 				try {
 					await http.trigger(
 						job.body,
@@ -255,6 +272,7 @@ export function createNotifier(options: NotifyOptions): Notifier {
 					);
 					await outbox.remove(job.id);
 					delivered++;
+					await record({ ...job, attempts: job.attempts + 1 }, meta, { status: "sent" });
 				} catch (error) {
 					const retryable = error instanceof NovuRefused ? error.retryable : true;
 					const attempts = job.attempts + 1;
@@ -270,6 +288,7 @@ export function createNotifier(options: NotifyOptions): Notifier {
 							attempts,
 							status,
 						});
+						await record({ ...job, attempts }, meta, { status: "given_up", httpStatus: status });
 					} else {
 						// Novu keeps a refusal under its Idempotency-Key for 24 h and answers a repeat from
 						// it: the same key can never succeed, so the key walks on (`:r1`, `:r2`, …).
@@ -290,6 +309,7 @@ export function createNotifier(options: NotifyOptions): Notifier {
 							attempts,
 							status,
 						});
+						await record({ ...job, attempts }, meta, { status: "retrying", httpStatus: status });
 					}
 				}
 			}
@@ -312,17 +332,32 @@ export function createNotifier(options: NotifyOptions): Notifier {
 		},
 
 		async upsertSubscriber(app, r) {
-			const t = target(app, r);
+			const t = target(app, r, r.locale);
 			if ("topicKey" in t || t.fields === undefined) return;
-			await http.upsertSubscriber(t.fields);
+			const fields: SubscriberFields = t.fields;
+			await http.upsertSubscriber(fields);
 		},
 
 		async setTeam(app, team, add, remove) {
-			const key = topicKey(app, team);
+			const key = `${app}:${team}`;
 			await http.addToTopic(key, add);
 			await http.removeFromTopic(key, remove);
 		},
 
 		pending: () => outbox.size(),
 	};
+}
+
+/** What a queued job says about who it was for, without keeping an address: the subscriber or topic id. */
+function recipientOf(job: Job): string {
+	return "topicKey" in job.body.to ? job.body.to.topicKey : job.body.to.subscriberId;
+}
+
+/** The audience a job was queued for, read back from the `meta` its payload carries. */
+function audienceOf(job: Job): DeliveryEvent["audience"] {
+	const meta = Reflect.get(job.body.payload, "meta");
+	const audience =
+		typeof meta === "object" && meta !== null ? Reflect.get(meta, "audience") : undefined;
+	const parsed = AudienceSchema.safeParse(audience);
+	return parsed.success ? parsed.data : "team";
 }

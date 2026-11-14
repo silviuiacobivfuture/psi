@@ -26,6 +26,9 @@ import type { GuideLabels } from "./components/guide-labels";
 import { devLog } from "./dev-log";
 import { visitorKeysFor } from "./visitor-keys";
 
+/** What the history keeps of a message typed as booking details: the words themselves are not kept. */
+export const DETAILS_PLACEHOLDER = "…";
+
 /** The longest question an asking field takes, in characters (after trimming). */
 export const MAX_ASK_LENGTH = 500;
 
@@ -248,9 +251,19 @@ export function streamGuideAnswer(
 			);
 		};
 		const remember = async (
-			reply: { answer: string; booking?: BookingState } | { refused: RefusalReason },
+			reply:
+				| { answer: string; booking?: BookingState; endsBooking?: boolean }
+				| { refused: RefusalReason },
+			answeredDetails = false,
 		) => {
-			const next = continueConversation(turns, question, reply, page?.path);
+			// What a visitor typed as booking details (a name, a phone, what is going on) is not kept in the
+			// history the model reads on later turns.
+			const next = continueConversation(
+				turns,
+				answeredDetails ? DETAILS_PLACEHOLDER : question,
+				reply,
+				page?.path,
+			);
 			const pending = target === "compass-answer" ? { compassPending: "" } : {};
 			await stream.writeSSE({
 				event: "datastar-patch-signals",
@@ -345,10 +358,13 @@ export function streamGuideAnswer(
 						});
 						if (refused === null && offer !== undefined) {
 							await patch({ kind: "booking", offer });
-							await remember({
-								answer: labels.booking?.summary(offer) ?? text,
-								...(offer.state === undefined ? {} : { booking: offer.state }),
-							});
+							await remember(
+								{
+									answer: labels.booking?.summary(offer) ?? text,
+									...(offer.state === undefined ? { endsBooking: true } : { booking: offer.state }),
+								},
+								booking?.stage === "details",
+							);
 						} else if (refused === null) {
 							await patch({
 								kind: "done",
@@ -356,7 +372,11 @@ export function streamGuideAnswer(
 								sources,
 								...(actions.length === 0 ? {} : { actions }),
 							});
-							await remember({ answer: text });
+							// A question asked mid-booking is answered, and the chosen time stays in the state.
+							await remember({
+								answer: text,
+								...(booking?.stage === "details" ? { booking } : {}),
+							});
 						} else {
 							await remember({ refused });
 						}

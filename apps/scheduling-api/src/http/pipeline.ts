@@ -1,3 +1,4 @@
+import { CryptoError } from "@psi/scheduling/crypto";
 import {
 	type ErrorCode,
 	ROUTES,
@@ -9,7 +10,9 @@ import { type Principal, subjectOf, visitorSubject } from "../auth/principal";
 import { verifyServiceKey } from "../auth/service-keys";
 import { NONE, type Reach } from "../authz/access";
 import { AuthzUnavailable } from "../authz/port";
+import { tellOwners } from "../engagement/security";
 import { MailUnavailable } from "../ports/mail";
+import { SsoUnavailable } from "../ports/sso";
 import { StoreConflict, StoreRefused, StoreUnavailable } from "../store/types";
 import { writeAudit } from "./audit";
 import type { Ctx, Deps, HttpEnv } from "./context";
@@ -216,14 +219,22 @@ export async function prepare(deps: Deps, spec: RouteSpec, c: Context<HttpEnv>):
 		auditTarget(id) {
 			audit.id = id;
 		},
-		auditNow: (action, target, d) =>
-			writeAudit(deps, {
+		auditNow: async (action, target, d) => {
+			await writeAudit(deps, {
 				app,
 				actor: { subject, kind: principal.kind === "person" ? "person" : "service" },
 				action,
 				target,
 				detail: d,
-			}),
+			});
+			await tellOwners(deps, {
+				app,
+				requestId,
+				subject,
+				auditAction: action,
+				targetType: target.type,
+			});
+		},
 		async notify(event, to, payload, key) {
 			try {
 				await deps.notifier.notify({
@@ -291,6 +302,13 @@ export async function finish(deps: Deps, prepared: Prepared, result: unknown): P
 			target: { type: spec.id.split(".")[0] ?? spec.id, id },
 			...(Object.keys(audit.detail).length > 0 ? { detail: audit.detail } : {}),
 		});
+		await tellOwners(deps, {
+			app: ctx.app,
+			requestId: ctx.requestId,
+			subject: ctx.subject,
+			auditAction: spec.audit,
+			targetType: spec.id.split(".")[0] ?? spec.id,
+		});
 	}
 	return parsed.data;
 }
@@ -356,12 +374,22 @@ export function refusal(
 		return make(fail("unavailable", "authorization is unavailable; refusing"));
 	}
 	if (error instanceof MailUnavailable) return make(fail("unavailable", "mail is unavailable"));
+	if (error instanceof SsoUnavailable) {
+		deps.log({ level: "error", event: "sso_unavailable", requestId });
+		return make(fail("unavailable", "the sign-in is unavailable"));
+	}
 	if (error instanceof StoreRefused) return make(refusedByStore(error.reason, error.detail));
 	if (error instanceof StoreUnavailable) {
 		deps.log({ level: "error", event: "store_unavailable", requestId });
 		return make(fail("unavailable", "the store is unavailable"));
 	}
 	if (error instanceof StoreConflict) return make(fail("conflict", "already exists"));
+	if (error instanceof CryptoError) {
+		// Clinical text that cannot be opened (a wrong master key, an app without keys, a damaged value): nothing is
+		// returned in its place. The cause class is named; no key and no text ever is.
+		deps.log({ level: "error", event: "crypto_failed", requestId, code: error.code });
+		return make(fail("internal", `clinical data cannot be opened (${error.code})`));
+	}
 	deps.log({
 		level: "error",
 		event: "unhandled",

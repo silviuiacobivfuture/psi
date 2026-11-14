@@ -85,7 +85,7 @@ ssl:
 # harbor-pull Secret that pieces/kyverno-policies/mutate-plane-harbor-pull.yaml
 # attaches (the chart could only render one from plaintext values).
 api:
-  image: WLREGISTRY/WLAPPS/plane-backend-sso/f9b8831d4e3e
+  image: WLREGISTRY/WLAPPS/plane-backend-sso/892a3ca6f441
   replicas: 1
   cpuRequest: 200m
   memoryRequest: 448Mi
@@ -107,7 +107,7 @@ api:
 # the lever is CELERY_WORKER_CONCURRENCY on the app-vars ConfigMap, not a
 # bigger limit.
 worker:
-  image: WLREGISTRY/WLAPPS/plane-backend-sso/f9b8831d4e3e  # = api.image (apps/plane-sso)
+  image: WLREGISTRY/WLAPPS/plane-backend-sso/892a3ca6f441  # = api.image (apps/plane-sso)
   replicas: 1
   cpuRequest: 100m
   memoryRequest: 512Mi
@@ -120,7 +120,7 @@ worker:
 # is named plane-beat-worker-wl. A `beat-worker:` block here would be
 # silently ignored and the pod would fall back to the chart defaults.
 beatworker:
-  image: WLREGISTRY/WLAPPS/plane-backend-sso/f9b8831d4e3e  # = api.image (apps/plane-sso)
+  image: WLREGISTRY/WLAPPS/plane-backend-sso/892a3ca6f441  # = api.image (apps/plane-sso)
   replicas: 1
   cpuRequest: 50m
   memoryRequest: 256Mi

@@ -66,6 +66,8 @@ export function createApp(
 	app.get("/v1/openapi.json", (c) => c.json(openapi));
 	// Public by design: the link IS the credential (signed, single-use, expiring); a GET changes nothing.
 	if (deps.reminders !== undefined) app.route("/v1/public/reminders", deps.reminders);
+	// The invitation link is public for the same reason: signed, expiring, and a GET changes nothing.
+	if (deps.invites !== undefined) app.route("/v1/public/invites", deps.invites);
 
 	for (const spec of ROUTES as ReadonlyArray<RouteSpec>) {
 		if (spec.side === "meta") continue;

@@ -122,15 +122,31 @@ describe("field encryption", () => {
 	});
 });
 
+/** A ring over one data key (the same raw key for every master, so what one master seals another's ring opens). */
+const SHARED_DATA_KEY = new Uint8Array(32).map((_, i) => i + 3);
+async function ring(master: Awaited<ReturnType<typeof parseMasterKey>>): Promise<KeyRing> {
+	return buildKeyRing(master, TENANT, [await wrapDataKey(master, SHARED_DATA_KEY, TENANT, 1)]);
+}
+
 describe("the master key", () => {
 	it("accepts base64 of exactly 32 bytes", async () => {
 		await expect(parseMasterKey(generateMasterKeyText())).resolves.toBeDefined();
 		await expect(parseMasterKey(`${generateMasterKeyText()}\n`)).resolves.toBeDefined();
 	});
 
+	it("accepts the same 32 bytes as 64 hex characters (how the estate's secret store holds it), and they are one key", async () => {
+		const bytes = new Uint8Array(32).map((_, i) => i * 7 + 1);
+		const hex = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+		const fromHex = await ring(await parseMasterKey(hex));
+		const fromBase64Text = await ring(await parseMasterKey(toBase64(bytes)));
+		const sealed = await encryptField(fromHex, "synthetic", CONTEXT);
+		expect(await decryptField(fromBase64Text, sealed, CONTEXT)).toBe("synthetic");
+	});
+
 	it.each([
 		["unset", undefined],
 		["blank", "  "],
+		["hex of the wrong length", "ab".repeat(31)],
 		["not base64", "not base64 at all!"],
 		["too short", toBase64(new Uint8Array(16))],
 		["too long", toBase64(new Uint8Array(33))],

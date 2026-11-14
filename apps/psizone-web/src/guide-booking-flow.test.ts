@@ -1,5 +1,5 @@
+import { FormIdSchema } from "@psi/ui";
 import { describe, expect, it } from "vitest";
-import { FormIdSchema } from "./booking";
 
 /**
  * The whole booking conversation through the app's own routes, against the real scheduling

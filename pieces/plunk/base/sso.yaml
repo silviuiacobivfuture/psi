@@ -55,7 +55,7 @@ spec:
             limits: { cpu: 100m, memory: 32Mi }
       containers:
         - name: plunk-sso
-          image: WLREGISTRY/WLAPPS/plunk-sso:0.17.0-a882578@sha256:cec22a0df9954a831a8b846822b87ed2888f92fda8f9940d4790980d92ef3d35
+          image: WLREGISTRY/WLAPPS/plunk-sso:0.17.0-6707e4b@sha256:0f60973bceec244e2165124e1a8a2399448ed8fc6702b7155a8a5b0758eca2a5
           envFrom:
             - secretRef: { name: plunk-app }
             # plunk-bootstrap.sh runs the reconcile in THIS container (kubectl
@@ -152,7 +152,7 @@ spec:
             seccompProfile: { type: RuntimeDefault }
           containers:
             - name: reconcile
-              image: WLREGISTRY/WLAPPS/plunk-sso:0.17.0-a882578@sha256:cec22a0df9954a831a8b846822b87ed2888f92fda8f9940d4790980d92ef3d35
+              image: WLREGISTRY/WLAPPS/plunk-sso:0.17.0-6707e4b@sha256:0f60973bceec244e2165124e1a8a2399448ed8fc6702b7155a8a5b0758eca2a5
               command: ["node", "/app/plunk-sso/bin/reconcile.mjs"]
               envFrom:
                 - secretRef: { name: plunk-app }

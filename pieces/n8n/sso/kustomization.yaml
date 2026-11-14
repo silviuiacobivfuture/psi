@@ -16,6 +16,12 @@ configMapGenerator:
 # Without this the route answered for n8n.example.invalid, and /sso/setup fell through to
 # n8n's own sign-in, a dead end for someone with no password yet (2026-11-04).
 replacements:
+  # The estate's operations address, which the sidecar's refusal pages name (OPS_EMAIL).
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.OPS_EMAIL }
+    targets:
+      - select: { kind: Deployment, name: n8n-sso }
+        fieldPaths:
+          - "spec.template.spec.containers.[name=n8n-sso].env.[name=OPS_EMAIL].value"
   - source: { kind: ConfigMap, name: n8n-host, fieldPath: data.N8N_HOST }
     targets:
       - select: { kind: Ingress, name: n8n-sso }

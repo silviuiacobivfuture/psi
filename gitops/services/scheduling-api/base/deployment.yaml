@@ -61,6 +61,10 @@ spec:
             - { name: http, containerPort: 4380 }
           envFrom:
             - secretRef: { name: scheduling-api-env }
+            # OPTIONAL by design: the estate sign-in's admin API for inviting a client to the online account
+            # (secret/apps/scheduling-api/sso). Absent, the invitation routes answer 503 and nothing else changes;
+            # this never blocks a deploy. Roll the pod after it first appears.
+            - secretRef: { name: scheduling-api-sso, optional: true }
           env:
             - { name: NODE_ENV, value: production }
             - { name: PORT, value: "4380" }
@@ -81,6 +85,8 @@ spec:
             - { name: S3_REGION, value: nbg1 }
             - { name: S3_BUCKET, value: psi-scheduling-dev }
             - { name: MAIL_FROM_NAME, value: Psizone }
+            # The directory group the invited clients' accounts are made in (never a staff group).
+            - { name: AUTHENTIK_CUSTOMERS_GROUP, value: app-clinic-customer }
             - { name: CORS_ORIGINS, value: "https://programari-dev.psizone.ro" }
           startupProbe:
             httpGet: { path: /health, port: http }
