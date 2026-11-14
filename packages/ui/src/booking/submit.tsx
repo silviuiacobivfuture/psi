@@ -5,7 +5,7 @@ import type { BookingDeps } from "./deps";
 import { BookingForm } from "./form";
 import { pickService } from "./picker";
 import { BookingConfirm, BookingDone, BookingFailed, BookingRequested } from "./results";
-import { formFields, isChat, scheduleOf } from "./routes";
+import { isChat, readForm, scheduleOf } from "./routes";
 import {
 	BookingConfirmation,
 	BookingRequest,
@@ -64,7 +64,7 @@ export function registerBookingSubmit(app: Hono, deps: BookingDeps, locale: Book
 		);
 	};
 	app.post(routes.booking, async (c) => {
-		const raw = withAudience(formFields(await c.req.parseBody()), env);
+		const raw = withAudience(await readForm(c), env);
 		const id = FormIdSchema.parse(raw.form);
 		const who = await account(c);
 		const form = async (errors: BookingErrors, values: Record<string, string>, taken = false) => {
@@ -127,7 +127,7 @@ export function registerBookingSubmit(app: Hono, deps: BookingDeps, locale: Book
 		}
 	});
 	app.post(routes.confirm, async (c) => {
-		const raw = withAudience(formFields(await c.req.parseBody()), env);
+		const raw = withAudience(await readForm(c), env);
 		const parsed = BookingConfirmation.safeParse(raw);
 		const id = FormIdSchema.parse(raw.form);
 		// Signed in: the request carries the account, so it appears in the account's bookings.
@@ -201,7 +201,7 @@ export function registerBookingSubmit(app: Hono, deps: BookingDeps, locale: Book
 		}
 	});
 	app.post(routes.release, async (c) => {
-		const raw = formFields(await c.req.parseBody());
+		const raw = await readForm(c);
 		if (scheduling !== undefined && raw.reference && raw.holdToken) {
 			await scheduling
 				.release({ reference: raw.reference, holdToken: raw.holdToken })

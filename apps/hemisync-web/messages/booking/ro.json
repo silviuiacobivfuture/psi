@@ -9,6 +9,7 @@
 	"bk_overline": "Sesiuni și programe",
 	"bk_err_name": "Eroare: scrie-ne numele complet (litere, 2–100 de caractere).",
 	"bk_err_for": "Eroare: alege pentru cine e sesiunea.",
+	"bk_err_when": "Eroare: alege când te putem suna (dimineața, după-amiaza sau oricând).",
 	"bk_err_consent": "Eroare: avem nevoie de acordul tău ca să te contactăm.",
 	"bk_err_slot": "Eroare: ora aleasă tocmai s-a ocupat. Alege alta.",
 	"bk_err_hold": "Eroare: ora nu a mai fost păstrată. Alege din nou.",
@@ -154,5 +155,6 @@
 	"bk_mail_details": "Detalii",
 	"bk_problem": "Ce cauți?",
 	"bk_problem_hint": "Câteva rânduri, cu cuvintele tale: ce te interesează sau ce te aduce la noi. Rămân la echipă și se șterg odată cu datele de contact.",
+	"bk_problem_min": "minim 10 caractere",
 	"bk_err_problem": "Eroare: spune-ne pe scurt ce cauți sau ce te aduce la noi (între 10 și 2000 de caractere)."
 }

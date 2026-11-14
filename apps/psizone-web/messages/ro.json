@@ -124,6 +124,7 @@
 	"form_submit": "Trimite cererea",
 	"form_err_name": "Eroare: scrie-ne numele complet (litere, 2–100 de caractere).",
 	"form_err_for": "Eroare: alege pentru cine e evaluarea.",
+	"form_err_when": "Eroare: alege când te putem suna (dimineața, după-amiaza sau oricând).",
 	"form_err_consent": "Eroare: avem nevoie de acordul tău ca să te contactăm.",
 	"form_ok_title": "Mulțumim, {name}.",
 	"form_err_slot": "Eroare: ora aleasă tocmai s-a ocupat. Alege alta.",
@@ -553,5 +554,6 @@
 	"form_age": "Vârsta",
 	"form_age_hint": "A persoanei pentru care e programarea, în ani.",
 	"form_details": "Ce se întâmplă?",
-	"form_details_hint": "Câteva rânduri, cu cuvintele tale. Rămân la echipă și se șterg odată cu datele de contact."
+	"form_details_hint": "Câteva rânduri, cu cuvintele tale. Rămân la echipă și se șterg odată cu datele de contact.",
+	"form_details_min": "minim 10 caractere"
 }

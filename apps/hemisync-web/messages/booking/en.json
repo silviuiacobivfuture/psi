@@ -9,6 +9,7 @@
 	"bk_overline": "Sessions and programmes",
 	"bk_err_name": "Error: please give your full name (letters, 2–100 characters).",
 	"bk_err_for": "Error: choose who the session is for.",
+	"bk_err_when": "Error: choose when we can call you (morning, afternoon or any time).",
 	"bk_err_consent": "Error: we need your agreement to contact you.",
 	"bk_err_slot": "Error: the time you chose has just been taken. Choose another.",
 	"bk_err_hold": "Error: the time is no longer held. Choose again.",
@@ -154,5 +155,6 @@
 	"bk_mail_details": "Details",
 	"bk_problem": "What are you looking for?",
 	"bk_problem_hint": "A few lines, in your own words: what interests you or what brings you to us. They stay with the team and are erased together with your contact details.",
+	"bk_problem_min": "at least 10 characters",
 	"bk_err_problem": "Error: tell us briefly what you are looking for (10 to 2000 characters)."
 }

@@ -124,6 +124,7 @@
 	"form_submit": "Send the request",
 	"form_err_name": "Error: please give your full name (letters, 2–100 characters).",
 	"form_err_for": "Error: choose who the evaluation is for.",
+	"form_err_when": "Error: choose when we can call you (morning, afternoon or any time).",
 	"form_err_consent": "Error: we need your consent to contact you.",
 	"form_ok_title": "Thank you, {name}.",
 	"form_err_slot": "Error: that time was just taken. Pick another one.",
@@ -553,5 +554,6 @@
 	"form_age": "Age",
 	"form_age_hint": "Of the person the appointment is for, in years.",
 	"form_details": "What is going on?",
-	"form_details_hint": "A few lines, in your own words. They stay with the team and are erased together with your contact details."
+	"form_details_hint": "A few lines, in your own words. They stay with the team and are erased together with your contact details.",
+	"form_details_min": "at least 10 characters"
 }
