@@ -52,6 +52,10 @@ patches:
                 env:
                   - { name: CLINIC_ORIGIN, value: "https://programari.psizone.ro" }
                   - { name: SCHEDULING_API_URL, value: "http://scheduling-api.scheduling-api-prod.svc" }
+                  # Production's Authentik application is `clinic-prod` (issuer mode per provider): its tokens carry
+                  # this issuer, not the `clinic` one the slug default gives, and the callback refuses any other.
+                  # scheduling-api-prod's OIDC_ISSUERS names the same issuer.
+                  - { name: OIDC_ISSUER, value: "https://auth.psizone.ro/application/o/clinic-prod/" }
   - target: { kind: Ingress, name: clinic }
     patch: |-
       - op: replace

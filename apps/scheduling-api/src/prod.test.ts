@@ -180,6 +180,22 @@ describe("production's registration and admission", () => {
 		expect(wf).not.toContain("overlays/prod");
 	});
 
+	it.skipIf(!kustomize)(
+		"the production console signs in against the clinic-prod issuer, not the slug default",
+		() => {
+			// Authentik's issuer mode is per provider: clinic-prod's tokens say .../o/clinic-prod/ and the callback refuses
+			// any other issuer (2026-11-14: every production sign-in returned 400 "unexpected JWT claim value").
+			const clinic = render("clinic");
+			expect(clinic).toMatch(
+				/- name: OIDC_ISSUER\n\s+value: https:\/\/auth\.psizone\.ro\/application\/o\/clinic-prod\/\n/,
+			);
+			expect(clinic).not.toContain("application/o/clinic/");
+			expect(read("gitops/platform/authentik/blueprints-clinic-prod.yaml")).toMatch(
+				/slug: clinic-prod\b/,
+			);
+		},
+	);
+
 	it("Authentik has the production client, its secrets and its blueprint, wired", () => {
 		const bp = read("gitops/platform/authentik/blueprints-clinic-prod.yaml");
 		expect(bp).toContain("https://programari.psizone.ro/auth/callback");
