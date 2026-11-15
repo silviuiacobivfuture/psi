@@ -21,7 +21,7 @@ spec:
     path: pieces/openfga
     kustomize:
       images:
-        - registry.psizone.ro/psi/autorizare-svc:seb-0c77041e5
+        - registry.psizone.ro/psi/autorizare-svc:seb-fd80e765e
   destination:
     server: https://kubernetes.default.svc
     namespace: openfga

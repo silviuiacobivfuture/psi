@@ -25,8 +25,8 @@ patches:
     patch: |-
       - { op: replace, path: /spec/strategy, value: { type: RollingUpdate, rollingUpdate: { maxSurge: 0, maxUnavailable: 1 } } }
 # Slot `image` (schema/slots/openfga.yaml): the tag of the autorizare-svc image psi built
-# (scripts/estate-images.sh; authzfilter beside OpenFGA), sha256:c54860e7… in registry.psizone.ro/psi (from SEB 0.1.101).
-# The generated Application sets it (estate/seb-image-tags.mjs).
+# (scripts/estate-images.sh; authzfilter beside OpenFGA), sha256:a0809d85… in registry.psizone.ro/psi (from SEB 0.1.140,
+# the same build as Polaris). The generated Application sets it (estate/seb-image-tags.mjs).
 images:
   - name: WLREGISTRY/WLAPPS/autorizare-svc
-    newTag: seb-0c77041e5
+    newTag: seb-fd80e765e
