@@ -1,0 +1,5 @@
+name: WLBRAND
+# psi: the broker's client, NOT a tile. Its host (WLHUBPREFIX) has no page of its own on psi —
+# opened, it only leaves for the public site — so it is hidden from "My applications"; psi's front
+# door to its tools is the hub (hub.psizone.ro). Its bindings still decide who the broker signs in;
+# each estate tile copies them.

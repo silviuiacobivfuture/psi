@@ -193,25 +193,29 @@ describe("production's registration and admission", () => {
 				/- name: OIDC_ISSUER\n\s+value: https:\/\/auth\.psizone\.ro\/application\/o\/clinic-prod\/\n/,
 			);
 			expect(clinic).not.toContain("application/o/clinic/");
-			expect(read("gitops/platform/authentik/blueprints-clinic-prod.yaml")).toMatch(
-				/slug: clinic-prod\b/,
-			);
+			expect(
+				read("estate/seb-components/authentik-platform/clients/blueprints-clinic-prod.yaml"),
+			).toMatch(/slug: clinic-prod\b/);
 		},
 	);
 
 	it("Authentik has the production client, its secrets and its blueprint, wired", () => {
-		const bp = read("gitops/platform/authentik/blueprints-clinic-prod.yaml");
+		const bp = read("estate/seb-components/authentik-platform/clients/blueprints-clinic-prod.yaml");
 		expect(bp).toContain("https://programari.psizone.ro/auth/callback");
 		expect(bp).not.toContain("programari-dev");
 		expect(bp).toContain("name: clinic-prod");
-		expect(read("gitops/platform/authentik/clinic-prod-oidc-externalsecret.yaml")).toContain(
-			"apps/clinic-prod/oidc",
-		);
-		expect(read("gitops/platform/authentik/kustomization.yaml")).toContain(
+		expect(
+			read("estate/seb-components/authentik-platform/clients/clinic-prod-oidc-externalsecret.yaml"),
+		).toContain("apps/clinic-prod/oidc");
+		// psi's layer for SEB's authentik pieces: the client's objects, the chart's mount and its env.
+		expect(read("estate/seb-components/authentik-platform/clients/kustomization.yaml")).toContain(
 			"- blueprints-clinic-prod.yaml",
 		);
-		const a = read("gitops/apps/overlays/dev/authentik.yaml");
-		expect(a).toContain("authentik-blueprints-clinic-prod");
-		expect(a).toContain("authentik-clinic-prod-oidc");
+		expect(read("estate/seb-components/authentik/estate-blueprints.yaml")).toContain(
+			"- authentik-blueprints-clinic-prod",
+		);
+		expect(read("estate/seb-components/authentik/env-secrets.yaml")).toContain(
+			"name: authentik-clinic-prod-oidc",
+		);
 	});
 });

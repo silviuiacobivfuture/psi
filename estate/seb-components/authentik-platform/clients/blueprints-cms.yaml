@@ -3,8 +3,8 @@
 #
 # client_id / client_secret come from OpenBao secret/apps/cms/oidc through the
 # authentik-cms-oidc ExternalSecret (cms-oidc-externalsecret.yaml) and the chart's envFrom
-# (gitops/apps/overlays/dev/authentik.yaml); cms reads the SAME path (gitops/services/cms), so
-# the two cannot drift. Also named under blueprints.configMaps in that file.
+# (estate/seb-components/authentik/env-secrets.yaml); cms reads the SAME path (gitops/services/cms),
+# so the two cannot drift. Mounted by the chart through estate-blueprints.yaml there.
 #
 # cms signs in with the authorization code flow + PKCE and asks for openid, email and profile;
 # it matches a person on their e-mail. Sign-out goes through default-invalidation-flow (the one

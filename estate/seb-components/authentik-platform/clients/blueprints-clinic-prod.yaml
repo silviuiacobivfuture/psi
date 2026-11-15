@@ -3,8 +3,9 @@
 # same person signs in to both, each through its own client with its own redirect URI. Roles are per instance (OpenFGA's
 # `sched_app:prod-psizone` vs dev's `sched_app:psizone`), so the group below only lets a person through the door.
 #
-# Registered as blueprints-clinic.yaml is: listed in kustomization.yaml, named under blueprints.configMaps in
-# gitops/apps/overlays/dev/authentik.yaml, with an OPTIONAL secretRef for authentik-clinic-prod-oidc there (a client not
+# Registered as blueprints-clinic.yaml is: listed in kustomization.yaml, mounted by the chart
+# (estate/seb-components/authentik/estate-blueprints.yaml), with an OPTIONAL secretRef for authentik-clinic-prod-oidc
+# (env-secrets.yaml there; a client not
 # seeded yet never holds the directory down; the provider shows an empty client id meanwhile). The client pair lives in
 # OpenBao secret/apps/clinic-prod/oidc, which clinic-prod reads too, so the two ends cannot drift.
 apiVersion: v1

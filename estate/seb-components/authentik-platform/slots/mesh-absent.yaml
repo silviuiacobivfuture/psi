@@ -1,0 +1,26 @@
+# ---- Headscale and Headplane: REMOVED on psi --------------------------------
+# psi runs no mesh (estate/identity.yaml MESH: none): no Headscale, no Headplane. Their
+# sign-in clients, edge gate and role claim are deleted here — a blueprint entry merely
+# dropped would leave the objects (and the "Headplane" tile) in Authentik for ever.
+# An application goes before its provider; its bindings go with it.
+- model: authentik_core.application
+  state: absent
+  identifiers: { slug: headscale }
+- model: authentik_providers_oauth2.oauth2provider
+  state: absent
+  identifiers: { name: headscale }
+- model: authentik_core.application
+  state: absent
+  identifiers: { slug: headplane }
+- model: authentik_providers_proxy.proxyprovider
+  state: absent
+  identifiers: { name: headplane }
+- model: authentik_core.application
+  state: absent
+  identifiers: { slug: headplane-oidc }
+- model: authentik_providers_oauth2.oauth2provider
+  state: absent
+  identifiers: { name: headplane-oidc }
+- model: authentik_providers_oauth2.scopemapping
+  state: absent
+  identifiers: { name: headplane-role-scope }

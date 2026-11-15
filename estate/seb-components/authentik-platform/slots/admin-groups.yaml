@@ -1,0 +1,3 @@
+# No `groups:` (psi 2026-11-12): a group list here REPLACES every membership, so each re-apply
+# stripped the operator from groups added later (n8n, Novu, Plunk, AFFiNE). Membership is owned by
+# the group rosters only (SEB's blueprints-groups.yaml plus ../rosters.yaml).

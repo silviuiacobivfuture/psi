@@ -1,0 +1,28 @@
+# ---- Browser-Use WebUI and the private-network twins: REMOVED on psi ---------
+# psi does not run Browser-Use, and with no mesh the "(private network)" twins of Netdata and the
+# hub claimed the SAME host as the public ones (WLMESH = WLTAILNET = the apex here). Deleted,
+# application before provider; bindings go with them.
+- model: authentik_core.application
+  state: absent
+  identifiers: { slug: browseruse-webui }
+- model: authentik_providers_proxy.proxyprovider
+  state: absent
+  identifiers: { name: browseruse-webui }
+- model: authentik_core.application
+  state: absent
+  identifiers: { slug: browseruse-webui-net }
+- model: authentik_providers_proxy.proxyprovider
+  state: absent
+  identifiers: { name: browseruse-webui-net }
+- model: authentik_core.application
+  state: absent
+  identifiers: { slug: netdata-net }
+- model: authentik_providers_proxy.proxyprovider
+  state: absent
+  identifiers: { name: netdata-net }
+- model: authentik_core.application
+  state: absent
+  identifiers: { slug: hub-net }
+- model: authentik_providers_proxy.proxyprovider
+  state: absent
+  identifiers: { name: hub-net }

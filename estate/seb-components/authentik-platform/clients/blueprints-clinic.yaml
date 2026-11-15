@@ -1,8 +1,9 @@
 # Authentik Blueprint ConfigMap — psi's clinic console (apps/clinic, https://programari-dev.psizone.ro on dev): its
 # OIDC provider and application, the team's group, and who may sign in.
 #
-# Registered as blueprints-cms.yaml is: listed in kustomization.yaml, named under blueprints.configMaps in
-# gitops/apps/overlays/dev/authentik.yaml, with an OPTIONAL secretRef for authentik-clinic-oidc there (a client
+# Registered as blueprints-cms.yaml is: listed in kustomization.yaml, mounted by the chart
+# (estate/seb-components/authentik/estate-blueprints.yaml), with an OPTIONAL secretRef for authentik-clinic-oidc
+# (env-secrets.yaml there; a client
 # not seeded yet never holds the directory down; the provider shows an empty client id meanwhile).
 # Production (programari.psizone.ro) gets its own client in a later change.
 #

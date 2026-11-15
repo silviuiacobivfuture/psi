@@ -1,5 +1,5 @@
 # The team console for PRODUCTION (programari.psizone.ro): its own namespace, its own OIDC client (Authentik's
-# `clinic-prod`, gitops/platform/authentik/blueprints-clinic-prod.yaml), its own session secret, and its own account
+# `clinic-prod`, estate/seb-components/authentik-platform/clients/blueprints-clinic-prod.yaml), its own session secret, and its own account
 # database (the CNPG Cluster in namespace account-db-prod, gitops/services/account-db). It calls scheduling-api-prod only.
 # Registered as `clinic-prod` in gitops/apps/overlays/dev/apps/.
 #

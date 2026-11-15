@@ -73,9 +73,9 @@ describe("the console's deployment points at scheduling-api, and the two policie
 		expect(read("gitops/services/scheduling-api/base/deployment.yaml")).toContain(
 			'name: CORS_ORIGINS, value: "https://programari-dev.psizone.ro"',
 		);
-		expect(read("gitops/platform/authentik/blueprints-clinic.yaml")).toContain(
-			"url: https://programari-dev.psizone.ro/auth/callback",
-		);
+		expect(
+			read("estate/seb-components/authentik-platform/clients/blueprints-clinic.yaml"),
+		).toContain("url: https://programari-dev.psizone.ro/auth/callback");
 	});
 	it("production refuses the fake clinic and the development sign-in, and a missing service URL or session secret, by name", () => {
 		expect(deployment).toContain("NODE_ENV");

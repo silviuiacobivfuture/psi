@@ -65,15 +65,6 @@ resources:
   # AFFiNE's OIDC client as the env the providers blueprint reads (pieces/affine). Its
   # secretRef in gitops/apps/overlays/dev/authentik.yaml is optional.
   - affine-oidc-externalsecret.yaml
-  # psi's cms: its OIDC client and the env its blueprint reads. Also in blueprints.configMaps.
-  - blueprints-cms.yaml
-  - cms-oidc-externalsecret.yaml
-  # psi's clinic console: its OIDC client and the env its blueprint reads. Also in blueprints.configMaps.
-  - blueprints-clinic.yaml
-  - clinic-oidc-externalsecret.yaml
-  # The same console in PRODUCTION: its own OIDC client (clinic-prod). Also in blueprints.configMaps.
-  - blueprints-clinic-prod.yaml
-  - clinic-prod-oidc-externalsecret.yaml
   # The working fields the estate's values are built in (never rendered). See below.
   - identity/lines.yaml
   - identity/backup-bucket.yaml
@@ -89,6 +80,11 @@ components:
   # The estate identity (estate/identity.yaml → gitops/components/whitelabel): the
   # source the replacements below read the estate's values from. Never rendered.
   - ../../components/whitelabel
+  # psi's own sign-in clients — cms, clinic, clinic-prod: blueprints and their secrets (also in
+  # blueprints.configMaps). Their ONE copy, composed into the SEB piece by psi's layer too.
+  - ../../../estate/seb-components/authentik-platform/clients
+  # psi's own sign-in stylesheet and the light ground it draws, merged into authentik-estate (below).
+  - ../../../estate/seb-components/authentik-platform/look
 
 # The estate's values — hosts, brand title, the alert owner — read from the
 # identity. The manifests and blueprints write dot-free placeholders (WLAUTHHOST,
@@ -127,13 +123,11 @@ configMapGenerator:
       disableNameSuffixHash: true
     files:
       # Served as <ESTATE_SLUG>.css: tools/estate-repo.mjs fills the key's token.
-      - psi.css=estate/estate.css
       - estate/ro.js
       - estate/favicon.svg
       - estate/logo-dark.svg
       - estate/logo-light.svg
       - estate/fundal.svg
-      - estate/fundal-light.svg
       - estate/mail-logo.png
       - estate/restart.html
       - estate/n8n-down.html

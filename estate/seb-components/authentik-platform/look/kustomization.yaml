@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# psi's own look on the sign-in where SEB's painter does not draw it (slot `look`, merged into the
+# piece's authentik-estate ConfigMap), ONE copy: composed by ../kustomization.yaml and, until the git
+# copy is removed, by gitops/platform/authentik/kustomization.yaml.
+#   psi.css           (file psi.generated.css: GENERATED from brand/signin-theme.json by SEB's
+#                     authentik-assets painter, see that file's $comment) psi's sign-in stylesheet (106faaff): Psizone Night and Gold tokens, Fraunces and
+#                     Manrope, pill buttons, psi's ambient field in place of the starfield. Served as
+#                     <ESTATE_SLUG>.css; the theme blueprint reads it.
+#   fundal-light.svg  the ambient field's light ground, which psi.css draws (fundal.svg, the dark
+#                     one, is the painter's and identical).
+configMapGenerator:
+  - name: authentik-estate
+    behavior: merge
+    options:
+      disableNameSuffixHash: true
+    files:
+      - psi.css=psi.generated.css
+      - fundal-light.svg

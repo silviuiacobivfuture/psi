@@ -1,8 +1,7 @@
-# psi's people on its Authentik, spliced by SEB's tools/estate-repo.mjs at the
-# `seb:estate-entries people` mark of gitops/platform/authentik/blueprints-people.yaml
-# (SEB's tools/estate/tree-components.mjs). Blueprint entries, a YAML list at column 0;
-# the mark's indentation is added at render. Edit HERE, then re-render: an edit made in
-# the rendered blueprint is overwritten by the next render.
+# psi's people on its Authentik (slot `people`, SEB schema/slots/authentik-platform.yaml): filled by
+# SEB's bundle builder (tools/bundle/piece-slots.mjs) at the `seb:estate people` span of the piece's
+# blueprints-people.yaml. Blueprint entries, a YAML list at column 0; the span's indentation is added
+# at render. Edit HERE: who of them is in which group is ../rosters.yaml.
 # ESTATE ADMINS (owner, 2026-11-11): full privileges, the same rosters as the
 # operator (blueprints-groups.yaml). Created only: the password and the TOTP
 # each sets through the invitation link are never overwritten.
