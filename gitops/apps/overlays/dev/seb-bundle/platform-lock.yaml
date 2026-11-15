@@ -15,6 +15,6 @@ data:
     #            (genesis's images step, then every estate upgrade writes it). While it is absent
     #            nothing is installed into .seb-bundle/ and no dependency may take a SEB library
     #            from it.
-    version = 0.1.121-psi.1
-    digest = sha256:9f110708e8f8db7a3754de3c8b5118bebfa32fcf86d4f1a9a9ead99dc9eb4b61
+    version = 0.1.121-psi.2
+    digest = sha256:3205484a34c01c3f11b5108d1fdbb926e7b4881c7a5f7fabb172f47f5d15e863
     source = oci://registry.psizone.ro/seb/bundle
