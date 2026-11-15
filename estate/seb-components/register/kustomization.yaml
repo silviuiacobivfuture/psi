@@ -1,0 +1,16 @@
+# psi's layer for the SEB piece `register`: Sigma, the shared people-and-companies register's service,
+# migrations and worker (schema/slots/register.yaml).
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# Slot `image`: register-svc as psi built it (scripts/estate-images.sh from SEB 0.1.130), signed, in
+# registry.psizone.ro/psi.
+images:
+  - name: WLREGISTRY/WLAPPS/register-svc
+    newTag: seb-b627bf80d
+# Slot `homepage-name`: the API's tile on psi's homepage carries the product's name.
+patches:
+  - target: { kind: Ingress, name: ".*-svc" }
+    patch: |-
+      - op: replace
+        path: /metadata/annotations/gethomepage.dev~1name
+        value: Sigma API

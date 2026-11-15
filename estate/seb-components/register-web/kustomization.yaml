@@ -1,0 +1,22 @@
+# psi's layer for the SEB piece `register-web`: Sigma's interface at sigma.psizone.ro
+# (schema/slots/register-web.yaml).
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# Slot `image`: register-web as psi built it (scripts/estate-images.sh from SEB 0.1.130, baked with
+# psi's apex and hub label sso), signed.
+images:
+  - name: WLREGISTRY/WLAPPS/register-web
+    newTag: seb-b627bf80d
+# Slot `estate-brand`: psi's brand (declaration, theme, Polaris's icons), the same ConfigMap the console
+# reads (brand/kustomization.yaml). Slot `icons`: Sigma's own icons, copied over the brand's where the
+# interface serves /estate/ (brand/sigma/kustomization.yaml, psi-register-web-icons).
+components:
+  - ../../../brand
+  - ../../../brand/sigma
+# Slot `homepage-name`: the interface's tile on psi's homepage carries the product's name.
+patches:
+  - target: { kind: Ingress, name: ".*-web" }
+    patch: |-
+      - op: replace
+        path: /metadata/annotations/gethomepage.dev~1name
+        value: Sigma

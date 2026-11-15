@@ -1,0 +1,8 @@
+# psi's layer for the SEB piece `register-ocr`: Sigma's text-recognition engine
+# (schema/slots/register-ocr.yaml).
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# Slot `image`: register-ocr as psi built it (scripts/estate-images.sh from SEB 0.1.130), signed.
+images:
+  - name: WLREGISTRY/WLAPPS/register-ocr
+    newTag: seb-b627bf80d
