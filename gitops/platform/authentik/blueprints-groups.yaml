@@ -824,3 +824,9 @@ data:
       - model: authentik_core.group
         state: absent
         identifiers: { name: autorizare-tenant-recomex }
+      # Rho (the shared flows application): its one entitlement group, as the generated
+      # estate/authz/blueprints/blueprints-groups-flow.yaml declares it — members hold flow:super_admin
+      # on platform:psi. Polaris refuses to start while the catalog binds a role to a group the directory
+      # does not hold. (The same entry is in the bundle's groups slot, for when this Application moves
+      # to the bundle piece.)
+      - { model: authentik_core.group, identifiers: { name: app-flow-super-admin }, attrs: { is_superuser: false } }
