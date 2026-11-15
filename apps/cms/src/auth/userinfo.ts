@@ -43,3 +43,33 @@ export function toUser(raw: unknown): {
 		directoryGroups: u.groups ?? [],
 	};
 }
+
+/** Where the sign-in carries the directory's refresh token from the code exchange to the user. */
+export const DIRECTORY_TOKEN = "psiDirectoryToken";
+
+const TokenReply = z.object({
+	access_token: z.string().min(1),
+	refresh_token: z.string().optional(),
+});
+
+/**
+ * The directory's answer to the code exchange: the access token (for userinfo, then dropped) and
+ * the refresh token offline_access asks for (null when the directory gave none: that person's
+ * sessions are then not checked against the directory until their next sign-in). Anything without
+ * an access token refuses the sign-in, naming only what came back, never a token.
+ */
+export function tokenReply(raw: unknown): {
+	accessToken: string;
+	refreshToken: string | null;
+} {
+	const r = TokenReply.safeParse(raw);
+	if (!r.success) {
+		const keys =
+			typeof raw === "object" && raw !== null ? Object.keys(raw).sort().join(",") : typeof raw;
+		throw new Error(`the directory's token reply has no access token (keys: ${keys})`);
+	}
+	return {
+		accessToken: r.data.access_token,
+		refreshToken: r.data.refresh_token || null,
+	};
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { endpoints, toUser } from "./userinfo";
+import { endpoints, tokenReply, toUser } from "./userinfo";
 
 describe("endpoints", () => {
 	it("derives Authentik's fixed endpoints from the application's issuer", () => {
@@ -33,5 +33,44 @@ describe("toUser", () => {
 		["not an object", "token"],
 	])("refuses %s", (_why, raw) => {
 		expect(() => toUser(raw)).toThrow();
+	});
+});
+
+describe("tokenReply", () => {
+	it("keeps the access token and the refresh token offline_access asked for", () => {
+		expect(
+			tokenReply({
+				access_token: "at",
+				refresh_token: "rt",
+				token_type: "Bearer",
+				expires_in: 300,
+			}),
+		).toEqual({ accessToken: "at", refreshToken: "rt" });
+	});
+	it("no refresh token is null: that person is not checked until the next sign-in", () => {
+		expect(tokenReply({ access_token: "at" })).toEqual({
+			accessToken: "at",
+			refreshToken: null,
+		});
+		expect(tokenReply({ access_token: "at", refresh_token: "" }).refreshToken).toBeNull();
+	});
+	it.each([
+		[
+			"an error reply",
+			{ error: "invalid_grant", error_description: "x" },
+			"error,error_description",
+		],
+		[
+			"an empty access token",
+			{ access_token: "", refresh_token: "rt" },
+			"access_token,refresh_token",
+		],
+		["not an object", "nope", "string"],
+		["null", null, "object"],
+	])("refuses %s, naming the keys and never a value", (_l, raw, keys) => {
+		expect(() => tokenReply(raw)).toThrow(
+			`the directory's token reply has no access token (keys: ${keys})`,
+		);
+		expect(() => tokenReply(raw)).not.toThrow(/rt|invalid_grant/);
 	});
 });

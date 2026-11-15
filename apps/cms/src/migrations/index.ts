@@ -8,6 +8,7 @@ import * as migration_20261112_022246_knowledge_sources from "./20261112_022246_
 import * as migration_20261112_054256_ai_behaviour_studio from "./20261112_054256_ai_behaviour_studio";
 import * as migration_20261112_062828_article_seo_faq from "./20261112_062828_article_seo_faq";
 import * as migration_20261112_091500_guide_uptake from "./20261112_091500_guide_uptake";
+import * as migration_20261115_063235_directory_token from "./20261115_063235_directory_token";
 
 export const migrations = [
 	{
@@ -59,5 +60,10 @@ export const migrations = [
 		up: migration_20261112_091500_guide_uptake.up,
 		down: migration_20261112_091500_guide_uptake.down,
 		name: "20261112_091500_guide_uptake",
+	},
+	{
+		up: migration_20261115_063235_directory_token.up,
+		down: migration_20261115_063235_directory_token.down,
+		name: "20261115_063235_directory_token",
 	},
 ];

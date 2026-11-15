@@ -12,6 +12,9 @@
 		},
 		"notify-bridge": {
 			"none": "a headless bridge that serves the notification workflows to Novu; what people receive is announced by the apps that send it"
+		},
+		"cms": {
+			"none": "no changelog tenant provisioned yet (the hub registry declares only Polaris's); its editors' changes are announced once it has one"
 		}
 	}
 }
