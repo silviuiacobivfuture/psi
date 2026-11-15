@@ -55,6 +55,12 @@ tuples:
   - user: user:c_platform_perm_hemisync_sessions_view
     relation: perm_hemisync_sessions_view
     object: platform:psi
+  - user: user:c_platform_perm_invoice_platform_administer
+    relation: perm_invoice_platform_administer
+    object: platform:psi
+  - user: user:c_platform_perm_invoice_platform_changelog_manage
+    relation: perm_invoice_platform_changelog_manage
+    object: platform:psi
   - user: user:c_platform_perm_psizone_account_erase
     relation: perm_psizone_account_erase
     object: platform:psi
@@ -129,6 +135,9 @@ tuples:
     object: platform:psi
   - user: user:c_platform_role_hemisync_reception
     relation: role_hemisync_reception
+    object: platform:psi
+  - user: user:c_platform_role_invoice_platform_admin
+    relation: role_invoice_platform_admin
     object: platform:psi
   - user: user:c_platform_role_psizone_privacy_officer
     relation: role_psizone_privacy_officer
@@ -210,6 +219,14 @@ tests:
         object: cms_brand:closure
         assertions:
           read: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: cms_brand:closure
+        assertions:
+          read: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: cms_brand:closure
+        assertions:
+          read: false
       - user: user:c_platform_perm_psizone_account_erase
         object: cms_brand:closure
         assertions:
@@ -307,6 +324,10 @@ tests:
         assertions:
           read: false
       - user: user:c_platform_role_hemisync_reception
+        object: cms_brand:closure
+        assertions:
+          read: false
+      - user: user:c_platform_role_invoice_platform_admin
         object: cms_brand:closure
         assertions:
           read: false
@@ -388,6 +409,14 @@ tests:
         object: cms_brand:closure
         assertions:
           write: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: cms_brand:closure
+        assertions:
+          write: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: cms_brand:closure
+        assertions:
+          write: false
       - user: user:c_platform_perm_psizone_account_erase
         object: cms_brand:closure
         assertions:
@@ -485,6 +514,10 @@ tests:
         assertions:
           write: false
       - user: user:c_platform_role_hemisync_reception
+        object: cms_brand:closure
+        assertions:
+          write: false
+      - user: user:c_platform_role_invoice_platform_admin
         object: cms_brand:closure
         assertions:
           write: false
@@ -566,6 +599,14 @@ tests:
         object: cms_brand:closure
         assertions:
           publish: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: cms_brand:closure
+        assertions:
+          publish: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: cms_brand:closure
+        assertions:
+          publish: false
       - user: user:c_platform_perm_psizone_account_erase
         object: cms_brand:closure
         assertions:
@@ -663,6 +704,10 @@ tests:
         assertions:
           publish: false
       - user: user:c_platform_role_hemisync_reception
+        object: cms_brand:closure
+        assertions:
+          publish: false
+      - user: user:c_platform_role_invoice_platform_admin
         object: cms_brand:closure
         assertions:
           publish: false
@@ -744,6 +789,14 @@ tests:
         object: cms_brand:closure
         assertions:
           clinical_review: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: cms_brand:closure
+        assertions:
+          clinical_review: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: cms_brand:closure
+        assertions:
+          clinical_review: false
       - user: user:c_platform_perm_psizone_account_erase
         object: cms_brand:closure
         assertions:
@@ -841,6 +894,10 @@ tests:
         assertions:
           clinical_review: false
       - user: user:c_platform_role_hemisync_reception
+        object: cms_brand:closure
+        assertions:
+          clinical_review: false
+      - user: user:c_platform_role_invoice_platform_admin
         object: cms_brand:closure
         assertions:
           clinical_review: false
@@ -922,6 +979,14 @@ tests:
         object: cms_brand:closure
         assertions:
           manage_media: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: cms_brand:closure
+        assertions:
+          manage_media: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: cms_brand:closure
+        assertions:
+          manage_media: false
       - user: user:c_platform_perm_psizone_account_erase
         object: cms_brand:closure
         assertions:
@@ -1019,6 +1084,10 @@ tests:
         assertions:
           manage_media: false
       - user: user:c_platform_role_hemisync_reception
+        object: cms_brand:closure
+        assertions:
+          manage_media: false
+      - user: user:c_platform_role_invoice_platform_admin
         object: cms_brand:closure
         assertions:
           manage_media: false
@@ -1100,6 +1169,14 @@ tests:
         object: cms_brand:closure
         assertions:
           admin: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: cms_brand:closure
+        assertions:
+          admin: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: cms_brand:closure
+        assertions:
+          admin: false
       - user: user:c_platform_perm_psizone_account_erase
         object: cms_brand:closure
         assertions:
@@ -1200,6 +1277,10 @@ tests:
         object: cms_brand:closure
         assertions:
           admin: false
+      - user: user:c_platform_role_invoice_platform_admin
+        object: cms_brand:closure
+        assertions:
+          admin: false
       - user: user:c_platform_role_psizone_privacy_officer
         object: cms_brand:closure
         assertions:
@@ -1275,6 +1356,14 @@ tests:
         assertions:
           ai_admin: false
       - user: user:c_platform_perm_hemisync_sessions_view
+        object: cms_brand:closure
+        assertions:
+          ai_admin: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: cms_brand:closure
+        assertions:
+          ai_admin: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
         object: cms_brand:closure
         assertions:
           ai_admin: false
@@ -1375,6 +1464,10 @@ tests:
         assertions:
           ai_admin: false
       - user: user:c_platform_role_hemisync_reception
+        object: cms_brand:closure
+        assertions:
+          ai_admin: false
+      - user: user:c_platform_role_invoice_platform_admin
         object: cms_brand:closure
         assertions:
           ai_admin: false
@@ -1456,6 +1549,14 @@ tests:
         object: cms_brand:closure
         assertions:
           ai_operator: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
       - user: user:c_platform_perm_psizone_account_erase
         object: cms_brand:closure
         assertions:
@@ -1553,6 +1654,10 @@ tests:
         assertions:
           ai_operator: false
       - user: user:c_platform_role_hemisync_reception
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
+      - user: user:c_platform_role_invoice_platform_admin
         object: cms_brand:closure
         assertions:
           ai_operator: false
@@ -1634,6 +1739,14 @@ tests:
         object: cms_brand:closure
         assertions:
           calendar_viewer: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
       - user: user:c_platform_perm_psizone_account_erase
         object: cms_brand:closure
         assertions:
@@ -1731,6 +1844,10 @@ tests:
         assertions:
           calendar_viewer: false
       - user: user:c_platform_role_hemisync_reception
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_role_invoice_platform_admin
         object: cms_brand:closure
         assertions:
           calendar_viewer: false
@@ -1812,6 +1929,14 @@ tests:
         object: cms_brand:closure
         assertions:
           calendar_manager: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
       - user: user:c_platform_perm_psizone_account_erase
         object: cms_brand:closure
         assertions:
@@ -1909,6 +2034,10 @@ tests:
         assertions:
           calendar_manager: false
       - user: user:c_platform_role_hemisync_reception
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
+      - user: user:c_platform_role_invoice_platform_admin
         object: cms_brand:closure
         assertions:
           calendar_manager: false
@@ -1990,6 +2119,14 @@ tests:
         object: cms_brand:closure
         assertions:
           privacy_officer: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
       - user: user:c_platform_perm_psizone_account_erase
         object: cms_brand:closure
         assertions:
@@ -2087,6 +2224,10 @@ tests:
         assertions:
           privacy_officer: false
       - user: user:c_platform_role_hemisync_reception
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_role_invoice_platform_admin
         object: cms_brand:closure
         assertions:
           privacy_officer: false
@@ -2168,6 +2309,14 @@ tests:
         object: cms_brand:closure
         assertions:
           notifications_admin: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
       - user: user:c_platform_perm_psizone_account_erase
         object: cms_brand:closure
         assertions:
@@ -2265,6 +2414,10 @@ tests:
         assertions:
           notifications_admin: false
       - user: user:c_platform_role_hemisync_reception
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
+      - user: user:c_platform_role_invoice_platform_admin
         object: cms_brand:closure
         assertions:
           notifications_admin: false
@@ -2346,6 +2499,14 @@ tests:
         object: cms_brand:closure
         assertions:
           site_manager: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
       - user: user:c_platform_perm_psizone_account_erase
         object: cms_brand:closure
         assertions:
@@ -2443,6 +2604,10 @@ tests:
         assertions:
           site_manager: false
       - user: user:c_platform_role_hemisync_reception
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_role_invoice_platform_admin
         object: cms_brand:closure
         assertions:
           site_manager: false

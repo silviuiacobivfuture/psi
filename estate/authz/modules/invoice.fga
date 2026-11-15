@@ -1,0 +1,100 @@
+module invoice
+
+# GENERATED FROM .seb-bundle/apps/invoice-svc/authz.manifest.json — DO NOT EDIT.
+# Run `python3 authz/tools/generate.py` after changing the manifest.
+#
+# @rule AUTZ-1 — every type is prefixed. OpenFGA does NOT namespace types by
+# module: two modules defining the same type merge into one with merged
+# relations, and nothing reports it. `check-manifest.py` enforces the prefix,
+# because JSON Schema cannot compare one field to another.
+
+# An organisation's program: a machine account, by its PROGRAM id (stable
+# across rotations). A SUBJECT: what it holds is given on one resource of
+# its organisation, never in the organisation. Written by Polaris only
+# (docs/autorizare/07 "Programs"); applications read it through the SDK.
+type invoice_program
+  relations
+    define parent_org: [org]
+    define credential: [autorizare_client]
+    define retiring_credential: [autorizare_client with non_expired_grant]
+    define speaks_for: credential or retiring_credential
+
+type invoice_company
+  relations
+    define parent_org: [org]
+    define role_invoice_owner: [user, group#member, invoice_program]
+    define role_invoice_admin: [user, group#member, invoice_program]
+    define role_invoice_accountant: [user, group#member, invoice_program]
+    define role_invoice_viewer: [user, group#member, invoice_program]
+    define profile_manager: [user, group#member] or perm_invoice_company_manage from parent_org or role_invoice_owner or role_invoice_admin
+    define reader: [user, group#member] or perm_invoice_data_read from parent_org or role_invoice_owner or role_invoice_admin or role_invoice_accountant or role_invoice_viewer
+    define writer: [user, group#member] or perm_invoice_data_write from parent_org or role_invoice_owner or role_invoice_admin or role_invoice_accountant
+    define granted_transmitter: [user, group#member, invoice_program]
+    define transmitter_holder: perm_invoice_efactura_transmit from parent_org or role_invoice_owner or role_invoice_admin or role_invoice_accountant
+    define transmitter: (granted_transmitter and transmitter_holder)
+    define granted_canceller: [user, group#member, invoice_program]
+    define canceller_holder: perm_invoice_invoice_cancel from parent_org or role_invoice_owner or role_invoice_admin or role_invoice_accountant
+    define canceller: (granted_canceller and canceller_holder)
+    define granted_issuer: [user, group#member, invoice_program]
+    define issuer_holder: perm_invoice_invoice_issue from parent_org or role_invoice_owner or role_invoice_admin or role_invoice_accountant
+    define issuer: (granted_issuer and issuer_holder)
+    define granted_stornoer: [user, group#member, invoice_program]
+    define stornoer_holder: perm_invoice_invoice_storno from parent_org or role_invoice_owner or role_invoice_admin or role_invoice_accountant
+    define stornoer: (granted_stornoer and stornoer_holder)
+    define members_manager: [user, group#member] or perm_invoice_members_manage from parent_org or role_invoice_owner or role_invoice_admin
+    define personal_data_reader: [user, group#member] or perm_invoice_personal_data_read from parent_org or role_invoice_owner or role_invoice_admin or role_invoice_accountant
+    define webhooks_manager: [user, group#member] or perm_invoice_webhooks_manage from parent_org or role_invoice_owner or role_invoice_admin
+    # app_invoice_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
+    define app_invoice_access: role_invoice_owner or role_invoice_admin or role_invoice_accountant or role_invoice_viewer
+
+type invoice_platform
+  relations
+    define parent_platform: [platform]
+    define administer: [user, group#member] or perm_invoice_platform_administer from parent_platform
+    define changelog_manager: [user, group#member] or perm_invoice_platform_changelog_manage from parent_platform
+
+type invoice_register
+  relations
+    define parent_org: [org]
+    define role_invoice_integration: [user, group#member, invoice_program]
+    define integration: [user, group#member] or perm_invoice_integration_sync from parent_org or role_invoice_integration
+    # app_invoice_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
+    define app_invoice_access: role_invoice_integration
+
+# A permission set an organisation composes for itself (custom role).
+type invoice_permission_set
+  relations
+    define parent_org: [org]
+    define member: [user, group#member]
+
+# The module's built-in sets and permissions, as relations on the scope.
+extend type org
+  relations
+    define role_invoice_owner: [user, group#member]
+    define role_invoice_admin: [user, group#member]
+    define role_invoice_accountant: [user, group#member]
+    define role_invoice_viewer: [user, group#member]
+    define role_invoice_integration: [user, group#member]
+    define perm_invoice_company_manage: [user, group#member, invoice_permission_set#member] or role_invoice_owner or role_invoice_admin
+    define perm_invoice_data_read: [user, group#member, invoice_permission_set#member] or role_invoice_owner or role_invoice_admin or role_invoice_accountant or role_invoice_viewer
+    define perm_invoice_data_write: [user, group#member, invoice_permission_set#member] or role_invoice_owner or role_invoice_admin or role_invoice_accountant
+    define perm_invoice_efactura_transmit: [user, group#member, invoice_permission_set#member] or role_invoice_owner or role_invoice_admin or role_invoice_accountant
+    define perm_invoice_invoice_cancel: [user, group#member, invoice_permission_set#member] or role_invoice_owner or role_invoice_admin or role_invoice_accountant
+    define perm_invoice_invoice_issue: [user, group#member, invoice_permission_set#member] or role_invoice_owner or role_invoice_admin or role_invoice_accountant
+    define perm_invoice_invoice_storno: [user, group#member, invoice_permission_set#member] or role_invoice_owner or role_invoice_admin or role_invoice_accountant
+    define perm_invoice_members_manage: [user, group#member, invoice_permission_set#member] or role_invoice_owner or role_invoice_admin
+    define perm_invoice_personal_data_read: [user, group#member, invoice_permission_set#member] or role_invoice_owner or role_invoice_admin or role_invoice_accountant
+    define perm_invoice_webhooks_manage: [user, group#member, invoice_permission_set#member] or role_invoice_owner or role_invoice_admin
+    define perm_invoice_integration_sync: [user, group#member, invoice_permission_set#member] or role_invoice_integration
+    define program_invoice: [invoice_program]
+    # app_invoice_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
+    define app_invoice_access: perm_invoice_company_manage or perm_invoice_data_read or perm_invoice_data_write or perm_invoice_efactura_transmit or perm_invoice_invoice_cancel or perm_invoice_invoice_issue or perm_invoice_invoice_storno or perm_invoice_members_manage or perm_invoice_personal_data_read or perm_invoice_webhooks_manage or perm_invoice_integration_sync
+
+# The module's built-in sets and permissions, as relations on the scope.
+extend type platform
+  relations
+    define role_invoice_platform_admin: [user, group#member]
+    define perm_invoice_platform_administer: [user, group#member] or role_invoice_platform_admin or administrator
+    define perm_invoice_platform_changelog_manage: [user, group#member] or role_invoice_platform_admin or administrator
+    # app_invoice_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
+    define app_invoice_access: perm_invoice_platform_administer or perm_invoice_platform_changelog_manage

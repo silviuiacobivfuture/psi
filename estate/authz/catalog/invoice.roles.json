@@ -1,0 +1,241 @@
+{
+	"$schema": "./catalog.schema.json",
+	"$generated": "from .seb-bundle/apps/invoice-svc/authz.manifest.json — do not edit; run authz/tools/generate.py",
+	"module": "invoice",
+	"version": 1,
+	"scope_resolvers": {
+		"invoice_company": {
+			"scope_type": "org",
+			"relation": "parent_org"
+		},
+		"invoice_platform": {
+			"scope_type": "platform",
+			"relation": "parent_platform"
+		},
+		"invoice_register": {
+			"scope_type": "org",
+			"relation": "parent_org"
+		},
+		"invoice_permission_set": {
+			"scope_type": "org",
+			"relation": "parent_org"
+		},
+		"invoice_program": {
+			"scope_type": "org",
+			"relation": "parent_org"
+		}
+	},
+	"programs": {
+		"subject": "invoice_program",
+		"roles": ["invoice:integration"],
+		"resource": "invoice_register",
+		"org_relation": "program_invoice"
+	},
+	"group_bindings": [],
+	"mirror_relations": [
+		"invoice_company#granted_canceller",
+		"invoice_company#granted_issuer",
+		"invoice_company#granted_stornoer",
+		"invoice_company#granted_transmitter",
+		"invoice_company#parent_org",
+		"invoice_permission_set#member",
+		"org#perm_invoice_company_manage",
+		"org#perm_invoice_data_read",
+		"org#perm_invoice_data_write",
+		"org#perm_invoice_efactura_transmit",
+		"org#perm_invoice_integration_sync",
+		"org#perm_invoice_invoice_cancel",
+		"org#perm_invoice_invoice_issue",
+		"org#perm_invoice_invoice_storno",
+		"org#perm_invoice_members_manage",
+		"org#perm_invoice_personal_data_read",
+		"org#perm_invoice_webhooks_manage",
+		"org#role_invoice_accountant",
+		"org#role_invoice_admin",
+		"org#role_invoice_integration",
+		"org#role_invoice_owner",
+		"org#role_invoice_viewer",
+		"platform#administrator",
+		"platform#perm_invoice_platform_administer",
+		"platform#perm_invoice_platform_changelog_manage",
+		"platform#role_invoice_platform_admin"
+	],
+	"features": [
+		{
+			"key": "company",
+			"name": {
+				"ro": "Firmă"
+			}
+		},
+		{
+			"key": "data",
+			"name": {
+				"ro": "Date"
+			}
+		},
+		{
+			"key": "efactura",
+			"name": {
+				"ro": "e-Factura"
+			}
+		},
+		{
+			"key": "invoice",
+			"name": {
+				"ro": "Facturi"
+			}
+		},
+		{
+			"key": "members",
+			"name": {
+				"ro": "Membri"
+			}
+		},
+		{
+			"key": "personal_data",
+			"name": {
+				"ro": "Date personale"
+			}
+		},
+		{
+			"key": "webhooks",
+			"name": {
+				"ro": "Webhook-uri"
+			}
+		},
+		{
+			"key": "platform",
+			"name": {
+				"ro": "Platformă"
+			}
+		},
+		{
+			"key": "integration",
+			"name": {
+				"ro": "Integrare"
+			}
+		}
+	],
+	"roles": [
+		{
+			"key": "invoice:owner",
+			"name": {
+				"ro": "Proprietar facturare"
+			},
+			"description": {
+				"ro": "Tot ce ține de facturare: emite, stornează, anulează, trimite la ANAF, administrează profilul firmei, membrii și webhook-urile."
+			},
+			"scope_type": "org",
+			"relation": "role_invoice_owner",
+			"resource_scopes": ["invoice_company"],
+			"grants": [
+				"invoice_company#profile_manager",
+				"invoice_company#reader",
+				"invoice_company#writer",
+				"invoice_company#transmitter",
+				"invoice_company#canceller",
+				"invoice_company#issuer",
+				"invoice_company#stornoer",
+				"invoice_company#members_manager",
+				"invoice_company#personal_data_reader",
+				"invoice_company#webhooks_manager"
+			],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "invoice:admin",
+			"name": {
+				"ro": "Administrator facturare"
+			},
+			"description": {
+				"ro": "Aceleași drepturi ca proprietarul: emite, stornează, anulează, trimite la ANAF, administrează profilul firmei, membrii și webhook-urile."
+			},
+			"scope_type": "org",
+			"relation": "role_invoice_admin",
+			"resource_scopes": ["invoice_company"],
+			"grants": [
+				"invoice_company#profile_manager",
+				"invoice_company#reader",
+				"invoice_company#writer",
+				"invoice_company#transmitter",
+				"invoice_company#canceller",
+				"invoice_company#issuer",
+				"invoice_company#stornoer",
+				"invoice_company#members_manager",
+				"invoice_company#personal_data_reader",
+				"invoice_company#webhooks_manager"
+			],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "invoice:accountant",
+			"name": {
+				"ro": "Contabil"
+			},
+			"description": {
+				"ro": "Emite, stornează, anulează și trimite facturi la ANAF; vede partenerii și scrie în spațiul de lucru. Nu administrează membrii sau webhook-urile."
+			},
+			"scope_type": "org",
+			"relation": "role_invoice_accountant",
+			"resource_scopes": ["invoice_company"],
+			"grants": [
+				"invoice_company#reader",
+				"invoice_company#writer",
+				"invoice_company#transmitter",
+				"invoice_company#canceller",
+				"invoice_company#issuer",
+				"invoice_company#stornoer",
+				"invoice_company#personal_data_reader"
+			],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "invoice:viewer",
+			"name": {
+				"ro": "Vizualizare facturi"
+			},
+			"description": {
+				"ro": "Doar citire în spațiul de lucru. Nu emite și nu modifică nimic."
+			},
+			"scope_type": "org",
+			"relation": "role_invoice_viewer",
+			"resource_scopes": ["invoice_company"],
+			"grants": ["invoice_company#reader"],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "invoice:platform_admin",
+			"name": {
+				"ro": "Administrator platformă facturare"
+			},
+			"description": {
+				"ro": "Administrează seiful de configurare, registrul aplicațiilor și ecranele de sistem ale facturării. Este rolul care înlocuiește grupul app-invoice-admin."
+			},
+			"scope_type": "platform",
+			"relation": "role_invoice_platform_admin",
+			"super_admin": true,
+			"grants": ["invoice_platform#administer", "invoice_platform#changelog_manager"],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "invoice:integration",
+			"name": {
+				"ro": "Integrarea serviciului de facturare"
+			},
+			"description": {
+				"ro": "Pentru programul serviciului de facturare: credențialul cu care serviciul scrie și retrage drepturile pe firme prin Polaris. Nu dă niciun drept pe o firmă. Se dă doar unui program, în Polaris."
+			},
+			"scope_type": "org",
+			"relation": "role_invoice_integration",
+			"resource_scopes": ["invoice_register"],
+			"grants": ["invoice_register#integration"],
+			"assignable": false,
+			"max_duration": null
+		}
+	]
+}

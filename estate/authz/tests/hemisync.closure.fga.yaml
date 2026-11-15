@@ -55,6 +55,12 @@ tuples:
   - user: user:c_platform_perm_hemisync_sessions_view
     relation: perm_hemisync_sessions_view
     object: platform:psi
+  - user: user:c_platform_perm_invoice_platform_administer
+    relation: perm_invoice_platform_administer
+    object: platform:psi
+  - user: user:c_platform_perm_invoice_platform_changelog_manage
+    relation: perm_invoice_platform_changelog_manage
+    object: platform:psi
   - user: user:c_platform_perm_psizone_account_erase
     relation: perm_psizone_account_erase
     object: platform:psi
@@ -129,6 +135,9 @@ tuples:
     object: platform:psi
   - user: user:c_platform_role_hemisync_reception
     relation: role_hemisync_reception
+    object: platform:psi
+  - user: user:c_platform_role_invoice_platform_admin
+    relation: role_invoice_platform_admin
     object: platform:psi
   - user: user:c_platform_role_psizone_privacy_officer
     relation: role_psizone_privacy_officer
@@ -213,6 +222,14 @@ tests:
         object: hemisync_session_request:closure
         assertions:
           viewer: true
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_perm_psizone_account_erase
         object: hemisync_session_request:closure
         assertions:
@@ -313,6 +330,10 @@ tests:
         object: hemisync_session_request:closure
         assertions:
           viewer: true
+      - user: user:c_platform_role_invoice_platform_admin
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_role_psizone_privacy_officer
         object: hemisync_session_request:closure
         assertions:
@@ -391,6 +412,14 @@ tests:
         object: hemisync_session_request:closure
         assertions:
           editor: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
       - user: user:c_platform_perm_psizone_account_erase
         object: hemisync_session_request:closure
         assertions:
@@ -491,6 +520,10 @@ tests:
         object: hemisync_session_request:closure
         assertions:
           editor: true
+      - user: user:c_platform_role_invoice_platform_admin
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
       - user: user:c_platform_role_psizone_privacy_officer
         object: hemisync_session_request:closure
         assertions:
@@ -566,6 +599,14 @@ tests:
         assertions:
           listener: false
       - user: user:c_platform_perm_hemisync_sessions_view
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
         object: hemisync_exercise:closure
         assertions:
           listener: false
@@ -666,6 +707,10 @@ tests:
         assertions:
           listener: false
       - user: user:c_platform_role_hemisync_reception
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_role_invoice_platform_admin
         object: hemisync_exercise:closure
         assertions:
           listener: false

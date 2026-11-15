@@ -7,7 +7,7 @@ spec:
   template:
     metadata:
       annotations:
-        autorizare/permissions-bundle: "54baa782e2528c41"
+        autorizare/permissions-bundle: "80dee95366d73a15"
     spec:
       initContainers:
         - name: assert-secrets
@@ -37,6 +37,7 @@ spec:
                     - {key: modules__cms.fga, path: modules/cms.fga}
                     - {key: modules__eqsync.fga, path: modules/eqsync.fga}
                     - {key: modules__hemisync.fga, path: modules/hemisync.fga}
+                    - {key: modules__invoice.fga, path: modules/invoice.fga}
                     - {key: modules__psizone.fga, path: modules/psizone.fga}
                     - {key: modules__sched.fga, path: modules/sched.fga}
               - configMap:
@@ -52,6 +53,8 @@ spec:
                     - {key: catalog__eqsync.roles.json, path: catalog/eqsync.roles.json}
                     - {key: catalog__hemisync.manifest.json, path: catalog/hemisync.manifest.json}
                     - {key: catalog__hemisync.roles.json, path: catalog/hemisync.roles.json}
+                    - {key: catalog__invoice.manifest.json, path: catalog/invoice.manifest.json}
+                    - {key: catalog__invoice.roles.json, path: catalog/invoice.roles.json}
                     - {key: catalog__psizone.manifest.json, path: catalog/psizone.manifest.json}
                     - {key: catalog__psizone.roles.json, path: catalog/psizone.roles.json}
                     - {key: catalog__sched.manifest.json, path: catalog/sched.manifest.json}
@@ -65,7 +68,7 @@ spec:
   template:
     metadata:
       annotations:
-        autorizare/permissions-bundle: "54baa782e2528c41"
+        autorizare/permissions-bundle: "80dee95366d73a15"
     spec:
       containers:
         - name: autorizare-hub
@@ -87,6 +90,7 @@ spec:
                     - {key: modules__cms.fga, path: modules/cms.fga}
                     - {key: modules__eqsync.fga, path: modules/eqsync.fga}
                     - {key: modules__hemisync.fga, path: modules/hemisync.fga}
+                    - {key: modules__invoice.fga, path: modules/invoice.fga}
                     - {key: modules__psizone.fga, path: modules/psizone.fga}
                     - {key: modules__sched.fga, path: modules/sched.fga}
               - configMap:
@@ -102,6 +106,8 @@ spec:
                     - {key: catalog__eqsync.roles.json, path: catalog/eqsync.roles.json}
                     - {key: catalog__hemisync.manifest.json, path: catalog/hemisync.manifest.json}
                     - {key: catalog__hemisync.roles.json, path: catalog/hemisync.roles.json}
+                    - {key: catalog__invoice.manifest.json, path: catalog/invoice.manifest.json}
+                    - {key: catalog__invoice.roles.json, path: catalog/invoice.roles.json}
                     - {key: catalog__psizone.manifest.json, path: catalog/psizone.manifest.json}
                     - {key: catalog__psizone.roles.json, path: catalog/psizone.roles.json}
                     - {key: catalog__sched.manifest.json, path: catalog/sched.manifest.json}

@@ -1,6 +1,6 @@
 {
-	"$comment": "PSI's inputs to the platform permissions generator (SEB authz/tools/gen/estate.py says what each key means). Estate mode: platform_dir is the installed bundle's authz/, whose core and autorizare modules psi never copies; psi's fga.mod lists only psi's modules. Generated artefacts live under estate/authz/. Run from psi's root: AUTHZ_ESTATE_ROOT=$PWD python3 .seb-bundle/authz/tools/generate.py --estate estate/authz.json",
-	"manifests": ["apps/*/authz.manifest.json"],
+	"$comment": "PSI's inputs to the platform permissions generator (SEB authz/tools/gen/estate.py says what each key means). Estate mode: platform_dir is the installed bundle's authz/, whose core and autorizare modules psi never copies; psi's fga.mod lists only psi's modules. Generated artefacts live under estate/authz/. Run from psi's root: AUTHZ_ESTATE_ROOT=$PWD python3 .seb-bundle/authz/tools/generate.py --estate estate/authz.json Mu (the shared invoicing application) is composed from the installed bundle's manifest (.seb-bundle/apps/invoice-svc), as SEB ships it.",
+	"manifests": ["apps/*/authz.manifest.json", ".seb-bundle/apps/invoice-svc/authz.manifest.json"],
 	"model": "estate/authz/fga.mod",
 	"modules_dir": "estate/authz/modules",
 	"catalog_dir": "estate/authz/catalog",

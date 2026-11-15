@@ -55,6 +55,12 @@ tuples:
   - user: user:c_platform_perm_hemisync_sessions_view
     relation: perm_hemisync_sessions_view
     object: platform:psi
+  - user: user:c_platform_perm_invoice_platform_administer
+    relation: perm_invoice_platform_administer
+    object: platform:psi
+  - user: user:c_platform_perm_invoice_platform_changelog_manage
+    relation: perm_invoice_platform_changelog_manage
+    object: platform:psi
   - user: user:c_platform_perm_psizone_account_erase
     relation: perm_psizone_account_erase
     object: platform:psi
@@ -129,6 +135,9 @@ tuples:
     object: platform:psi
   - user: user:c_platform_role_hemisync_reception
     relation: role_hemisync_reception
+    object: platform:psi
+  - user: user:c_platform_role_invoice_platform_admin
+    relation: role_invoice_platform_admin
     object: platform:psi
   - user: user:c_platform_role_psizone_privacy_officer
     relation: role_psizone_privacy_officer
@@ -216,6 +225,14 @@ tests:
         object: psizone_account:closure
         assertions:
           viewer: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: psizone_account:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_perm_psizone_account_erase
         object: psizone_account:closure
         assertions:
@@ -313,6 +330,10 @@ tests:
         assertions:
           viewer: false
       - user: user:c_platform_role_hemisync_reception
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_invoice_platform_admin
         object: psizone_account:closure
         assertions:
           viewer: false
@@ -394,6 +415,14 @@ tests:
         object: psizone_account:closure
         assertions:
           editor: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: psizone_account:closure
+        assertions:
+          editor: false
       - user: user:c_platform_perm_psizone_account_erase
         object: psizone_account:closure
         assertions:
@@ -491,6 +520,10 @@ tests:
         assertions:
           editor: false
       - user: user:c_platform_role_hemisync_reception
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_invoice_platform_admin
         object: psizone_account:closure
         assertions:
           editor: false
@@ -572,6 +605,14 @@ tests:
         object: psizone_account:closure
         assertions:
           eraser: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: psizone_account:closure
+        assertions:
+          eraser: false
       - user: user:c_platform_perm_psizone_account_erase
         object: psizone_account:closure
         assertions:
@@ -669,6 +710,10 @@ tests:
         assertions:
           eraser: false
       - user: user:c_platform_role_hemisync_reception
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_role_invoice_platform_admin
         object: psizone_account:closure
         assertions:
           eraser: false
@@ -750,6 +795,14 @@ tests:
         object: psizone_booking_request:closure
         assertions:
           viewer: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_perm_psizone_account_erase
         object: psizone_booking_request:closure
         assertions:
@@ -847,6 +900,10 @@ tests:
         assertions:
           viewer: false
       - user: user:c_platform_role_hemisync_reception
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_invoice_platform_admin
         object: psizone_booking_request:closure
         assertions:
           viewer: false
@@ -928,6 +985,14 @@ tests:
         object: psizone_booking_request:closure
         assertions:
           editor: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
       - user: user:c_platform_perm_psizone_account_erase
         object: psizone_booking_request:closure
         assertions:
@@ -1025,6 +1090,10 @@ tests:
         assertions:
           editor: false
       - user: user:c_platform_role_hemisync_reception
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_invoice_platform_admin
         object: psizone_booking_request:closure
         assertions:
           editor: false
@@ -1106,6 +1175,14 @@ tests:
         object: psizone_guide_thread:closure
         assertions:
           viewer: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_perm_psizone_account_erase
         object: psizone_guide_thread:closure
         assertions:
@@ -1203,6 +1280,10 @@ tests:
         assertions:
           viewer: false
       - user: user:c_platform_role_hemisync_reception
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_invoice_platform_admin
         object: psizone_guide_thread:closure
         assertions:
           viewer: false
@@ -1284,6 +1365,14 @@ tests:
         object: psizone_guide_thread:closure
         assertions:
           forgetter: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
       - user: user:c_platform_perm_psizone_account_erase
         object: psizone_guide_thread:closure
         assertions:
@@ -1381,6 +1470,10 @@ tests:
         assertions:
           forgetter: false
       - user: user:c_platform_role_hemisync_reception
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_role_invoice_platform_admin
         object: psizone_guide_thread:closure
         assertions:
           forgetter: false

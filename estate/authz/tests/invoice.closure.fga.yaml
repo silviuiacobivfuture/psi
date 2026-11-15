@@ -1,0 +1,3040 @@
+# GENERATED FROM .seb-bundle/apps/invoice-svc/authz.manifest.json — DO NOT EDIT.
+# Run `python3 authz/tools/generate.py` after changing the manifest.
+#
+# The closure, proven by the engine — direct tuples AND the via-set hop.
+# See authz/tools/gen/closure_tests.py.
+name: invoice-closure
+model_file: ../fga.mod
+
+tuples:
+  - user: user:c_org_administrator
+    relation: administrator
+    object: org:closure
+  - user: user:c_org_auditor
+    relation: auditor
+    object: org:closure
+  - user: user:c_org_member
+    relation: member
+    object: org:closure
+  - user: user:c_org_perm_invoice_company_manage
+    relation: perm_invoice_company_manage
+    object: org:closure
+  - user: user:c_org_perm_invoice_data_read
+    relation: perm_invoice_data_read
+    object: org:closure
+  - user: user:c_org_perm_invoice_data_write
+    relation: perm_invoice_data_write
+    object: org:closure
+  - user: user:c_org_perm_invoice_efactura_transmit
+    relation: perm_invoice_efactura_transmit
+    object: org:closure
+  - user: user:c_org_perm_invoice_integration_sync
+    relation: perm_invoice_integration_sync
+    object: org:closure
+  - user: user:c_org_perm_invoice_invoice_cancel
+    relation: perm_invoice_invoice_cancel
+    object: org:closure
+  - user: user:c_org_perm_invoice_invoice_issue
+    relation: perm_invoice_invoice_issue
+    object: org:closure
+  - user: user:c_org_perm_invoice_invoice_storno
+    relation: perm_invoice_invoice_storno
+    object: org:closure
+  - user: user:c_org_perm_invoice_members_manage
+    relation: perm_invoice_members_manage
+    object: org:closure
+  - user: user:c_org_perm_invoice_personal_data_read
+    relation: perm_invoice_personal_data_read
+    object: org:closure
+  - user: user:c_org_perm_invoice_webhooks_manage
+    relation: perm_invoice_webhooks_manage
+    object: org:closure
+  - user: user:c_org_role_invoice_accountant
+    relation: role_invoice_accountant
+    object: org:closure
+  - user: user:c_org_role_invoice_admin
+    relation: role_invoice_admin
+    object: org:closure
+  - user: user:c_org_role_invoice_integration
+    relation: role_invoice_integration
+    object: org:closure
+  - user: user:c_org_role_invoice_owner
+    relation: role_invoice_owner
+    object: org:closure
+  - user: user:c_org_role_invoice_viewer
+    relation: role_invoice_viewer
+    object: org:closure
+  - user: user:c_org_role_sched_integration
+    relation: role_sched_integration
+    object: org:closure
+  - user: user:c_platform_administrator
+    relation: administrator
+    object: platform:psi
+  - user: user:c_platform_auditor
+    relation: auditor
+    object: platform:psi
+  - user: user:c_platform_break_glass_opener
+    relation: break_glass_opener
+    object: platform:psi
+  - user: user:c_platform_changelog_manager
+    relation: changelog_manager
+    object: platform:psi
+  - user: user:c_platform_grantor
+    relation: grantor
+    object: platform:psi
+  - user: user:c_platform_model_releaser
+    relation: model_releaser
+    object: platform:psi
+  - user: user:c_platform_org_eraser
+    relation: org_eraser
+    object: platform:psi
+  - user: user:c_platform_org_restorer
+    relation: org_restorer
+    object: platform:psi
+  - user: user:c_platform_perm_blog_saved_manage
+    relation: perm_blog_saved_manage
+    object: platform:psi
+  - user: user:c_platform_perm_blog_saved_view
+    relation: perm_blog_saved_view
+    object: platform:psi
+  - user: user:c_platform_perm_eqsync_programme_manage
+    relation: perm_eqsync_programme_manage
+    object: platform:psi
+  - user: user:c_platform_perm_eqsync_programme_view
+    relation: perm_eqsync_programme_view
+    object: platform:psi
+  - user: user:c_platform_perm_eqsync_protocols_listen
+    relation: perm_eqsync_protocols_listen
+    object: platform:psi
+  - user: user:c_platform_perm_hemisync_exercises_listen
+    relation: perm_hemisync_exercises_listen
+    object: platform:psi
+  - user: user:c_platform_perm_hemisync_sessions_manage
+    relation: perm_hemisync_sessions_manage
+    object: platform:psi
+  - user: user:c_platform_perm_hemisync_sessions_view
+    relation: perm_hemisync_sessions_view
+    object: platform:psi
+  - user: user:c_platform_perm_invoice_platform_administer
+    relation: perm_invoice_platform_administer
+    object: platform:psi
+  - user: user:c_platform_perm_invoice_platform_changelog_manage
+    relation: perm_invoice_platform_changelog_manage
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_account_erase
+    relation: perm_psizone_account_erase
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_account_manage
+    relation: perm_psizone_account_manage
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_account_view
+    relation: perm_psizone_account_view
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_bookings_manage
+    relation: perm_psizone_bookings_manage
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_bookings_view
+    relation: perm_psizone_bookings_view
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_guide_memory_forget
+    relation: perm_psizone_guide_memory_forget
+    object: platform:psi
+  - user: user:c_platform_perm_psizone_guide_memory_view
+    relation: perm_psizone_guide_memory_view
+    object: platform:psi
+  - user: user:c_platform_program_manager
+    relation: program_manager
+    object: platform:psi
+  - user: user:c_platform_role_agent_studio_operator
+    relation: role_agent_studio_operator
+    object: platform:psi
+  - user: user:c_platform_role_agent_studio_viewer
+    relation: role_agent_studio_viewer
+    object: platform:psi
+  - user: user:c_platform_role_blog_privacy_officer
+    relation: role_blog_privacy_officer
+    object: platform:psi
+  - user: user:c_platform_role_cms_admin
+    relation: role_cms_admin
+    object: platform:psi
+  - user: user:c_platform_role_cms_ai_admin
+    relation: role_cms_ai_admin
+    object: platform:psi
+  - user: user:c_platform_role_cms_ai_operator
+    relation: role_cms_ai_operator
+    object: platform:psi
+  - user: user:c_platform_role_cms_calendar_manager
+    relation: role_cms_calendar_manager
+    object: platform:psi
+  - user: user:c_platform_role_cms_calendar_viewer
+    relation: role_cms_calendar_viewer
+    object: platform:psi
+  - user: user:c_platform_role_cms_clinical_reviewer
+    relation: role_cms_clinical_reviewer
+    object: platform:psi
+  - user: user:c_platform_role_cms_editor
+    relation: role_cms_editor
+    object: platform:psi
+  - user: user:c_platform_role_cms_notifications_admin
+    relation: role_cms_notifications_admin
+    object: platform:psi
+  - user: user:c_platform_role_cms_privacy_officer
+    relation: role_cms_privacy_officer
+    object: platform:psi
+  - user: user:c_platform_role_cms_publisher
+    relation: role_cms_publisher
+    object: platform:psi
+  - user: user:c_platform_role_cms_reader
+    relation: role_cms_reader
+    object: platform:psi
+  - user: user:c_platform_role_cms_site_manager
+    relation: role_cms_site_manager
+    object: platform:psi
+  - user: user:c_platform_role_eqsync_programme_support
+    relation: role_eqsync_programme_support
+    object: platform:psi
+  - user: user:c_platform_role_hemisync_reception
+    relation: role_hemisync_reception
+    object: platform:psi
+  - user: user:c_platform_role_invoice_platform_admin
+    relation: role_invoice_platform_admin
+    object: platform:psi
+  - user: user:c_platform_role_psizone_privacy_officer
+    relation: role_psizone_privacy_officer
+    object: platform:psi
+  - user: user:c_platform_role_psizone_reception
+    relation: role_psizone_reception
+    object: platform:psi
+  - user: user:c_platform_role_sched_app_admin
+    relation: role_sched_app_admin
+    object: platform:psi
+  - user: user:s_perm_invoice_company_manage
+    relation: member
+    object: invoice_permission_set:s_perm_invoice_company_manage
+  - user: invoice_permission_set:s_perm_invoice_company_manage#member
+    relation: perm_invoice_company_manage
+    object: org:closure
+  - user: user:s_perm_invoice_data_read
+    relation: member
+    object: invoice_permission_set:s_perm_invoice_data_read
+  - user: invoice_permission_set:s_perm_invoice_data_read#member
+    relation: perm_invoice_data_read
+    object: org:closure
+  - user: user:s_perm_invoice_data_write
+    relation: member
+    object: invoice_permission_set:s_perm_invoice_data_write
+  - user: invoice_permission_set:s_perm_invoice_data_write#member
+    relation: perm_invoice_data_write
+    object: org:closure
+  - user: user:s_perm_invoice_efactura_transmit
+    relation: member
+    object: invoice_permission_set:s_perm_invoice_efactura_transmit
+  - user: invoice_permission_set:s_perm_invoice_efactura_transmit#member
+    relation: perm_invoice_efactura_transmit
+    object: org:closure
+  - user: user:s_perm_invoice_integration_sync
+    relation: member
+    object: invoice_permission_set:s_perm_invoice_integration_sync
+  - user: invoice_permission_set:s_perm_invoice_integration_sync#member
+    relation: perm_invoice_integration_sync
+    object: org:closure
+  - user: user:s_perm_invoice_invoice_cancel
+    relation: member
+    object: invoice_permission_set:s_perm_invoice_invoice_cancel
+  - user: invoice_permission_set:s_perm_invoice_invoice_cancel#member
+    relation: perm_invoice_invoice_cancel
+    object: org:closure
+  - user: user:s_perm_invoice_invoice_issue
+    relation: member
+    object: invoice_permission_set:s_perm_invoice_invoice_issue
+  - user: invoice_permission_set:s_perm_invoice_invoice_issue#member
+    relation: perm_invoice_invoice_issue
+    object: org:closure
+  - user: user:s_perm_invoice_invoice_storno
+    relation: member
+    object: invoice_permission_set:s_perm_invoice_invoice_storno
+  - user: invoice_permission_set:s_perm_invoice_invoice_storno#member
+    relation: perm_invoice_invoice_storno
+    object: org:closure
+  - user: user:s_perm_invoice_members_manage
+    relation: member
+    object: invoice_permission_set:s_perm_invoice_members_manage
+  - user: invoice_permission_set:s_perm_invoice_members_manage#member
+    relation: perm_invoice_members_manage
+    object: org:closure
+  - user: user:s_perm_invoice_personal_data_read
+    relation: member
+    object: invoice_permission_set:s_perm_invoice_personal_data_read
+  - user: invoice_permission_set:s_perm_invoice_personal_data_read#member
+    relation: perm_invoice_personal_data_read
+    object: org:closure
+  - user: user:s_perm_invoice_webhooks_manage
+    relation: member
+    object: invoice_permission_set:s_perm_invoice_webhooks_manage
+  - user: invoice_permission_set:s_perm_invoice_webhooks_manage#member
+    relation: perm_invoice_webhooks_manage
+    object: org:closure
+  - user: org:closure
+    relation: parent_org
+    object: invoice_company:closure
+  - user: platform:psi
+    relation: parent_platform
+    object: invoice_platform:closure
+  - user: org:closure
+    relation: parent_org
+    object: invoice_register:closure
+  - user: org:closure
+    relation: parent_org
+    object: invoice_company:closure-granted
+  - user: user:g_org_administrator
+    relation: administrator
+    object: org:closure
+  - user: user:g_org_administrator
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_administrator
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_administrator
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_administrator
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_auditor
+    relation: auditor
+    object: org:closure
+  - user: user:g_org_auditor
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_auditor
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_auditor
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_auditor
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_member
+    relation: member
+    object: org:closure
+  - user: user:g_org_member
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_member
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_member
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_member
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_company_manage
+    relation: perm_invoice_company_manage
+    object: org:closure
+  - user: user:g_org_perm_invoice_company_manage
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_company_manage
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_company_manage
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_company_manage
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_data_read
+    relation: perm_invoice_data_read
+    object: org:closure
+  - user: user:g_org_perm_invoice_data_read
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_data_read
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_data_read
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_data_read
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_data_write
+    relation: perm_invoice_data_write
+    object: org:closure
+  - user: user:g_org_perm_invoice_data_write
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_data_write
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_data_write
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_data_write
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_efactura_transmit
+    relation: perm_invoice_efactura_transmit
+    object: org:closure
+  - user: user:g_org_perm_invoice_efactura_transmit
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_efactura_transmit
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_efactura_transmit
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_efactura_transmit
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_integration_sync
+    relation: perm_invoice_integration_sync
+    object: org:closure
+  - user: user:g_org_perm_invoice_integration_sync
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_integration_sync
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_integration_sync
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_integration_sync
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_invoice_cancel
+    relation: perm_invoice_invoice_cancel
+    object: org:closure
+  - user: user:g_org_perm_invoice_invoice_cancel
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_invoice_cancel
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_invoice_cancel
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_invoice_cancel
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_invoice_issue
+    relation: perm_invoice_invoice_issue
+    object: org:closure
+  - user: user:g_org_perm_invoice_invoice_issue
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_invoice_issue
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_invoice_issue
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_invoice_issue
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_invoice_storno
+    relation: perm_invoice_invoice_storno
+    object: org:closure
+  - user: user:g_org_perm_invoice_invoice_storno
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_invoice_storno
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_invoice_storno
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_invoice_storno
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_members_manage
+    relation: perm_invoice_members_manage
+    object: org:closure
+  - user: user:g_org_perm_invoice_members_manage
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_members_manage
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_members_manage
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_members_manage
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_personal_data_read
+    relation: perm_invoice_personal_data_read
+    object: org:closure
+  - user: user:g_org_perm_invoice_personal_data_read
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_personal_data_read
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_personal_data_read
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_personal_data_read
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_webhooks_manage
+    relation: perm_invoice_webhooks_manage
+    object: org:closure
+  - user: user:g_org_perm_invoice_webhooks_manage
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_webhooks_manage
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_webhooks_manage
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_perm_invoice_webhooks_manage
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_invoice_accountant
+    relation: role_invoice_accountant
+    object: org:closure
+  - user: user:g_org_role_invoice_accountant
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_invoice_accountant
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_invoice_accountant
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_invoice_accountant
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_invoice_admin
+    relation: role_invoice_admin
+    object: org:closure
+  - user: user:g_org_role_invoice_admin
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_invoice_admin
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_invoice_admin
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_invoice_admin
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_invoice_integration
+    relation: role_invoice_integration
+    object: org:closure
+  - user: user:g_org_role_invoice_integration
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_invoice_integration
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_invoice_integration
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_invoice_integration
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_invoice_owner
+    relation: role_invoice_owner
+    object: org:closure
+  - user: user:g_org_role_invoice_owner
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_invoice_owner
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_invoice_owner
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_invoice_owner
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_invoice_viewer
+    relation: role_invoice_viewer
+    object: org:closure
+  - user: user:g_org_role_invoice_viewer
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_invoice_viewer
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_invoice_viewer
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_invoice_viewer
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_sched_integration
+    relation: role_sched_integration
+    object: org:closure
+  - user: user:g_org_role_sched_integration
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_sched_integration
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_sched_integration
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_sched_integration
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_only
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_only
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_only
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_only
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+
+tests:
+  - name: invoice_company#profile_manager is conferred by exactly ['perm_invoice_company_manage', 'role_invoice_admin', 'role_invoice_owner']
+    check:
+      - user: user:c_org_administrator
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:c_org_auditor
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:c_org_member
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:c_org_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          profile_manager: true
+      - user: user:c_org_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:c_org_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:c_org_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:c_org_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:c_org_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:c_org_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:c_org_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:c_org_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:c_org_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:c_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:c_org_role_invoice_accountant
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:c_org_role_invoice_admin
+        object: invoice_company:closure
+        assertions:
+          profile_manager: true
+      - user: user:c_org_role_invoice_integration
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:c_org_role_invoice_owner
+        object: invoice_company:closure
+        assertions:
+          profile_manager: true
+      - user: user:c_org_role_invoice_viewer
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:c_org_role_sched_integration
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:s_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          profile_manager: true
+      - user: user:s_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:s_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:s_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:s_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:s_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:s_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:s_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:s_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:s_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:s_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+  - name: invoice_company#reader is conferred by exactly ['perm_invoice_data_read', 'role_invoice_accountant', 'role_invoice_admin', 'role_invoice_owner', 'role_invoice_viewer']
+    check:
+      - user: user:c_org_administrator
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:c_org_auditor
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:c_org_member
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:c_org_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:c_org_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          reader: true
+      - user: user:c_org_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:c_org_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:c_org_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:c_org_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:c_org_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:c_org_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:c_org_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:c_org_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:c_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:c_org_role_invoice_accountant
+        object: invoice_company:closure
+        assertions:
+          reader: true
+      - user: user:c_org_role_invoice_admin
+        object: invoice_company:closure
+        assertions:
+          reader: true
+      - user: user:c_org_role_invoice_integration
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:c_org_role_invoice_owner
+        object: invoice_company:closure
+        assertions:
+          reader: true
+      - user: user:c_org_role_invoice_viewer
+        object: invoice_company:closure
+        assertions:
+          reader: true
+      - user: user:c_org_role_sched_integration
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:s_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:s_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          reader: true
+      - user: user:s_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:s_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:s_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:s_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:s_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:s_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:s_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:s_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:s_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          reader: false
+  - name: invoice_company#writer is conferred by exactly ['perm_invoice_data_write', 'role_invoice_accountant', 'role_invoice_admin', 'role_invoice_owner']
+    check:
+      - user: user:c_org_administrator
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:c_org_auditor
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:c_org_member
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:c_org_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:c_org_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:c_org_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          writer: true
+      - user: user:c_org_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:c_org_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:c_org_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:c_org_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:c_org_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:c_org_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:c_org_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:c_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:c_org_role_invoice_accountant
+        object: invoice_company:closure
+        assertions:
+          writer: true
+      - user: user:c_org_role_invoice_admin
+        object: invoice_company:closure
+        assertions:
+          writer: true
+      - user: user:c_org_role_invoice_integration
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:c_org_role_invoice_owner
+        object: invoice_company:closure
+        assertions:
+          writer: true
+      - user: user:c_org_role_invoice_viewer
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:c_org_role_sched_integration
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:s_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:s_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:s_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          writer: true
+      - user: user:s_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:s_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:s_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:s_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:s_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:s_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:s_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:s_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          writer: false
+  - name: invoice_company#transmitter is conferred by exactly []
+    check:
+      - user: user:c_org_administrator
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_auditor
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_member
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_role_invoice_accountant
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_role_invoice_admin
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_role_invoice_integration
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_role_invoice_owner
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_role_invoice_viewer
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_role_sched_integration
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:s_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:s_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:s_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:s_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:s_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:s_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:s_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:s_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:s_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:s_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:s_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+  - name: invoice_company#canceller is conferred by exactly []
+    check:
+      - user: user:c_org_administrator
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_auditor
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_member
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_role_invoice_accountant
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_role_invoice_admin
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_role_invoice_integration
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_role_invoice_owner
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_role_invoice_viewer
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_role_sched_integration
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:s_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:s_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:s_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:s_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:s_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:s_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:s_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:s_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:s_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:s_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:s_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+  - name: invoice_company#issuer is conferred by exactly []
+    check:
+      - user: user:c_org_administrator
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_auditor
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_member
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_role_invoice_accountant
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_role_invoice_admin
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_role_invoice_integration
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_role_invoice_owner
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_role_invoice_viewer
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_role_sched_integration
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:s_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:s_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:s_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:s_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:s_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:s_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:s_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:s_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:s_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:s_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:s_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+  - name: invoice_company#stornoer is conferred by exactly []
+    check:
+      - user: user:c_org_administrator
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_auditor
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_member
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_role_invoice_accountant
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_role_invoice_admin
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_role_invoice_integration
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_role_invoice_owner
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_role_invoice_viewer
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_role_sched_integration
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:s_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:s_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:s_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:s_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:s_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:s_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:s_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:s_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:s_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:s_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:s_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+  - name: invoice_company#members_manager is conferred by exactly ['perm_invoice_members_manage', 'role_invoice_admin', 'role_invoice_owner']
+    check:
+      - user: user:c_org_administrator
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_auditor
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_member
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          members_manager: true
+      - user: user:c_org_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_role_invoice_accountant
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_role_invoice_admin
+        object: invoice_company:closure
+        assertions:
+          members_manager: true
+      - user: user:c_org_role_invoice_integration
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_role_invoice_owner
+        object: invoice_company:closure
+        assertions:
+          members_manager: true
+      - user: user:c_org_role_invoice_viewer
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_role_sched_integration
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:s_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:s_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:s_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:s_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:s_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:s_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:s_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:s_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:s_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          members_manager: true
+      - user: user:s_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:s_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+  - name: invoice_company#personal_data_reader is conferred by exactly ['perm_invoice_personal_data_read', 'role_invoice_accountant', 'role_invoice_admin', 'role_invoice_owner']
+    check:
+      - user: user:c_org_administrator
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:c_org_auditor
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:c_org_member
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:c_org_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:c_org_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:c_org_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:c_org_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:c_org_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:c_org_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:c_org_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:c_org_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:c_org_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:c_org_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: true
+      - user: user:c_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:c_org_role_invoice_accountant
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: true
+      - user: user:c_org_role_invoice_admin
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: true
+      - user: user:c_org_role_invoice_integration
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:c_org_role_invoice_owner
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: true
+      - user: user:c_org_role_invoice_viewer
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:c_org_role_sched_integration
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:s_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:s_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:s_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:s_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:s_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:s_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:s_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:s_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:s_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:s_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: true
+      - user: user:s_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+  - name: invoice_company#webhooks_manager is conferred by exactly ['perm_invoice_webhooks_manage', 'role_invoice_admin', 'role_invoice_owner']
+    check:
+      - user: user:c_org_administrator
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:c_org_auditor
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:c_org_member
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:c_org_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:c_org_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:c_org_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:c_org_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:c_org_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:c_org_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:c_org_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:c_org_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:c_org_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:c_org_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:c_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: true
+      - user: user:c_org_role_invoice_accountant
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:c_org_role_invoice_admin
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: true
+      - user: user:c_org_role_invoice_integration
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:c_org_role_invoice_owner
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: true
+      - user: user:c_org_role_invoice_viewer
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:c_org_role_sched_integration
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:s_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:s_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:s_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:s_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:s_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:s_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:s_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:s_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:s_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:s_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:s_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: true
+  - name: invoice_platform#administer is conferred by exactly ['administrator', 'perm_invoice_platform_administer', 'role_invoice_platform_admin']
+    check:
+      - user: user:c_platform_administrator
+        object: invoice_platform:closure
+        assertions:
+          administer: true
+      - user: user:c_platform_auditor
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_break_glass_opener
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_changelog_manager
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_grantor
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_model_releaser
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_org_eraser
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_org_restorer
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: invoice_platform:closure
+        assertions:
+          administer: true
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_perm_psizone_account_erase
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_program_manager
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_role_cms_admin
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_role_cms_editor
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_role_cms_publisher
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_role_cms_reader
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_role_cms_site_manager
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_role_hemisync_reception
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_role_invoice_platform_admin
+        object: invoice_platform:closure
+        assertions:
+          administer: true
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_role_psizone_reception
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+      - user: user:c_platform_role_sched_app_admin
+        object: invoice_platform:closure
+        assertions:
+          administer: false
+  - name: invoice_platform#changelog_manager is conferred by exactly ['administrator', 'perm_invoice_platform_changelog_manage', 'role_invoice_platform_admin']
+    check:
+      - user: user:c_platform_administrator
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: true
+      - user: user:c_platform_auditor
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_break_glass_opener
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_changelog_manager
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_grantor
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_model_releaser
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_org_eraser
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_org_restorer
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_perm_blog_saved_manage
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_perm_blog_saved_view
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_perm_eqsync_programme_manage
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_perm_eqsync_programme_view
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_perm_eqsync_protocols_listen
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_perm_hemisync_exercises_listen
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_perm_hemisync_sessions_manage
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_perm_hemisync_sessions_view
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: true
+      - user: user:c_platform_perm_psizone_account_erase
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_perm_psizone_account_manage
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_perm_psizone_account_view
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_perm_psizone_bookings_manage
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_perm_psizone_bookings_view
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_perm_psizone_guide_memory_forget
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_perm_psizone_guide_memory_view
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_program_manager
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_role_agent_studio_operator
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_role_agent_studio_viewer
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_role_blog_privacy_officer
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_role_cms_admin
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_role_cms_ai_admin
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_role_cms_ai_operator
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_role_cms_calendar_manager
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_role_cms_calendar_viewer
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_role_cms_clinical_reviewer
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_role_cms_editor
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_role_cms_notifications_admin
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_role_cms_privacy_officer
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_role_cms_publisher
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_role_cms_reader
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_role_cms_site_manager
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_role_eqsync_programme_support
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_role_hemisync_reception
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_role_invoice_platform_admin
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: true
+      - user: user:c_platform_role_psizone_privacy_officer
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_role_psizone_reception
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_role_sched_app_admin
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
+  - name: invoice_register#integration is conferred by exactly ['perm_invoice_integration_sync', 'role_invoice_integration']
+    check:
+      - user: user:c_org_administrator
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_auditor
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_member
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_perm_invoice_company_manage
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_perm_invoice_data_read
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_perm_invoice_data_write
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_perm_invoice_efactura_transmit
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_perm_invoice_integration_sync
+        object: invoice_register:closure
+        assertions:
+          integration: true
+      - user: user:c_org_perm_invoice_invoice_cancel
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_perm_invoice_invoice_issue
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_perm_invoice_invoice_storno
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_perm_invoice_members_manage
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_perm_invoice_personal_data_read
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_perm_invoice_webhooks_manage
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_role_invoice_accountant
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_role_invoice_admin
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_role_invoice_integration
+        object: invoice_register:closure
+        assertions:
+          integration: true
+      - user: user:c_org_role_invoice_owner
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_role_invoice_viewer
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_role_sched_integration
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:s_perm_invoice_company_manage
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:s_perm_invoice_data_read
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:s_perm_invoice_data_write
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:s_perm_invoice_efactura_transmit
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:s_perm_invoice_integration_sync
+        object: invoice_register:closure
+        assertions:
+          integration: true
+      - user: user:s_perm_invoice_invoice_cancel
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:s_perm_invoice_invoice_issue
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:s_perm_invoice_invoice_storno
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:s_perm_invoice_members_manage
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:s_perm_invoice_personal_data_read
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:s_perm_invoice_webhooks_manage
+        object: invoice_register:closure
+        assertions:
+          integration: false
+  - name: invoice_company#transmitter on a granted record is conferred by exactly ['perm_invoice_efactura_transmit', 'role_invoice_accountant', 'role_invoice_admin', 'role_invoice_owner']
+    check:
+      - user: user:g_org_administrator
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
+      - user: user:g_org_auditor
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
+      - user: user:g_org_member
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
+      - user: user:g_org_perm_invoice_company_manage
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
+      - user: user:g_org_perm_invoice_data_read
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
+      - user: user:g_org_perm_invoice_data_write
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
+      - user: user:g_org_perm_invoice_efactura_transmit
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: true
+      - user: user:g_org_perm_invoice_integration_sync
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
+      - user: user:g_org_perm_invoice_invoice_cancel
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
+      - user: user:g_org_perm_invoice_invoice_issue
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
+      - user: user:g_org_perm_invoice_invoice_storno
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
+      - user: user:g_org_perm_invoice_members_manage
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
+      - user: user:g_org_perm_invoice_personal_data_read
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
+      - user: user:g_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
+      - user: user:g_org_role_invoice_accountant
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: true
+      - user: user:g_org_role_invoice_admin
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: true
+      - user: user:g_org_role_invoice_integration
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
+      - user: user:g_org_role_invoice_owner
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: true
+      - user: user:g_org_role_invoice_viewer
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
+      - user: user:g_org_role_sched_integration
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
+      - user: user:g_only
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
+  - name: invoice_company#transmitter on a record WITHOUT the grant is conferred by exactly []
+    check:
+      - user: user:g_org_administrator
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_auditor
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_member
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_role_invoice_accountant
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_role_invoice_admin
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_role_invoice_integration
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_role_invoice_owner
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_role_invoice_viewer
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_role_sched_integration
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+  - name: invoice_company#canceller on a granted record is conferred by exactly ['perm_invoice_invoice_cancel', 'role_invoice_accountant', 'role_invoice_admin', 'role_invoice_owner']
+    check:
+      - user: user:g_org_administrator
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_org_auditor
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_org_member
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_org_perm_invoice_company_manage
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_org_perm_invoice_data_read
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_org_perm_invoice_data_write
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_org_perm_invoice_efactura_transmit
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_org_perm_invoice_integration_sync
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_org_perm_invoice_invoice_cancel
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: true
+      - user: user:g_org_perm_invoice_invoice_issue
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_org_perm_invoice_invoice_storno
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_org_perm_invoice_members_manage
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_org_perm_invoice_personal_data_read
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_org_role_invoice_accountant
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: true
+      - user: user:g_org_role_invoice_admin
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: true
+      - user: user:g_org_role_invoice_integration
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_org_role_invoice_owner
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: true
+      - user: user:g_org_role_invoice_viewer
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_org_role_sched_integration
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_only
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+  - name: invoice_company#canceller on a record WITHOUT the grant is conferred by exactly []
+    check:
+      - user: user:g_org_administrator
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_auditor
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_member
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_role_invoice_accountant
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_role_invoice_admin
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_role_invoice_integration
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_role_invoice_owner
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_role_invoice_viewer
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_role_sched_integration
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+  - name: invoice_company#issuer on a granted record is conferred by exactly ['perm_invoice_invoice_issue', 'role_invoice_accountant', 'role_invoice_admin', 'role_invoice_owner']
+    check:
+      - user: user:g_org_administrator
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_org_auditor
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_org_member
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_org_perm_invoice_company_manage
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_org_perm_invoice_data_read
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_org_perm_invoice_data_write
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_org_perm_invoice_efactura_transmit
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_org_perm_invoice_integration_sync
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_org_perm_invoice_invoice_cancel
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_org_perm_invoice_invoice_issue
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: true
+      - user: user:g_org_perm_invoice_invoice_storno
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_org_perm_invoice_members_manage
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_org_perm_invoice_personal_data_read
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_org_role_invoice_accountant
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: true
+      - user: user:g_org_role_invoice_admin
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: true
+      - user: user:g_org_role_invoice_integration
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_org_role_invoice_owner
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: true
+      - user: user:g_org_role_invoice_viewer
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_org_role_sched_integration
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_only
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+  - name: invoice_company#issuer on a record WITHOUT the grant is conferred by exactly []
+    check:
+      - user: user:g_org_administrator
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_auditor
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_member
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_role_invoice_accountant
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_role_invoice_admin
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_role_invoice_integration
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_role_invoice_owner
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_role_invoice_viewer
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_role_sched_integration
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+  - name: invoice_company#stornoer on a granted record is conferred by exactly ['perm_invoice_invoice_storno', 'role_invoice_accountant', 'role_invoice_admin', 'role_invoice_owner']
+    check:
+      - user: user:g_org_administrator
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_org_auditor
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_org_member
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_org_perm_invoice_company_manage
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_org_perm_invoice_data_read
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_org_perm_invoice_data_write
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_org_perm_invoice_efactura_transmit
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_org_perm_invoice_integration_sync
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_org_perm_invoice_invoice_cancel
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_org_perm_invoice_invoice_issue
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_org_perm_invoice_invoice_storno
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: true
+      - user: user:g_org_perm_invoice_members_manage
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_org_perm_invoice_personal_data_read
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_org_role_invoice_accountant
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: true
+      - user: user:g_org_role_invoice_admin
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: true
+      - user: user:g_org_role_invoice_integration
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_org_role_invoice_owner
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: true
+      - user: user:g_org_role_invoice_viewer
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_org_role_sched_integration
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_only
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+  - name: invoice_company#stornoer on a record WITHOUT the grant is conferred by exactly []
+    check:
+      - user: user:g_org_administrator
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_auditor
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_member
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_perm_invoice_company_manage
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_perm_invoice_data_read
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_perm_invoice_data_write
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_perm_invoice_efactura_transmit
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_perm_invoice_integration_sync
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_perm_invoice_invoice_cancel
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_perm_invoice_invoice_issue
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_perm_invoice_invoice_storno
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_perm_invoice_members_manage
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_perm_invoice_personal_data_read
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_role_invoice_accountant
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_role_invoice_admin
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_role_invoice_integration
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_role_invoice_owner
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_role_invoice_viewer
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_role_sched_integration
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
