@@ -7,3 +7,11 @@
   state: absent
   identifiers:
     name: autorizare-tenant-recomex
+# Rho (the shared flows application): its one entitlement group, as the generated
+# estate/authz/blueprints/blueprints-groups-flow.yaml declares it (@rule ORG-15) — members hold
+# flow:super_admin on platform:psi. Declared here because psi mounts no generated blueprint.
+- model: authentik_core.group
+  identifiers:
+    name: app-flow-super-admin
+  attrs:
+    is_superuser: false

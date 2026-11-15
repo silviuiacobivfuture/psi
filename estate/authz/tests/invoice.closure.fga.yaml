@@ -49,6 +49,24 @@ tuples:
   - user: user:c_org_perm_invoice_webhooks_manage
     relation: perm_invoice_webhooks_manage
     object: org:closure
+  - user: user:c_org_role_flow_admin
+    relation: role_flow_admin
+    object: org:closure
+  - user: user:c_org_role_flow_agent
+    relation: role_flow_agent
+    object: org:closure
+  - user: user:c_org_role_flow_editor
+    relation: role_flow_editor
+    object: org:closure
+  - user: user:c_org_role_flow_rulare
+    relation: role_flow_rulare
+    object: org:closure
+  - user: user:c_org_role_flow_serviciu
+    relation: role_flow_serviciu
+    object: org:closure
+  - user: user:c_org_role_flow_viewer
+    relation: role_flow_viewer
+    object: org:closure
   - user: user:c_org_role_invoice_accountant
     relation: role_invoice_accountant
     object: org:closure
@@ -192,6 +210,9 @@ tuples:
     object: platform:psi
   - user: user:c_platform_role_eqsync_programme_support
     relation: role_eqsync_programme_support
+    object: platform:psi
+  - user: user:c_platform_role_flow_super_admin
+    relation: role_flow_super_admin
     object: platform:psi
   - user: user:c_platform_role_hemisync_reception
     relation: role_hemisync_reception
@@ -496,6 +517,96 @@ tuples:
   - user: user:g_org_perm_invoice_webhooks_manage
     relation: granted_transmitter
     object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_admin
+    relation: role_flow_admin
+    object: org:closure
+  - user: user:g_org_role_flow_admin
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_admin
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_admin
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_admin
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_agent
+    relation: role_flow_agent
+    object: org:closure
+  - user: user:g_org_role_flow_agent
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_agent
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_agent
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_agent
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_editor
+    relation: role_flow_editor
+    object: org:closure
+  - user: user:g_org_role_flow_editor
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_editor
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_editor
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_editor
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_rulare
+    relation: role_flow_rulare
+    object: org:closure
+  - user: user:g_org_role_flow_rulare
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_rulare
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_rulare
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_rulare
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_serviciu
+    relation: role_flow_serviciu
+    object: org:closure
+  - user: user:g_org_role_flow_serviciu
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_serviciu
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_serviciu
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_serviciu
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_viewer
+    relation: role_flow_viewer
+    object: org:closure
+  - user: user:g_org_role_flow_viewer
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_viewer
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_viewer
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_role_flow_viewer
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
   - user: user:g_org_role_invoice_accountant
     relation: role_invoice_accountant
     object: org:closure
@@ -658,6 +769,30 @@ tests:
         object: invoice_company:closure
         assertions:
           profile_manager: false
+      - user: user:c_org_role_flow_admin
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:c_org_role_flow_agent
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:c_org_role_flow_editor
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:c_org_role_flow_rulare
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:c_org_role_flow_serviciu
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
+      - user: user:c_org_role_flow_viewer
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
       - user: user:c_org_role_invoice_accountant
         object: invoice_company:closure
         assertions:
@@ -781,6 +916,30 @@ tests:
         assertions:
           reader: false
       - user: user:c_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:c_org_role_flow_admin
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:c_org_role_flow_agent
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:c_org_role_flow_editor
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:c_org_role_flow_rulare
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:c_org_role_flow_serviciu
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:c_org_role_flow_viewer
         object: invoice_company:closure
         assertions:
           reader: false
@@ -910,6 +1069,30 @@ tests:
         object: invoice_company:closure
         assertions:
           writer: false
+      - user: user:c_org_role_flow_admin
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:c_org_role_flow_agent
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:c_org_role_flow_editor
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:c_org_role_flow_rulare
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:c_org_role_flow_serviciu
+        object: invoice_company:closure
+        assertions:
+          writer: false
+      - user: user:c_org_role_flow_viewer
+        object: invoice_company:closure
+        assertions:
+          writer: false
       - user: user:c_org_role_invoice_accountant
         object: invoice_company:closure
         assertions:
@@ -1033,6 +1216,30 @@ tests:
         assertions:
           transmitter: false
       - user: user:c_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_role_flow_admin
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_role_flow_agent
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_role_flow_editor
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_role_flow_rulare
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_role_flow_serviciu
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_role_flow_viewer
         object: invoice_company:closure
         assertions:
           transmitter: false
@@ -1162,6 +1369,30 @@ tests:
         object: invoice_company:closure
         assertions:
           canceller: false
+      - user: user:c_org_role_flow_admin
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_role_flow_agent
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_role_flow_editor
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_role_flow_rulare
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_role_flow_serviciu
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:c_org_role_flow_viewer
+        object: invoice_company:closure
+        assertions:
+          canceller: false
       - user: user:c_org_role_invoice_accountant
         object: invoice_company:closure
         assertions:
@@ -1285,6 +1516,30 @@ tests:
         assertions:
           issuer: false
       - user: user:c_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_role_flow_admin
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_role_flow_agent
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_role_flow_editor
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_role_flow_rulare
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_role_flow_serviciu
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_role_flow_viewer
         object: invoice_company:closure
         assertions:
           issuer: false
@@ -1414,6 +1669,30 @@ tests:
         object: invoice_company:closure
         assertions:
           stornoer: false
+      - user: user:c_org_role_flow_admin
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_role_flow_agent
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_role_flow_editor
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_role_flow_rulare
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_role_flow_serviciu
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:c_org_role_flow_viewer
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
       - user: user:c_org_role_invoice_accountant
         object: invoice_company:closure
         assertions:
@@ -1537,6 +1816,30 @@ tests:
         assertions:
           members_manager: false
       - user: user:c_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_role_flow_admin
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_role_flow_agent
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_role_flow_editor
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_role_flow_rulare
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_role_flow_serviciu
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_role_flow_viewer
         object: invoice_company:closure
         assertions:
           members_manager: false
@@ -1666,6 +1969,30 @@ tests:
         object: invoice_company:closure
         assertions:
           personal_data_reader: false
+      - user: user:c_org_role_flow_admin
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:c_org_role_flow_agent
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:c_org_role_flow_editor
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:c_org_role_flow_rulare
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:c_org_role_flow_serviciu
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
+      - user: user:c_org_role_flow_viewer
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
       - user: user:c_org_role_invoice_accountant
         object: invoice_company:closure
         assertions:
@@ -1792,6 +2119,30 @@ tests:
         object: invoice_company:closure
         assertions:
           webhooks_manager: true
+      - user: user:c_org_role_flow_admin
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:c_org_role_flow_agent
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:c_org_role_flow_editor
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:c_org_role_flow_rulare
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:c_org_role_flow_serviciu
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:c_org_role_flow_viewer
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
       - user: user:c_org_role_invoice_accountant
         object: invoice_company:closure
         assertions:
@@ -2030,6 +2381,10 @@ tests:
         object: invoice_platform:closure
         assertions:
           administer: false
+      - user: user:c_platform_role_flow_super_admin
+        object: invoice_platform:closure
+        assertions:
+          administer: false
       - user: user:c_platform_role_hemisync_reception
         object: invoice_platform:closure
         assertions:
@@ -2220,6 +2575,10 @@ tests:
         object: invoice_platform:closure
         assertions:
           changelog_manager: false
+      - user: user:c_platform_role_flow_super_admin
+        object: invoice_platform:closure
+        assertions:
+          changelog_manager: false
       - user: user:c_platform_role_hemisync_reception
         object: invoice_platform:closure
         assertions:
@@ -2295,6 +2654,30 @@ tests:
         assertions:
           integration: false
       - user: user:c_org_perm_invoice_webhooks_manage
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_role_flow_admin
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_role_flow_agent
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_role_flow_editor
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_role_flow_rulare
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_role_flow_serviciu
+        object: invoice_register:closure
+        assertions:
+          integration: false
+      - user: user:c_org_role_flow_viewer
         object: invoice_register:closure
         assertions:
           integration: false
@@ -2424,6 +2807,30 @@ tests:
         object: invoice_company:closure-granted
         assertions:
           transmitter: false
+      - user: user:g_org_role_flow_admin
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
+      - user: user:g_org_role_flow_agent
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
+      - user: user:g_org_role_flow_editor
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
+      - user: user:g_org_role_flow_rulare
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
+      - user: user:g_org_role_flow_serviciu
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
+      - user: user:g_org_role_flow_viewer
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
       - user: user:g_org_role_invoice_accountant
         object: invoice_company:closure-granted
         assertions:
@@ -2510,6 +2917,30 @@ tests:
         object: invoice_company:closure
         assertions:
           transmitter: false
+      - user: user:g_org_role_flow_admin
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_role_flow_agent
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_role_flow_editor
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_role_flow_rulare
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_role_flow_serviciu
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:g_org_role_flow_viewer
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
       - user: user:g_org_role_invoice_accountant
         object: invoice_company:closure
         assertions:
@@ -2589,6 +3020,30 @@ tests:
         assertions:
           canceller: false
       - user: user:g_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_org_role_flow_admin
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_org_role_flow_agent
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_org_role_flow_editor
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_org_role_flow_rulare
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_org_role_flow_serviciu
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_org_role_flow_viewer
         object: invoice_company:closure-granted
         assertions:
           canceller: false
@@ -2678,6 +3133,30 @@ tests:
         object: invoice_company:closure
         assertions:
           canceller: false
+      - user: user:g_org_role_flow_admin
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_role_flow_agent
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_role_flow_editor
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_role_flow_rulare
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_role_flow_serviciu
+        object: invoice_company:closure
+        assertions:
+          canceller: false
+      - user: user:g_org_role_flow_viewer
+        object: invoice_company:closure
+        assertions:
+          canceller: false
       - user: user:g_org_role_invoice_accountant
         object: invoice_company:closure
         assertions:
@@ -2757,6 +3236,30 @@ tests:
         assertions:
           issuer: false
       - user: user:g_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_org_role_flow_admin
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_org_role_flow_agent
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_org_role_flow_editor
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_org_role_flow_rulare
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_org_role_flow_serviciu
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_org_role_flow_viewer
         object: invoice_company:closure-granted
         assertions:
           issuer: false
@@ -2846,6 +3349,30 @@ tests:
         object: invoice_company:closure
         assertions:
           issuer: false
+      - user: user:g_org_role_flow_admin
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_role_flow_agent
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_role_flow_editor
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_role_flow_rulare
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_role_flow_serviciu
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:g_org_role_flow_viewer
+        object: invoice_company:closure
+        assertions:
+          issuer: false
       - user: user:g_org_role_invoice_accountant
         object: invoice_company:closure
         assertions:
@@ -2925,6 +3452,30 @@ tests:
         assertions:
           stornoer: false
       - user: user:g_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_org_role_flow_admin
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_org_role_flow_agent
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_org_role_flow_editor
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_org_role_flow_rulare
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_org_role_flow_serviciu
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_org_role_flow_viewer
         object: invoice_company:closure-granted
         assertions:
           stornoer: false
@@ -3011,6 +3562,30 @@ tests:
         assertions:
           stornoer: false
       - user: user:g_org_perm_invoice_webhooks_manage
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_role_flow_admin
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_role_flow_agent
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_role_flow_editor
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_role_flow_rulare
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_role_flow_serviciu
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_role_flow_viewer
         object: invoice_company:closure
         assertions:
           stornoer: false

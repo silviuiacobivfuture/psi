@@ -49,6 +49,24 @@ tuples:
   - user: user:c_org_perm_invoice_webhooks_manage
     relation: perm_invoice_webhooks_manage
     object: org:closure
+  - user: user:c_org_role_flow_admin
+    relation: role_flow_admin
+    object: org:closure
+  - user: user:c_org_role_flow_agent
+    relation: role_flow_agent
+    object: org:closure
+  - user: user:c_org_role_flow_editor
+    relation: role_flow_editor
+    object: org:closure
+  - user: user:c_org_role_flow_rulare
+    relation: role_flow_rulare
+    object: org:closure
+  - user: user:c_org_role_flow_serviciu
+    relation: role_flow_serviciu
+    object: org:closure
+  - user: user:c_org_role_flow_viewer
+    relation: role_flow_viewer
+    object: org:closure
   - user: user:c_org_role_invoice_accountant
     relation: role_invoice_accountant
     object: org:closure
@@ -192,6 +210,9 @@ tuples:
     object: platform:psi
   - user: user:c_platform_role_eqsync_programme_support
     relation: role_eqsync_programme_support
+    object: platform:psi
+  - user: user:c_platform_role_flow_super_admin
+    relation: role_flow_super_admin
     object: platform:psi
   - user: user:c_platform_role_hemisync_reception
     relation: role_hemisync_reception
@@ -386,6 +407,10 @@ tests:
         object: sched_app:closure
         assertions:
           app_settings_view_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          app_settings_view_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -573,6 +598,10 @@ tests:
         assertions:
           app_settings_edit_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          app_settings_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           app_settings_edit_all: false
@@ -766,6 +795,10 @@ tests:
         object: sched_app:closure
         assertions:
           members_view_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          members_view_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -953,6 +986,10 @@ tests:
         assertions:
           members_create_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          members_create_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           members_create_all: false
@@ -1146,6 +1183,10 @@ tests:
         object: sched_app:closure
         assertions:
           members_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          members_edit_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -1333,6 +1374,10 @@ tests:
         assertions:
           members_delete_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          members_delete_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           members_delete_all: false
@@ -1526,6 +1571,10 @@ tests:
         object: sched_app:closure
         assertions:
           members_manage_admins_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          members_manage_admins_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -1713,6 +1762,10 @@ tests:
         assertions:
           people_view_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          people_view_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           people_view_all: false
@@ -1906,6 +1959,10 @@ tests:
         object: sched_app:closure
         assertions:
           people_view_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          people_view_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -2093,6 +2150,10 @@ tests:
         assertions:
           people_create_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          people_create_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           people_create_all: false
@@ -2286,6 +2347,10 @@ tests:
         object: sched_app:closure
         assertions:
           people_create_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          people_create_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -2473,6 +2538,10 @@ tests:
         assertions:
           people_edit_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          people_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           people_edit_all: false
@@ -2666,6 +2735,10 @@ tests:
         object: sched_app:closure
         assertions:
           people_edit_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          people_edit_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -2853,6 +2926,10 @@ tests:
         assertions:
           people_archive_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          people_archive_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           people_archive_all: false
@@ -3046,6 +3123,10 @@ tests:
         object: sched_app:closure
         assertions:
           people_archive_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          people_archive_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -3233,6 +3314,10 @@ tests:
         assertions:
           roles_view_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          roles_view_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           roles_view_all: false
@@ -3426,6 +3511,10 @@ tests:
         object: sched_app:closure
         assertions:
           roles_create_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          roles_create_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -3613,6 +3702,10 @@ tests:
         assertions:
           roles_edit_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          roles_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           roles_edit_all: false
@@ -3806,6 +3899,10 @@ tests:
         object: sched_app:closure
         assertions:
           roles_delete_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          roles_delete_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -3993,6 +4090,10 @@ tests:
         assertions:
           builder_view_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          builder_view_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           builder_view_all: false
@@ -4186,6 +4287,10 @@ tests:
         object: sched_app:closure
         assertions:
           builder_create_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          builder_create_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -4373,6 +4478,10 @@ tests:
         assertions:
           builder_edit_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          builder_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           builder_edit_all: false
@@ -4566,6 +4675,10 @@ tests:
         object: sched_app:closure
         assertions:
           builder_delete_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          builder_delete_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -4753,6 +4866,10 @@ tests:
         assertions:
           services_view_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          services_view_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           services_view_all: false
@@ -4946,6 +5063,10 @@ tests:
         object: sched_app:closure
         assertions:
           services_create_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          services_create_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -5133,6 +5254,10 @@ tests:
         assertions:
           services_edit_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          services_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           services_edit_all: false
@@ -5326,6 +5451,10 @@ tests:
         object: sched_app:closure
         assertions:
           services_delete_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          services_delete_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -5513,6 +5642,10 @@ tests:
         assertions:
           services_price_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          services_price_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           services_price_all: false
@@ -5706,6 +5839,10 @@ tests:
         object: sched_app:closure
         assertions:
           prices_view_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          prices_view_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -5893,6 +6030,10 @@ tests:
         assertions:
           prices_edit_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          prices_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           prices_edit_all: false
@@ -6086,6 +6227,10 @@ tests:
         object: sched_app:closure
         assertions:
           rooms_view_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          rooms_view_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -6273,6 +6418,10 @@ tests:
         assertions:
           rooms_create_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          rooms_create_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           rooms_create_all: false
@@ -6466,6 +6615,10 @@ tests:
         object: sched_app:closure
         assertions:
           rooms_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          rooms_edit_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -6653,6 +6806,10 @@ tests:
         assertions:
           rooms_delete_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          rooms_delete_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           rooms_delete_all: false
@@ -6846,6 +7003,10 @@ tests:
         object: sched_app:closure
         assertions:
           devices_view_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          devices_view_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -7033,6 +7194,10 @@ tests:
         assertions:
           devices_create_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          devices_create_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           devices_create_all: false
@@ -7226,6 +7391,10 @@ tests:
         object: sched_app:closure
         assertions:
           devices_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          devices_edit_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -7413,6 +7582,10 @@ tests:
         assertions:
           devices_delete_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          devices_delete_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           devices_delete_all: false
@@ -7606,6 +7779,10 @@ tests:
         object: sched_app:closure
         assertions:
           group_activities_view_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          group_activities_view_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -7793,6 +7970,10 @@ tests:
         assertions:
           group_activities_create_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          group_activities_create_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           group_activities_create_all: false
@@ -7986,6 +8167,10 @@ tests:
         object: sched_app:closure
         assertions:
           group_activities_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          group_activities_edit_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -8173,6 +8358,10 @@ tests:
         assertions:
           group_activities_delete_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          group_activities_delete_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           group_activities_delete_all: false
@@ -8366,6 +8555,10 @@ tests:
         object: sched_app:closure
         assertions:
           calendars_view_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          calendars_view_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -8553,6 +8746,10 @@ tests:
         assertions:
           calendars_view_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          calendars_view_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           calendars_view_assigned: false
@@ -8746,6 +8943,10 @@ tests:
         object: sched_app:closure
         assertions:
           calendars_view_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          calendars_view_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -8933,6 +9134,10 @@ tests:
         assertions:
           calendars_edit_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          calendars_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           calendars_edit_all: false
@@ -9126,6 +9331,10 @@ tests:
         object: sched_app:closure
         assertions:
           calendars_edit_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          calendars_edit_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -9313,6 +9522,10 @@ tests:
         assertions:
           calendars_edit_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          calendars_edit_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           calendars_edit_own: false
@@ -9506,6 +9719,10 @@ tests:
         object: sched_app:closure
         assertions:
           calendars_assign_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          calendars_assign_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -9693,6 +9910,10 @@ tests:
         assertions:
           calendars_assign_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          calendars_assign_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           calendars_assign_assigned: false
@@ -9886,6 +10107,10 @@ tests:
         object: sched_app:closure
         assertions:
           calendars_assign_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          calendars_assign_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -10073,6 +10298,10 @@ tests:
         assertions:
           appointments_view_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_view_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_view_all: false
@@ -10266,6 +10495,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_view_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_view_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -10453,6 +10686,10 @@ tests:
         assertions:
           appointments_view_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_view_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_view_own: false
@@ -10646,6 +10883,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_view_all_core: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_view_all_core: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -10833,6 +11074,10 @@ tests:
         assertions:
           appointments_view_assigned_core: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_view_assigned_core: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_view_assigned_core: false
@@ -11026,6 +11271,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_view_own_core: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_view_own_core: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -11213,6 +11462,10 @@ tests:
         assertions:
           appointments_view_all_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_view_all_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_view_all_money: false
@@ -11406,6 +11659,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_view_assigned_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_view_assigned_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -11593,6 +11850,10 @@ tests:
         assertions:
           appointments_view_own_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_view_own_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_view_own_money: false
@@ -11786,6 +12047,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_view_all_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_view_all_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -11973,6 +12238,10 @@ tests:
         assertions:
           appointments_view_assigned_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_view_assigned_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_view_assigned_clinical: false
@@ -12166,6 +12435,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_view_own_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_view_own_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -12353,6 +12626,10 @@ tests:
         assertions:
           appointments_create_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_create_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_create_all: false
@@ -12546,6 +12823,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_create_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_create_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -12733,6 +13014,10 @@ tests:
         assertions:
           appointments_create_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_create_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_create_own: false
@@ -12926,6 +13211,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_create_all_core: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_create_all_core: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -13113,6 +13402,10 @@ tests:
         assertions:
           appointments_create_assigned_core: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_create_assigned_core: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_create_assigned_core: false
@@ -13306,6 +13599,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_create_own_core: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_create_own_core: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -13493,6 +13790,10 @@ tests:
         assertions:
           appointments_create_all_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_create_all_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_create_all_money: false
@@ -13686,6 +13987,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_create_assigned_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_create_assigned_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -13873,6 +14178,10 @@ tests:
         assertions:
           appointments_create_own_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_create_own_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_create_own_money: false
@@ -14066,6 +14375,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_create_all_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_create_all_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -14253,6 +14566,10 @@ tests:
         assertions:
           appointments_create_assigned_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_create_assigned_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_create_assigned_clinical: false
@@ -14446,6 +14763,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_create_own_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_create_own_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -14633,6 +14954,10 @@ tests:
         assertions:
           appointments_edit_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_edit_all: false
@@ -14826,6 +15151,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_edit_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_edit_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -15013,6 +15342,10 @@ tests:
         assertions:
           appointments_edit_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_edit_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_edit_own: false
@@ -15206,6 +15539,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_edit_all_core: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_edit_all_core: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -15393,6 +15730,10 @@ tests:
         assertions:
           appointments_edit_assigned_core: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_edit_assigned_core: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_edit_assigned_core: false
@@ -15586,6 +15927,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_edit_own_core: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_edit_own_core: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -15773,6 +16118,10 @@ tests:
         assertions:
           appointments_edit_all_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_edit_all_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_edit_all_money: false
@@ -15966,6 +16315,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_edit_assigned_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_edit_assigned_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -16153,6 +16506,10 @@ tests:
         assertions:
           appointments_edit_own_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_edit_own_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_edit_own_money: false
@@ -16346,6 +16703,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_edit_all_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_edit_all_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -16533,6 +16894,10 @@ tests:
         assertions:
           appointments_edit_assigned_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_edit_assigned_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_edit_assigned_clinical: false
@@ -16726,6 +17091,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_edit_own_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_edit_own_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -16913,6 +17282,10 @@ tests:
         assertions:
           appointments_cancel_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_cancel_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_cancel_all: false
@@ -17106,6 +17479,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_cancel_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_cancel_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -17293,6 +17670,10 @@ tests:
         assertions:
           appointments_cancel_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_cancel_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_cancel_own: false
@@ -17486,6 +17867,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_cancel_all_core: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_cancel_all_core: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -17673,6 +18058,10 @@ tests:
         assertions:
           appointments_cancel_assigned_core: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_cancel_assigned_core: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_cancel_assigned_core: false
@@ -17866,6 +18255,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_cancel_own_core: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_cancel_own_core: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -18053,6 +18446,10 @@ tests:
         assertions:
           appointments_cancel_all_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_cancel_all_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_cancel_all_money: false
@@ -18246,6 +18643,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_cancel_assigned_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_cancel_assigned_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -18433,6 +18834,10 @@ tests:
         assertions:
           appointments_cancel_own_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_cancel_own_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_cancel_own_money: false
@@ -18626,6 +19031,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_cancel_all_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_cancel_all_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -18813,6 +19222,10 @@ tests:
         assertions:
           appointments_cancel_assigned_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_cancel_assigned_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_cancel_assigned_clinical: false
@@ -19006,6 +19419,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_cancel_own_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_cancel_own_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -19193,6 +19610,10 @@ tests:
         assertions:
           appointments_delete_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_delete_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_delete_all: false
@@ -19386,6 +19807,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_delete_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_delete_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -19573,6 +19998,10 @@ tests:
         assertions:
           appointments_delete_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_delete_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_delete_own: false
@@ -19766,6 +20195,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_delete_all_core: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_delete_all_core: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -19953,6 +20386,10 @@ tests:
         assertions:
           appointments_delete_assigned_core: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_delete_assigned_core: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_delete_assigned_core: false
@@ -20146,6 +20583,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_delete_own_core: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_delete_own_core: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -20333,6 +20774,10 @@ tests:
         assertions:
           appointments_delete_all_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_delete_all_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_delete_all_money: false
@@ -20526,6 +20971,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_delete_assigned_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_delete_assigned_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -20713,6 +21162,10 @@ tests:
         assertions:
           appointments_delete_own_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_delete_own_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_delete_own_money: false
@@ -20906,6 +21359,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_delete_all_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_delete_all_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -21093,6 +21550,10 @@ tests:
         assertions:
           appointments_delete_assigned_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_delete_assigned_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_delete_assigned_clinical: false
@@ -21286,6 +21747,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_delete_own_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_delete_own_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -21473,6 +21938,10 @@ tests:
         assertions:
           appointments_restore_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_restore_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_restore_all: false
@@ -21666,6 +22135,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_restore_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_restore_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -21853,6 +22326,10 @@ tests:
         assertions:
           appointments_restore_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_restore_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_restore_own: false
@@ -22046,6 +22523,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_restore_all_core: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_restore_all_core: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -22233,6 +22714,10 @@ tests:
         assertions:
           appointments_restore_assigned_core: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_restore_assigned_core: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_restore_assigned_core: false
@@ -22426,6 +22911,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_restore_own_core: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_restore_own_core: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -22613,6 +23102,10 @@ tests:
         assertions:
           appointments_restore_all_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_restore_all_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_restore_all_money: false
@@ -22806,6 +23299,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_restore_assigned_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_restore_assigned_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -22993,6 +23490,10 @@ tests:
         assertions:
           appointments_restore_own_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_restore_own_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_restore_own_money: false
@@ -23186,6 +23687,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_restore_all_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_restore_all_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -23373,6 +23878,10 @@ tests:
         assertions:
           appointments_restore_assigned_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_restore_assigned_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_restore_assigned_clinical: false
@@ -23566,6 +24075,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_restore_own_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_restore_own_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -23753,6 +24266,10 @@ tests:
         assertions:
           appointments_assign_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_assign_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_assign_all: false
@@ -23946,6 +24463,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_assign_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_assign_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -24133,6 +24654,10 @@ tests:
         assertions:
           appointments_assign_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_assign_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_assign_own: false
@@ -24326,6 +24851,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_assign_all_core: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_assign_all_core: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -24513,6 +25042,10 @@ tests:
         assertions:
           appointments_assign_assigned_core: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_assign_assigned_core: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_assign_assigned_core: false
@@ -24706,6 +25239,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_assign_own_core: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_assign_own_core: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -24893,6 +25430,10 @@ tests:
         assertions:
           appointments_assign_all_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_assign_all_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_assign_all_money: false
@@ -25086,6 +25627,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_assign_assigned_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_assign_assigned_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -25273,6 +25818,10 @@ tests:
         assertions:
           appointments_assign_own_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_assign_own_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_assign_own_money: false
@@ -25466,6 +26015,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_assign_all_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_assign_all_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -25653,6 +26206,10 @@ tests:
         assertions:
           appointments_assign_assigned_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_assign_assigned_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_assign_assigned_clinical: false
@@ -25846,6 +26403,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_assign_own_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_assign_own_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -26033,6 +26594,10 @@ tests:
         assertions:
           appointments_send_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_send_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_send_all: false
@@ -26226,6 +26791,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_send_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_send_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -26413,6 +26982,10 @@ tests:
         assertions:
           appointments_send_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_send_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_send_own: false
@@ -26606,6 +27179,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_send_all_core: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_send_all_core: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -26793,6 +27370,10 @@ tests:
         assertions:
           appointments_send_assigned_core: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_send_assigned_core: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_send_assigned_core: false
@@ -26986,6 +27567,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_send_own_core: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_send_own_core: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -27173,6 +27758,10 @@ tests:
         assertions:
           appointments_send_all_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_send_all_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_send_all_money: false
@@ -27366,6 +27955,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_send_assigned_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_send_assigned_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -27553,6 +28146,10 @@ tests:
         assertions:
           appointments_send_own_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_send_own_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_send_own_money: false
@@ -27746,6 +28343,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_send_all_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_send_all_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -27933,6 +28534,10 @@ tests:
         assertions:
           appointments_send_assigned_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          appointments_send_assigned_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           appointments_send_assigned_clinical: false
@@ -28126,6 +28731,10 @@ tests:
         object: sched_app:closure
         assertions:
           appointments_send_own_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          appointments_send_own_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -28313,6 +28922,10 @@ tests:
         assertions:
           clients_view_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_view_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_view_all: false
@@ -28506,6 +29119,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_view_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_view_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -28693,6 +29310,10 @@ tests:
         assertions:
           clients_view_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_view_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_view_own: false
@@ -28886,6 +29507,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_view_all_contact: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_view_all_contact: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -29073,6 +29698,10 @@ tests:
         assertions:
           clients_view_assigned_contact: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_view_assigned_contact: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_view_assigned_contact: false
@@ -29266,6 +29895,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_view_own_contact: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_view_own_contact: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -29453,6 +30086,10 @@ tests:
         assertions:
           clients_view_all_guardian: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_view_all_guardian: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_view_all_guardian: false
@@ -29646,6 +30283,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_view_assigned_guardian: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_view_assigned_guardian: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -29833,6 +30474,10 @@ tests:
         assertions:
           clients_view_own_guardian: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_view_own_guardian: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_view_own_guardian: false
@@ -30026,6 +30671,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_view_all_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_view_all_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -30213,6 +30862,10 @@ tests:
         assertions:
           clients_view_assigned_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_view_assigned_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_view_assigned_money: false
@@ -30406,6 +31059,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_view_own_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_view_own_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -30593,6 +31250,10 @@ tests:
         assertions:
           clients_view_all_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_view_all_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_view_all_clinical: false
@@ -30786,6 +31447,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_view_assigned_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_view_assigned_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -30973,6 +31638,10 @@ tests:
         assertions:
           clients_view_own_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_view_own_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_view_own_clinical: false
@@ -31166,6 +31835,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_create_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_create_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -31353,6 +32026,10 @@ tests:
         assertions:
           clients_create_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_create_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_create_assigned: false
@@ -31546,6 +32223,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_create_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_create_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -31733,6 +32414,10 @@ tests:
         assertions:
           clients_create_all_contact: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_create_all_contact: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_create_all_contact: false
@@ -31926,6 +32611,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_create_assigned_contact: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_create_assigned_contact: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -32113,6 +32802,10 @@ tests:
         assertions:
           clients_create_own_contact: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_create_own_contact: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_create_own_contact: false
@@ -32306,6 +32999,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_create_all_guardian: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_create_all_guardian: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -32493,6 +33190,10 @@ tests:
         assertions:
           clients_create_assigned_guardian: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_create_assigned_guardian: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_create_assigned_guardian: false
@@ -32686,6 +33387,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_create_own_guardian: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_create_own_guardian: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -32873,6 +33578,10 @@ tests:
         assertions:
           clients_create_all_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_create_all_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_create_all_money: false
@@ -33066,6 +33775,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_create_assigned_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_create_assigned_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -33253,6 +33966,10 @@ tests:
         assertions:
           clients_create_own_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_create_own_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_create_own_money: false
@@ -33446,6 +34163,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_create_all_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_create_all_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -33633,6 +34354,10 @@ tests:
         assertions:
           clients_create_assigned_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_create_assigned_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_create_assigned_clinical: false
@@ -33826,6 +34551,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_create_own_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_create_own_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -34013,6 +34742,10 @@ tests:
         assertions:
           clients_edit_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_edit_all: false
@@ -34206,6 +34939,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_edit_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_edit_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -34393,6 +35130,10 @@ tests:
         assertions:
           clients_edit_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_edit_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_edit_own: false
@@ -34586,6 +35327,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_edit_all_contact: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_edit_all_contact: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -34773,6 +35518,10 @@ tests:
         assertions:
           clients_edit_assigned_contact: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_edit_assigned_contact: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_edit_assigned_contact: false
@@ -34966,6 +35715,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_edit_own_contact: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_edit_own_contact: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -35153,6 +35906,10 @@ tests:
         assertions:
           clients_edit_all_guardian: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_edit_all_guardian: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_edit_all_guardian: false
@@ -35346,6 +36103,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_edit_assigned_guardian: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_edit_assigned_guardian: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -35533,6 +36294,10 @@ tests:
         assertions:
           clients_edit_own_guardian: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_edit_own_guardian: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_edit_own_guardian: false
@@ -35726,6 +36491,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_edit_all_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_edit_all_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -35913,6 +36682,10 @@ tests:
         assertions:
           clients_edit_assigned_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_edit_assigned_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_edit_assigned_money: false
@@ -36106,6 +36879,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_edit_own_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_edit_own_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -36293,6 +37070,10 @@ tests:
         assertions:
           clients_edit_all_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_edit_all_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_edit_all_clinical: false
@@ -36486,6 +37267,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_edit_assigned_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_edit_assigned_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -36673,6 +37458,10 @@ tests:
         assertions:
           clients_edit_own_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_edit_own_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_edit_own_clinical: false
@@ -36866,6 +37655,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_archive_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_archive_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -37053,6 +37846,10 @@ tests:
         assertions:
           clients_archive_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_archive_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_archive_assigned: false
@@ -37246,6 +38043,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_archive_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_archive_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -37433,6 +38234,10 @@ tests:
         assertions:
           clients_archive_all_contact: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_archive_all_contact: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_archive_all_contact: false
@@ -37626,6 +38431,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_archive_assigned_contact: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_archive_assigned_contact: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -37813,6 +38622,10 @@ tests:
         assertions:
           clients_archive_own_contact: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_archive_own_contact: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_archive_own_contact: false
@@ -38006,6 +38819,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_archive_all_guardian: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_archive_all_guardian: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -38193,6 +39010,10 @@ tests:
         assertions:
           clients_archive_assigned_guardian: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_archive_assigned_guardian: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_archive_assigned_guardian: false
@@ -38386,6 +39207,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_archive_own_guardian: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_archive_own_guardian: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -38573,6 +39398,10 @@ tests:
         assertions:
           clients_archive_all_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_archive_all_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_archive_all_money: false
@@ -38766,6 +39595,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_archive_assigned_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_archive_assigned_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -38953,6 +39786,10 @@ tests:
         assertions:
           clients_archive_own_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_archive_own_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_archive_own_money: false
@@ -39146,6 +39983,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_archive_all_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_archive_all_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -39333,6 +40174,10 @@ tests:
         assertions:
           clients_archive_assigned_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_archive_assigned_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_archive_assigned_clinical: false
@@ -39526,6 +40371,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_archive_own_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_archive_own_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -39713,6 +40562,10 @@ tests:
         assertions:
           clients_delete_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_delete_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_delete_all: false
@@ -39906,6 +40759,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_delete_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_delete_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -40093,6 +40950,10 @@ tests:
         assertions:
           clients_delete_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_delete_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_delete_own: false
@@ -40286,6 +41147,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_delete_all_contact: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_delete_all_contact: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -40473,6 +41338,10 @@ tests:
         assertions:
           clients_delete_assigned_contact: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_delete_assigned_contact: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_delete_assigned_contact: false
@@ -40666,6 +41535,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_delete_own_contact: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_delete_own_contact: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -40853,6 +41726,10 @@ tests:
         assertions:
           clients_delete_all_guardian: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_delete_all_guardian: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_delete_all_guardian: false
@@ -41046,6 +41923,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_delete_assigned_guardian: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_delete_assigned_guardian: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -41233,6 +42114,10 @@ tests:
         assertions:
           clients_delete_own_guardian: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_delete_own_guardian: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_delete_own_guardian: false
@@ -41426,6 +42311,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_delete_all_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_delete_all_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -41613,6 +42502,10 @@ tests:
         assertions:
           clients_delete_assigned_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_delete_assigned_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_delete_assigned_money: false
@@ -41806,6 +42699,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_delete_own_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_delete_own_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -41993,6 +42890,10 @@ tests:
         assertions:
           clients_delete_all_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_delete_all_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_delete_all_clinical: false
@@ -42186,6 +43087,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_delete_assigned_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_delete_assigned_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -42373,6 +43278,10 @@ tests:
         assertions:
           clients_delete_own_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_delete_own_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_delete_own_clinical: false
@@ -42566,6 +43475,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_restore_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_restore_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -42753,6 +43666,10 @@ tests:
         assertions:
           clients_restore_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_restore_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_restore_assigned: false
@@ -42946,6 +43863,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_restore_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_restore_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -43133,6 +44054,10 @@ tests:
         assertions:
           clients_restore_all_contact: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_restore_all_contact: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_restore_all_contact: false
@@ -43326,6 +44251,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_restore_assigned_contact: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_restore_assigned_contact: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -43513,6 +44442,10 @@ tests:
         assertions:
           clients_restore_own_contact: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_restore_own_contact: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_restore_own_contact: false
@@ -43706,6 +44639,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_restore_all_guardian: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_restore_all_guardian: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -43893,6 +44830,10 @@ tests:
         assertions:
           clients_restore_assigned_guardian: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_restore_assigned_guardian: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_restore_assigned_guardian: false
@@ -44086,6 +45027,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_restore_own_guardian: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_restore_own_guardian: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -44273,6 +45218,10 @@ tests:
         assertions:
           clients_restore_all_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_restore_all_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_restore_all_money: false
@@ -44466,6 +45415,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_restore_assigned_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_restore_assigned_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -44653,6 +45606,10 @@ tests:
         assertions:
           clients_restore_own_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_restore_own_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_restore_own_money: false
@@ -44846,6 +45803,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_restore_all_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_restore_all_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -45033,6 +45994,10 @@ tests:
         assertions:
           clients_restore_assigned_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_restore_assigned_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_restore_assigned_clinical: false
@@ -45226,6 +46191,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_restore_own_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_restore_own_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -45413,6 +46382,10 @@ tests:
         assertions:
           clients_export_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_export_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_export_all: false
@@ -45606,6 +46579,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_export_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_export_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -45793,6 +46770,10 @@ tests:
         assertions:
           clients_export_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_export_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_export_own: false
@@ -45986,6 +46967,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_export_all_contact: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_export_all_contact: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -46173,6 +47158,10 @@ tests:
         assertions:
           clients_export_assigned_contact: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_export_assigned_contact: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_export_assigned_contact: false
@@ -46366,6 +47355,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_export_own_contact: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_export_own_contact: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -46553,6 +47546,10 @@ tests:
         assertions:
           clients_export_all_guardian: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_export_all_guardian: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_export_all_guardian: false
@@ -46746,6 +47743,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_export_assigned_guardian: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_export_assigned_guardian: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -46933,6 +47934,10 @@ tests:
         assertions:
           clients_export_own_guardian: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_export_own_guardian: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_export_own_guardian: false
@@ -47126,6 +48131,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_export_all_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_export_all_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -47313,6 +48322,10 @@ tests:
         assertions:
           clients_export_assigned_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_export_assigned_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_export_assigned_money: false
@@ -47506,6 +48519,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_export_own_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_export_own_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -47693,6 +48710,10 @@ tests:
         assertions:
           clients_export_all_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_export_all_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_export_all_clinical: false
@@ -47886,6 +48907,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_export_assigned_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_export_assigned_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -48073,6 +49098,10 @@ tests:
         assertions:
           clients_export_own_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_export_own_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_export_own_clinical: false
@@ -48266,6 +49295,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_assign_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_assign_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -48453,6 +49486,10 @@ tests:
         assertions:
           clients_assign_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_assign_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_assign_assigned: false
@@ -48646,6 +49683,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_assign_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_assign_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -48833,6 +49874,10 @@ tests:
         assertions:
           clients_assign_all_contact: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_assign_all_contact: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_assign_all_contact: false
@@ -49026,6 +50071,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_assign_assigned_contact: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_assign_assigned_contact: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -49213,6 +50262,10 @@ tests:
         assertions:
           clients_assign_own_contact: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_assign_own_contact: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_assign_own_contact: false
@@ -49406,6 +50459,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_assign_all_guardian: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_assign_all_guardian: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -49593,6 +50650,10 @@ tests:
         assertions:
           clients_assign_assigned_guardian: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_assign_assigned_guardian: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_assign_assigned_guardian: false
@@ -49786,6 +50847,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_assign_own_guardian: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_assign_own_guardian: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -49973,6 +51038,10 @@ tests:
         assertions:
           clients_assign_all_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_assign_all_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_assign_all_money: false
@@ -50166,6 +51235,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_assign_assigned_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_assign_assigned_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -50353,6 +51426,10 @@ tests:
         assertions:
           clients_assign_own_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_assign_own_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_assign_own_money: false
@@ -50546,6 +51623,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_assign_all_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_assign_all_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -50733,6 +51814,10 @@ tests:
         assertions:
           clients_assign_assigned_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_assign_assigned_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_assign_assigned_clinical: false
@@ -50926,6 +52011,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_assign_own_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_assign_own_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -51113,6 +52202,10 @@ tests:
         assertions:
           clients_invite_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_invite_all: false
@@ -51306,6 +52399,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_invite_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -51493,6 +52590,10 @@ tests:
         assertions:
           clients_invite_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_invite_own: false
@@ -51686,6 +52787,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_invite_all_contact: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_contact: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -51873,6 +52978,10 @@ tests:
         assertions:
           clients_invite_assigned_contact: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_contact: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_invite_assigned_contact: false
@@ -52066,6 +53175,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_invite_own_contact: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_contact: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -52253,6 +53366,10 @@ tests:
         assertions:
           clients_invite_all_guardian: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_guardian: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_invite_all_guardian: false
@@ -52446,6 +53563,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_invite_assigned_guardian: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_guardian: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -52633,6 +53754,10 @@ tests:
         assertions:
           clients_invite_own_guardian: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_guardian: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_invite_own_guardian: false
@@ -52826,6 +53951,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_invite_all_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -53013,6 +54142,10 @@ tests:
         assertions:
           clients_invite_assigned_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_invite_assigned_money: false
@@ -53206,6 +54339,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_invite_own_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -53393,6 +54530,10 @@ tests:
         assertions:
           clients_invite_all_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_all_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_invite_all_clinical: false
@@ -53586,6 +54727,10 @@ tests:
         object: sched_app:closure
         assertions:
           clients_invite_assigned_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          clients_invite_assigned_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -53773,6 +54918,10 @@ tests:
         assertions:
           clients_invite_own_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          clients_invite_own_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           clients_invite_own_clinical: false
@@ -53966,6 +55115,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_aba_view_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_aba_view_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -54153,6 +55306,10 @@ tests:
         assertions:
           report_aba_view_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_aba_view_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_aba_view_assigned: false
@@ -54346,6 +55503,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_aba_view_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_aba_view_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -54533,6 +55694,10 @@ tests:
         assertions:
           report_aba_create_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_aba_create_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_aba_create_all: false
@@ -54726,6 +55891,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_aba_create_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_aba_create_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -54913,6 +56082,10 @@ tests:
         assertions:
           report_aba_create_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_aba_create_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_aba_create_own: false
@@ -55106,6 +56279,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_aba_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_aba_edit_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -55293,6 +56470,10 @@ tests:
         assertions:
           report_aba_edit_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_aba_edit_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_aba_edit_assigned: false
@@ -55486,6 +56667,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_aba_edit_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_aba_edit_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -55673,6 +56858,10 @@ tests:
         assertions:
           report_aba_delete_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_aba_delete_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_aba_delete_all: false
@@ -55866,6 +57055,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_aba_delete_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_aba_delete_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -56053,6 +57246,10 @@ tests:
         assertions:
           report_aba_delete_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_aba_delete_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_aba_delete_own: false
@@ -56246,6 +57443,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_aba_export_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_aba_export_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -56433,6 +57634,10 @@ tests:
         assertions:
           report_aba_export_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_aba_export_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_aba_export_assigned: false
@@ -56626,6 +57831,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_aba_export_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_aba_export_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -56813,6 +58022,10 @@ tests:
         assertions:
           report_racemeup_view_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_racemeup_view_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_racemeup_view_all: false
@@ -57006,6 +58219,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_racemeup_view_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_racemeup_view_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -57193,6 +58410,10 @@ tests:
         assertions:
           report_racemeup_view_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_racemeup_view_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_racemeup_view_own: false
@@ -57386,6 +58607,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_racemeup_create_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_racemeup_create_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -57573,6 +58798,10 @@ tests:
         assertions:
           report_racemeup_create_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_racemeup_create_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_racemeup_create_assigned: false
@@ -57766,6 +58995,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_racemeup_create_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_racemeup_create_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -57953,6 +59186,10 @@ tests:
         assertions:
           report_racemeup_edit_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_racemeup_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_racemeup_edit_all: false
@@ -58146,6 +59383,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_racemeup_edit_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_racemeup_edit_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -58333,6 +59574,10 @@ tests:
         assertions:
           report_racemeup_edit_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_racemeup_edit_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_racemeup_edit_own: false
@@ -58526,6 +59771,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_racemeup_delete_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_racemeup_delete_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -58713,6 +59962,10 @@ tests:
         assertions:
           report_racemeup_delete_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_racemeup_delete_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_racemeup_delete_assigned: false
@@ -58906,6 +60159,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_racemeup_delete_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_racemeup_delete_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -59093,6 +60350,10 @@ tests:
         assertions:
           report_racemeup_export_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_racemeup_export_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_racemeup_export_all: false
@@ -59286,6 +60547,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_racemeup_export_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_racemeup_export_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -59473,6 +60738,10 @@ tests:
         assertions:
           report_racemeup_export_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_racemeup_export_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_racemeup_export_own: false
@@ -59666,6 +60935,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_psychotherapy_view_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_psychotherapy_view_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -59853,6 +61126,10 @@ tests:
         assertions:
           report_psychotherapy_view_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_psychotherapy_view_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_psychotherapy_view_assigned: false
@@ -60046,6 +61323,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_psychotherapy_view_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_psychotherapy_view_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -60233,6 +61514,10 @@ tests:
         assertions:
           report_psychotherapy_create_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_psychotherapy_create_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_psychotherapy_create_all: false
@@ -60426,6 +61711,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_psychotherapy_create_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_psychotherapy_create_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -60613,6 +61902,10 @@ tests:
         assertions:
           report_psychotherapy_create_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_psychotherapy_create_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_psychotherapy_create_own: false
@@ -60806,6 +62099,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_psychotherapy_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_psychotherapy_edit_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -60993,6 +62290,10 @@ tests:
         assertions:
           report_psychotherapy_edit_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_psychotherapy_edit_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_psychotherapy_edit_assigned: false
@@ -61186,6 +62487,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_psychotherapy_edit_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_psychotherapy_edit_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -61373,6 +62678,10 @@ tests:
         assertions:
           report_psychotherapy_delete_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_psychotherapy_delete_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_psychotherapy_delete_all: false
@@ -61566,6 +62875,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_psychotherapy_delete_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_psychotherapy_delete_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -61753,6 +63066,10 @@ tests:
         assertions:
           report_psychotherapy_delete_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_psychotherapy_delete_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_psychotherapy_delete_own: false
@@ -61946,6 +63263,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_psychotherapy_export_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_psychotherapy_export_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -62133,6 +63454,10 @@ tests:
         assertions:
           report_psychotherapy_export_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_psychotherapy_export_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_psychotherapy_export_assigned: false
@@ -62326,6 +63651,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_psychotherapy_export_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_psychotherapy_export_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -62513,6 +63842,10 @@ tests:
         assertions:
           report_custom_view_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_custom_view_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_custom_view_all: false
@@ -62706,6 +64039,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_custom_view_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_custom_view_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -62893,6 +64230,10 @@ tests:
         assertions:
           report_custom_view_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_custom_view_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_custom_view_own: false
@@ -63086,6 +64427,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_custom_create_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_custom_create_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -63273,6 +64618,10 @@ tests:
         assertions:
           report_custom_create_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_custom_create_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_custom_create_assigned: false
@@ -63466,6 +64815,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_custom_create_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_custom_create_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -63653,6 +65006,10 @@ tests:
         assertions:
           report_custom_edit_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_custom_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_custom_edit_all: false
@@ -63846,6 +65203,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_custom_edit_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_custom_edit_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -64033,6 +65394,10 @@ tests:
         assertions:
           report_custom_edit_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_custom_edit_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_custom_edit_own: false
@@ -64226,6 +65591,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_custom_delete_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_custom_delete_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -64413,6 +65782,10 @@ tests:
         assertions:
           report_custom_delete_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_custom_delete_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_custom_delete_assigned: false
@@ -64606,6 +65979,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_custom_delete_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_custom_delete_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -64793,6 +66170,10 @@ tests:
         assertions:
           report_custom_export_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_custom_export_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_custom_export_all: false
@@ -64986,6 +66367,10 @@ tests:
         object: sched_app:closure
         assertions:
           report_custom_export_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          report_custom_export_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -65173,6 +66558,10 @@ tests:
         assertions:
           report_custom_export_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          report_custom_export_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           report_custom_export_own: false
@@ -65366,6 +66755,10 @@ tests:
         object: sched_app:closure
         assertions:
           questionnaire_parent_view_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          questionnaire_parent_view_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -65553,6 +66946,10 @@ tests:
         assertions:
           questionnaire_parent_view_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          questionnaire_parent_view_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           questionnaire_parent_view_assigned: false
@@ -65746,6 +67143,10 @@ tests:
         object: sched_app:closure
         assertions:
           questionnaire_parent_view_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          questionnaire_parent_view_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -65933,6 +67334,10 @@ tests:
         assertions:
           questionnaire_parent_create_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          questionnaire_parent_create_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           questionnaire_parent_create_all: false
@@ -66126,6 +67531,10 @@ tests:
         object: sched_app:closure
         assertions:
           questionnaire_parent_create_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          questionnaire_parent_create_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -66313,6 +67722,10 @@ tests:
         assertions:
           questionnaire_parent_create_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          questionnaire_parent_create_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           questionnaire_parent_create_own: false
@@ -66506,6 +67919,10 @@ tests:
         object: sched_app:closure
         assertions:
           questionnaire_parent_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          questionnaire_parent_edit_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -66693,6 +68110,10 @@ tests:
         assertions:
           questionnaire_parent_edit_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          questionnaire_parent_edit_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           questionnaire_parent_edit_assigned: false
@@ -66886,6 +68307,10 @@ tests:
         object: sched_app:closure
         assertions:
           questionnaire_parent_edit_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          questionnaire_parent_edit_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -67073,6 +68498,10 @@ tests:
         assertions:
           questionnaire_parent_delete_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          questionnaire_parent_delete_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           questionnaire_parent_delete_all: false
@@ -67266,6 +68695,10 @@ tests:
         object: sched_app:closure
         assertions:
           questionnaire_parent_delete_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          questionnaire_parent_delete_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -67453,6 +68886,10 @@ tests:
         assertions:
           questionnaire_parent_delete_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          questionnaire_parent_delete_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           questionnaire_parent_delete_own: false
@@ -67646,6 +69083,10 @@ tests:
         object: sched_app:closure
         assertions:
           files_view_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          files_view_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -67833,6 +69274,10 @@ tests:
         assertions:
           files_view_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          files_view_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           files_view_assigned: false
@@ -68026,6 +69471,10 @@ tests:
         object: sched_app:closure
         assertions:
           files_view_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          files_view_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -68213,6 +69662,10 @@ tests:
         assertions:
           files_upload_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          files_upload_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           files_upload_all: false
@@ -68406,6 +69859,10 @@ tests:
         object: sched_app:closure
         assertions:
           files_upload_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          files_upload_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -68593,6 +70050,10 @@ tests:
         assertions:
           files_upload_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          files_upload_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           files_upload_own: false
@@ -68786,6 +70247,10 @@ tests:
         object: sched_app:closure
         assertions:
           files_delete_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          files_delete_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -68973,6 +70438,10 @@ tests:
         assertions:
           files_delete_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          files_delete_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           files_delete_assigned: false
@@ -69166,6 +70635,10 @@ tests:
         object: sched_app:closure
         assertions:
           files_delete_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          files_delete_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -69353,6 +70826,10 @@ tests:
         assertions:
           files_export_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          files_export_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           files_export_all: false
@@ -69546,6 +71023,10 @@ tests:
         object: sched_app:closure
         assertions:
           files_export_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          files_export_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -69733,6 +71214,10 @@ tests:
         assertions:
           files_export_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          files_export_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           files_export_own: false
@@ -69926,6 +71411,10 @@ tests:
         object: sched_app:closure
         assertions:
           packages_view_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          packages_view_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -70113,6 +71602,10 @@ tests:
         assertions:
           packages_view_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          packages_view_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           packages_view_assigned: false
@@ -70306,6 +71799,10 @@ tests:
         object: sched_app:closure
         assertions:
           packages_view_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          packages_view_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -70493,6 +71990,10 @@ tests:
         assertions:
           packages_create_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          packages_create_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           packages_create_all: false
@@ -70686,6 +72187,10 @@ tests:
         object: sched_app:closure
         assertions:
           packages_create_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          packages_create_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -70873,6 +72378,10 @@ tests:
         assertions:
           packages_create_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          packages_create_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           packages_create_own: false
@@ -71066,6 +72575,10 @@ tests:
         object: sched_app:closure
         assertions:
           packages_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          packages_edit_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -71253,6 +72766,10 @@ tests:
         assertions:
           packages_edit_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          packages_edit_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           packages_edit_assigned: false
@@ -71446,6 +72963,10 @@ tests:
         object: sched_app:closure
         assertions:
           packages_edit_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          packages_edit_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -71633,6 +73154,10 @@ tests:
         assertions:
           packages_delete_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          packages_delete_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           packages_delete_all: false
@@ -71826,6 +73351,10 @@ tests:
         object: sched_app:closure
         assertions:
           packages_delete_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          packages_delete_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -72013,6 +73542,10 @@ tests:
         assertions:
           packages_delete_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          packages_delete_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           packages_delete_own: false
@@ -72206,6 +73739,10 @@ tests:
         object: sched_app:closure
         assertions:
           packages_price_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          packages_price_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -72393,6 +73930,10 @@ tests:
         assertions:
           packages_price_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          packages_price_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           packages_price_assigned: false
@@ -72586,6 +74127,10 @@ tests:
         object: sched_app:closure
         assertions:
           packages_price_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          packages_price_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -72773,6 +74318,10 @@ tests:
         assertions:
           payments_view_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          payments_view_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           payments_view_all: false
@@ -72966,6 +74515,10 @@ tests:
         object: sched_app:closure
         assertions:
           payments_view_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          payments_view_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -73153,6 +74706,10 @@ tests:
         assertions:
           payments_view_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          payments_view_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           payments_view_own: false
@@ -73346,6 +74903,10 @@ tests:
         object: sched_app:closure
         assertions:
           payments_create_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          payments_create_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -73533,6 +75094,10 @@ tests:
         assertions:
           payments_create_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          payments_create_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           payments_create_assigned: false
@@ -73726,6 +75291,10 @@ tests:
         object: sched_app:closure
         assertions:
           payments_create_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          payments_create_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -73913,6 +75482,10 @@ tests:
         assertions:
           payments_edit_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          payments_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           payments_edit_all: false
@@ -74106,6 +75679,10 @@ tests:
         object: sched_app:closure
         assertions:
           payments_edit_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          payments_edit_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -74293,6 +75870,10 @@ tests:
         assertions:
           payments_edit_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          payments_edit_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           payments_edit_own: false
@@ -74486,6 +76067,10 @@ tests:
         object: sched_app:closure
         assertions:
           payments_delete_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          payments_delete_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -74673,6 +76258,10 @@ tests:
         assertions:
           payments_delete_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          payments_delete_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           payments_delete_assigned: false
@@ -74866,6 +76455,10 @@ tests:
         object: sched_app:closure
         assertions:
           payments_delete_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          payments_delete_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -75053,6 +76646,10 @@ tests:
         assertions:
           payments_export_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          payments_export_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           payments_export_all: false
@@ -75246,6 +76843,10 @@ tests:
         object: sched_app:closure
         assertions:
           payments_export_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          payments_export_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -75433,6 +77034,10 @@ tests:
         assertions:
           payments_export_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          payments_export_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           payments_export_own: false
@@ -75626,6 +77231,10 @@ tests:
         object: sched_app:closure
         assertions:
           roster_view_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          roster_view_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -75813,6 +77422,10 @@ tests:
         assertions:
           roster_view_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          roster_view_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           roster_view_assigned: false
@@ -76006,6 +77619,10 @@ tests:
         object: sched_app:closure
         assertions:
           roster_view_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          roster_view_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -76193,6 +77810,10 @@ tests:
         assertions:
           roster_edit_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          roster_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           roster_edit_all: false
@@ -76386,6 +78007,10 @@ tests:
         object: sched_app:closure
         assertions:
           roster_edit_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          roster_edit_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -76573,6 +78198,10 @@ tests:
         assertions:
           roster_edit_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          roster_edit_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           roster_edit_own: false
@@ -76766,6 +78395,10 @@ tests:
         object: sched_app:closure
         assertions:
           leave_view_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          leave_view_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -76953,6 +78586,10 @@ tests:
         assertions:
           leave_view_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          leave_view_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           leave_view_assigned: false
@@ -77146,6 +78783,10 @@ tests:
         object: sched_app:closure
         assertions:
           leave_view_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          leave_view_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -77333,6 +78974,10 @@ tests:
         assertions:
           leave_create_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          leave_create_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           leave_create_all: false
@@ -77526,6 +79171,10 @@ tests:
         object: sched_app:closure
         assertions:
           leave_create_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          leave_create_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -77713,6 +79362,10 @@ tests:
         assertions:
           leave_create_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          leave_create_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           leave_create_own: false
@@ -77906,6 +79559,10 @@ tests:
         object: sched_app:closure
         assertions:
           leave_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          leave_edit_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -78093,6 +79750,10 @@ tests:
         assertions:
           leave_edit_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          leave_edit_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           leave_edit_assigned: false
@@ -78286,6 +79947,10 @@ tests:
         object: sched_app:closure
         assertions:
           leave_edit_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          leave_edit_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -78473,6 +80138,10 @@ tests:
         assertions:
           leave_cancel_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          leave_cancel_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           leave_cancel_all: false
@@ -78666,6 +80335,10 @@ tests:
         object: sched_app:closure
         assertions:
           leave_cancel_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          leave_cancel_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -78853,6 +80526,10 @@ tests:
         assertions:
           leave_cancel_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          leave_cancel_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           leave_cancel_own: false
@@ -79046,6 +80723,10 @@ tests:
         object: sched_app:closure
         assertions:
           leave_approve_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          leave_approve_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -79233,6 +80914,10 @@ tests:
         assertions:
           leave_approve_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          leave_approve_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           leave_approve_assigned: false
@@ -79426,6 +81111,10 @@ tests:
         object: sched_app:closure
         assertions:
           leave_approve_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          leave_approve_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -79613,6 +81302,10 @@ tests:
         assertions:
           notice_board_view_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          notice_board_view_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           notice_board_view_all: false
@@ -79806,6 +81499,10 @@ tests:
         object: sched_app:closure
         assertions:
           notice_board_create_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          notice_board_create_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -79993,6 +81690,10 @@ tests:
         assertions:
           notice_board_edit_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          notice_board_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           notice_board_edit_all: false
@@ -80186,6 +81887,10 @@ tests:
         object: sched_app:closure
         assertions:
           notice_board_delete_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          notice_board_delete_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -80373,6 +82078,10 @@ tests:
         assertions:
           reminders_view_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          reminders_view_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           reminders_view_all: false
@@ -80566,6 +82275,10 @@ tests:
         object: sched_app:closure
         assertions:
           reminders_view_assigned: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          reminders_view_assigned: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -80753,6 +82466,10 @@ tests:
         assertions:
           reminders_view_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          reminders_view_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           reminders_view_own: false
@@ -80946,6 +82663,10 @@ tests:
         object: sched_app:closure
         assertions:
           reminders_send_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          reminders_send_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -81133,6 +82854,10 @@ tests:
         assertions:
           reminders_send_assigned: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          reminders_send_assigned: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           reminders_send_assigned: false
@@ -81326,6 +83051,10 @@ tests:
         object: sched_app:closure
         assertions:
           reminders_send_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          reminders_send_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -81513,6 +83242,10 @@ tests:
         assertions:
           web_requests_view_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          web_requests_view_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           web_requests_view_all: false
@@ -81706,6 +83439,10 @@ tests:
         object: sched_app:closure
         assertions:
           web_requests_approve_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          web_requests_approve_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -81893,6 +83630,10 @@ tests:
         assertions:
           reports_view_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          reports_view_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           reports_view_all: false
@@ -82086,6 +83827,10 @@ tests:
         object: sched_app:closure
         assertions:
           reports_view_all_core: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          reports_view_all_core: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -82273,6 +84018,10 @@ tests:
         assertions:
           reports_view_all_money: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          reports_view_all_money: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           reports_view_all_money: false
@@ -82466,6 +84215,10 @@ tests:
         object: sched_app:closure
         assertions:
           reports_export_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          reports_export_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -82653,6 +84406,10 @@ tests:
         assertions:
           reports_export_all_core: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          reports_export_all_core: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           reports_export_all_core: false
@@ -82846,6 +84603,10 @@ tests:
         object: sched_app:closure
         assertions:
           reports_export_all_money: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          reports_export_all_money: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -83033,6 +84794,10 @@ tests:
         assertions:
           audit_log_view_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          audit_log_view_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           audit_log_view_all: false
@@ -83226,6 +84991,10 @@ tests:
         object: sched_app:closure
         assertions:
           audit_log_export_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          audit_log_export_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -83413,6 +85182,10 @@ tests:
         assertions:
           imports_exports_imports_view_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          imports_exports_imports_view_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           imports_exports_imports_view_all: false
@@ -83606,6 +85379,10 @@ tests:
         object: sched_app:closure
         assertions:
           imports_exports_imports_run_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          imports_exports_imports_run_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -83793,6 +85570,10 @@ tests:
         assertions:
           imports_exports_export_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          imports_exports_export_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           imports_exports_export_all: false
@@ -83986,6 +85767,10 @@ tests:
         object: sched_app:closure
         assertions:
           blacklist_view_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          blacklist_view_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -84173,6 +85958,10 @@ tests:
         assertions:
           blacklist_create_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          blacklist_create_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           blacklist_create_all: false
@@ -84366,6 +86155,10 @@ tests:
         object: sched_app:closure
         assertions:
           blacklist_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          blacklist_edit_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -84553,6 +86346,10 @@ tests:
         assertions:
           blacklist_delete_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          blacklist_delete_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           blacklist_delete_all: false
@@ -84746,6 +86543,10 @@ tests:
         object: sched_app:closure
         assertions:
           blacklist_create_warn_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          blacklist_create_warn_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -84933,6 +86734,10 @@ tests:
         assertions:
           blacklist_override_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          blacklist_override_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           blacklist_override_all: false
@@ -85126,6 +86931,10 @@ tests:
         object: sched_app:closure
         assertions:
           blacklist_override_admin_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          blacklist_override_admin_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -85313,6 +87122,10 @@ tests:
         assertions:
           feedback_view_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          feedback_view_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           feedback_view_all: false
@@ -85506,6 +87319,10 @@ tests:
         object: sched_app:closure
         assertions:
           feedback_view_all_core: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          feedback_view_all_core: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -85693,6 +87510,10 @@ tests:
         assertions:
           feedback_view_all_contact: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          feedback_view_all_contact: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           feedback_view_all_contact: false
@@ -85886,6 +87707,10 @@ tests:
         object: sched_app:closure
         assertions:
           feedback_reply_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          feedback_reply_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -86073,6 +87898,10 @@ tests:
         assertions:
           feedback_reply_all_core: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          feedback_reply_all_core: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           feedback_reply_all_core: false
@@ -86266,6 +88095,10 @@ tests:
         object: sched_app:closure
         assertions:
           feedback_reply_all_contact: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          feedback_reply_all_contact: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -86453,6 +88286,10 @@ tests:
         assertions:
           feedback_close_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          feedback_close_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           feedback_close_all: false
@@ -86646,6 +88483,10 @@ tests:
         object: sched_app:closure
         assertions:
           feedback_close_all_core: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          feedback_close_all_core: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -86833,6 +88674,10 @@ tests:
         assertions:
           feedback_close_all_contact: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          feedback_close_all_contact: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           feedback_close_all_contact: false
@@ -87026,6 +88871,10 @@ tests:
         object: sched_app:closure
         assertions:
           notes_view_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          notes_view_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -87213,6 +89062,10 @@ tests:
         assertions:
           notes_view_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          notes_view_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           notes_view_own: false
@@ -87406,6 +89259,10 @@ tests:
         object: sched_app:closure
         assertions:
           notes_view_all_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          notes_view_all_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -87593,6 +89450,10 @@ tests:
         assertions:
           notes_view_own_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          notes_view_own_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           notes_view_own_clinical: false
@@ -87786,6 +89647,10 @@ tests:
         object: sched_app:closure
         assertions:
           notes_create_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          notes_create_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -87973,6 +89838,10 @@ tests:
         assertions:
           notes_create_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          notes_create_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           notes_create_own: false
@@ -88166,6 +90035,10 @@ tests:
         object: sched_app:closure
         assertions:
           notes_create_all_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          notes_create_all_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -88353,6 +90226,10 @@ tests:
         assertions:
           notes_create_own_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          notes_create_own_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           notes_create_own_clinical: false
@@ -88546,6 +90423,10 @@ tests:
         object: sched_app:closure
         assertions:
           notes_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          notes_edit_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -88733,6 +90614,10 @@ tests:
         assertions:
           notes_edit_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          notes_edit_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           notes_edit_own: false
@@ -88926,6 +90811,10 @@ tests:
         object: sched_app:closure
         assertions:
           notes_edit_all_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          notes_edit_all_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -89113,6 +91002,10 @@ tests:
         assertions:
           notes_edit_own_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          notes_edit_own_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           notes_edit_own_clinical: false
@@ -89306,6 +91199,10 @@ tests:
         object: sched_app:closure
         assertions:
           notes_delete_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          notes_delete_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -89493,6 +91390,10 @@ tests:
         assertions:
           notes_delete_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          notes_delete_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           notes_delete_own: false
@@ -89686,6 +91587,10 @@ tests:
         object: sched_app:closure
         assertions:
           notes_delete_all_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          notes_delete_all_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -89873,6 +91778,10 @@ tests:
         assertions:
           notes_delete_own_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          notes_delete_own_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           notes_delete_own_clinical: false
@@ -90066,6 +91975,10 @@ tests:
         object: sched_app:closure
         assertions:
           notes_pin_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          notes_pin_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -90253,6 +92166,10 @@ tests:
         assertions:
           notes_pin_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          notes_pin_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           notes_pin_own: false
@@ -90446,6 +92363,10 @@ tests:
         object: sched_app:closure
         assertions:
           notes_pin_all_clinical: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          notes_pin_all_clinical: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -90633,6 +92554,10 @@ tests:
         assertions:
           notes_pin_own_clinical: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          notes_pin_own_clinical: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           notes_pin_own_clinical: false
@@ -90826,6 +92751,10 @@ tests:
         object: sched_app:closure
         assertions:
           billing_view_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          billing_view_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -91013,6 +92942,10 @@ tests:
         assertions:
           billing_edit_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          billing_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           billing_edit_all: false
@@ -91206,6 +93139,10 @@ tests:
         object: sched_app:closure
         assertions:
           organisation_delete_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          organisation_delete_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -91393,6 +93330,10 @@ tests:
         assertions:
           organisation_transfer_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          organisation_transfer_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           organisation_transfer_all: false
@@ -91586,6 +93527,10 @@ tests:
         object: sched_app:closure
         assertions:
           assistant_budget_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          assistant_budget_edit_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -91773,6 +93718,10 @@ tests:
         assertions:
           booking_pause_edit_all: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          booking_pause_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           booking_pause_edit_all: false
@@ -91966,6 +93915,10 @@ tests:
         object: sched_app:closure
         assertions:
           availability_view_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          availability_view_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -92153,6 +94106,10 @@ tests:
         assertions:
           availability_view_own: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: sched_app:closure
+        assertions:
+          availability_view_own: false
+      - user: user:c_platform_role_flow_super_admin
         object: sched_app:closure
         assertions:
           availability_view_own: false
@@ -92346,6 +94303,10 @@ tests:
         object: sched_app:closure
         assertions:
           availability_edit_all: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          availability_edit_all: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -92536,6 +94497,10 @@ tests:
         object: sched_app:closure
         assertions:
           availability_edit_own: false
+      - user: user:c_platform_role_flow_super_admin
+        object: sched_app:closure
+        assertions:
+          availability_edit_own: false
       - user: user:c_platform_role_hemisync_reception
         object: sched_app:closure
         assertions:
@@ -92611,6 +94576,30 @@ tests:
         assertions:
           reader: false
       - user: user:c_org_perm_invoice_webhooks_manage
+        object: sched_register:closure
+        assertions:
+          reader: false
+      - user: user:c_org_role_flow_admin
+        object: sched_register:closure
+        assertions:
+          reader: false
+      - user: user:c_org_role_flow_agent
+        object: sched_register:closure
+        assertions:
+          reader: false
+      - user: user:c_org_role_flow_editor
+        object: sched_register:closure
+        assertions:
+          reader: false
+      - user: user:c_org_role_flow_rulare
+        object: sched_register:closure
+        assertions:
+          reader: false
+      - user: user:c_org_role_flow_serviciu
+        object: sched_register:closure
+        assertions:
+          reader: false
+      - user: user:c_org_role_flow_viewer
         object: sched_register:closure
         assertions:
           reader: false
@@ -92693,6 +94682,30 @@ tests:
         assertions:
           writer: false
       - user: user:c_org_perm_invoice_webhooks_manage
+        object: sched_register:closure
+        assertions:
+          writer: false
+      - user: user:c_org_role_flow_admin
+        object: sched_register:closure
+        assertions:
+          writer: false
+      - user: user:c_org_role_flow_agent
+        object: sched_register:closure
+        assertions:
+          writer: false
+      - user: user:c_org_role_flow_editor
+        object: sched_register:closure
+        assertions:
+          writer: false
+      - user: user:c_org_role_flow_rulare
+        object: sched_register:closure
+        assertions:
+          writer: false
+      - user: user:c_org_role_flow_serviciu
+        object: sched_register:closure
+        assertions:
+          writer: false
+      - user: user:c_org_role_flow_viewer
         object: sched_register:closure
         assertions:
           writer: false

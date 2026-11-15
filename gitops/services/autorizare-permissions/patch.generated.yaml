@@ -7,7 +7,7 @@ spec:
   template:
     metadata:
       annotations:
-        autorizare/permissions-bundle: "80dee95366d73a15"
+        autorizare/permissions-bundle: "458a8314b83c3296"
     spec:
       initContainers:
         - name: assert-secrets
@@ -36,6 +36,7 @@ spec:
                     - {key: modules__blog.fga, path: modules/blog.fga}
                     - {key: modules__cms.fga, path: modules/cms.fga}
                     - {key: modules__eqsync.fga, path: modules/eqsync.fga}
+                    - {key: modules__flow.fga, path: modules/flow.fga}
                     - {key: modules__hemisync.fga, path: modules/hemisync.fga}
                     - {key: modules__invoice.fga, path: modules/invoice.fga}
                     - {key: modules__psizone.fga, path: modules/psizone.fga}
@@ -51,6 +52,13 @@ spec:
                     - {key: catalog__cms.roles.json, path: catalog/cms.roles.json}
                     - {key: catalog__eqsync.manifest.json, path: catalog/eqsync.manifest.json}
                     - {key: catalog__eqsync.roles.json, path: catalog/eqsync.roles.json}
+                    - {key: catalog__flow.manifest.d__admin.json, path: catalog/flow.manifest.d/admin.json}
+                    - {key: catalog__flow.manifest.d__flows.json, path: catalog/flow.manifest.d/flows.json}
+                    - {key: catalog__flow.manifest.d__machine.json, path: catalog/flow.manifest.d/machine.json}
+                    - {key: catalog__flow.manifest.d__public.json, path: catalog/flow.manifest.d/public.json}
+                    - {key: catalog__flow.manifest.d__service.json, path: catalog/flow.manifest.d/service.json}
+                    - {key: catalog__flow.manifest.json, path: catalog/flow.manifest.json}
+                    - {key: catalog__flow.roles.json, path: catalog/flow.roles.json}
                     - {key: catalog__hemisync.manifest.json, path: catalog/hemisync.manifest.json}
                     - {key: catalog__hemisync.roles.json, path: catalog/hemisync.roles.json}
                     - {key: catalog__invoice.manifest.json, path: catalog/invoice.manifest.json}
@@ -68,7 +76,7 @@ spec:
   template:
     metadata:
       annotations:
-        autorizare/permissions-bundle: "80dee95366d73a15"
+        autorizare/permissions-bundle: "458a8314b83c3296"
     spec:
       containers:
         - name: autorizare-hub
@@ -89,6 +97,7 @@ spec:
                     - {key: modules__blog.fga, path: modules/blog.fga}
                     - {key: modules__cms.fga, path: modules/cms.fga}
                     - {key: modules__eqsync.fga, path: modules/eqsync.fga}
+                    - {key: modules__flow.fga, path: modules/flow.fga}
                     - {key: modules__hemisync.fga, path: modules/hemisync.fga}
                     - {key: modules__invoice.fga, path: modules/invoice.fga}
                     - {key: modules__psizone.fga, path: modules/psizone.fga}
@@ -104,6 +113,13 @@ spec:
                     - {key: catalog__cms.roles.json, path: catalog/cms.roles.json}
                     - {key: catalog__eqsync.manifest.json, path: catalog/eqsync.manifest.json}
                     - {key: catalog__eqsync.roles.json, path: catalog/eqsync.roles.json}
+                    - {key: catalog__flow.manifest.d__admin.json, path: catalog/flow.manifest.d/admin.json}
+                    - {key: catalog__flow.manifest.d__flows.json, path: catalog/flow.manifest.d/flows.json}
+                    - {key: catalog__flow.manifest.d__machine.json, path: catalog/flow.manifest.d/machine.json}
+                    - {key: catalog__flow.manifest.d__public.json, path: catalog/flow.manifest.d/public.json}
+                    - {key: catalog__flow.manifest.d__service.json, path: catalog/flow.manifest.d/service.json}
+                    - {key: catalog__flow.manifest.json, path: catalog/flow.manifest.json}
+                    - {key: catalog__flow.roles.json, path: catalog/flow.roles.json}
                     - {key: catalog__hemisync.manifest.json, path: catalog/hemisync.manifest.json}
                     - {key: catalog__hemisync.roles.json, path: catalog/hemisync.roles.json}
                     - {key: catalog__invoice.manifest.json, path: catalog/invoice.manifest.json}

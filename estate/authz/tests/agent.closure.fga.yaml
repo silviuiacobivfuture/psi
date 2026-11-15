@@ -133,6 +133,9 @@ tuples:
   - user: user:c_platform_role_eqsync_programme_support
     relation: role_eqsync_programme_support
     object: platform:psi
+  - user: user:c_platform_role_flow_super_admin
+    relation: role_flow_super_admin
+    object: platform:psi
   - user: user:c_platform_role_hemisync_reception
     relation: role_hemisync_reception
     object: platform:psi
@@ -323,6 +326,10 @@ tests:
         object: agent_studio:closure
         assertions:
           view: false
+      - user: user:c_platform_role_flow_super_admin
+        object: agent_studio:closure
+        assertions:
+          view: false
       - user: user:c_platform_role_hemisync_reception
         object: agent_studio:closure
         assertions:
@@ -510,6 +517,10 @@ tests:
         assertions:
           operate: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: agent_studio:closure
+        assertions:
+          operate: false
+      - user: user:c_platform_role_flow_super_admin
         object: agent_studio:closure
         assertions:
           operate: false

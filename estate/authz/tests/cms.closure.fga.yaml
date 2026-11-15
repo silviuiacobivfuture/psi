@@ -133,6 +133,9 @@ tuples:
   - user: user:c_platform_role_eqsync_programme_support
     relation: role_eqsync_programme_support
     object: platform:psi
+  - user: user:c_platform_role_flow_super_admin
+    relation: role_flow_super_admin
+    object: platform:psi
   - user: user:c_platform_role_hemisync_reception
     relation: role_hemisync_reception
     object: platform:psi
@@ -320,6 +323,10 @@ tests:
         assertions:
           read: true
       - user: user:c_platform_role_eqsync_programme_support
+        object: cms_brand:closure
+        assertions:
+          read: false
+      - user: user:c_platform_role_flow_super_admin
         object: cms_brand:closure
         assertions:
           read: false
@@ -513,6 +520,10 @@ tests:
         object: cms_brand:closure
         assertions:
           write: false
+      - user: user:c_platform_role_flow_super_admin
+        object: cms_brand:closure
+        assertions:
+          write: false
       - user: user:c_platform_role_hemisync_reception
         object: cms_brand:closure
         assertions:
@@ -700,6 +711,10 @@ tests:
         assertions:
           publish: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: cms_brand:closure
+        assertions:
+          publish: false
+      - user: user:c_platform_role_flow_super_admin
         object: cms_brand:closure
         assertions:
           publish: false
@@ -893,6 +908,10 @@ tests:
         object: cms_brand:closure
         assertions:
           clinical_review: false
+      - user: user:c_platform_role_flow_super_admin
+        object: cms_brand:closure
+        assertions:
+          clinical_review: false
       - user: user:c_platform_role_hemisync_reception
         object: cms_brand:closure
         assertions:
@@ -1080,6 +1099,10 @@ tests:
         assertions:
           manage_media: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: cms_brand:closure
+        assertions:
+          manage_media: false
+      - user: user:c_platform_role_flow_super_admin
         object: cms_brand:closure
         assertions:
           manage_media: false
@@ -1273,6 +1296,10 @@ tests:
         object: cms_brand:closure
         assertions:
           admin: false
+      - user: user:c_platform_role_flow_super_admin
+        object: cms_brand:closure
+        assertions:
+          admin: false
       - user: user:c_platform_role_hemisync_reception
         object: cms_brand:closure
         assertions:
@@ -1460,6 +1487,10 @@ tests:
         assertions:
           ai_admin: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: cms_brand:closure
+        assertions:
+          ai_admin: false
+      - user: user:c_platform_role_flow_super_admin
         object: cms_brand:closure
         assertions:
           ai_admin: false
@@ -1653,6 +1684,10 @@ tests:
         object: cms_brand:closure
         assertions:
           ai_operator: false
+      - user: user:c_platform_role_flow_super_admin
+        object: cms_brand:closure
+        assertions:
+          ai_operator: false
       - user: user:c_platform_role_hemisync_reception
         object: cms_brand:closure
         assertions:
@@ -1840,6 +1875,10 @@ tests:
         assertions:
           calendar_viewer: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: cms_brand:closure
+        assertions:
+          calendar_viewer: false
+      - user: user:c_platform_role_flow_super_admin
         object: cms_brand:closure
         assertions:
           calendar_viewer: false
@@ -2033,6 +2072,10 @@ tests:
         object: cms_brand:closure
         assertions:
           calendar_manager: false
+      - user: user:c_platform_role_flow_super_admin
+        object: cms_brand:closure
+        assertions:
+          calendar_manager: false
       - user: user:c_platform_role_hemisync_reception
         object: cms_brand:closure
         assertions:
@@ -2220,6 +2263,10 @@ tests:
         assertions:
           privacy_officer: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: cms_brand:closure
+        assertions:
+          privacy_officer: false
+      - user: user:c_platform_role_flow_super_admin
         object: cms_brand:closure
         assertions:
           privacy_officer: false
@@ -2413,6 +2460,10 @@ tests:
         object: cms_brand:closure
         assertions:
           notifications_admin: false
+      - user: user:c_platform_role_flow_super_admin
+        object: cms_brand:closure
+        assertions:
+          notifications_admin: false
       - user: user:c_platform_role_hemisync_reception
         object: cms_brand:closure
         assertions:
@@ -2600,6 +2651,10 @@ tests:
         assertions:
           site_manager: true
       - user: user:c_platform_role_eqsync_programme_support
+        object: cms_brand:closure
+        assertions:
+          site_manager: false
+      - user: user:c_platform_role_flow_super_admin
         object: cms_brand:closure
         assertions:
           site_manager: false

@@ -133,6 +133,9 @@ tuples:
   - user: user:c_platform_role_eqsync_programme_support
     relation: role_eqsync_programme_support
     object: platform:psi
+  - user: user:c_platform_role_flow_super_admin
+    relation: role_flow_super_admin
+    object: platform:psi
   - user: user:c_platform_role_hemisync_reception
     relation: role_hemisync_reception
     object: platform:psi
@@ -326,6 +329,10 @@ tests:
         object: hemisync_session_request:closure
         assertions:
           viewer: false
+      - user: user:c_platform_role_flow_super_admin
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_role_hemisync_reception
         object: hemisync_session_request:closure
         assertions:
@@ -516,6 +523,10 @@ tests:
         object: hemisync_session_request:closure
         assertions:
           editor: false
+      - user: user:c_platform_role_flow_super_admin
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
       - user: user:c_platform_role_hemisync_reception
         object: hemisync_session_request:closure
         assertions:
@@ -703,6 +714,10 @@ tests:
         assertions:
           listener: false
       - user: user:c_platform_role_eqsync_programme_support
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_role_flow_super_admin
         object: hemisync_exercise:closure
         assertions:
           listener: false
