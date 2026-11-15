@@ -2,6 +2,7 @@
 import type { Child } from "hono/jsx";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { cx } from "../cx";
+import { ADMIN_FULLSCREEN_JS } from "./fullscreen";
 import { type AdminIcon, Icon } from "./icons";
 
 export interface NavItem {
@@ -87,6 +88,11 @@ export interface ShellProps {
 	prefsAction: string;
 	/** A canvas page: the content is a full-bleed surface under the top bar (see admin-canvas.css). */
 	canvas?: boolean;
+	/**
+	 * The page offers "full screen" (controls marked `data-full-toggle`); the value is the person's saved choice (the
+	 * `adm-full` cookie), rendered by the server so the first paint is already right. Absent: the page does not offer it.
+	 */
+	fullscreen?: "on" | "off";
 	signOutAction: string;
 	locale: "ro" | "en";
 	themePref: "light" | "dark" | "system";
@@ -326,7 +332,12 @@ export function AdminShell(p: ShellProps): JSX.Element {
 	const { labels: l } = p;
 	return (
 		<div
-			class={cx("adm", p.rail === true && "is-collapsed", p.canvas === true && "is-canvas")}
+			class={cx(
+				"adm",
+				p.rail === true && "is-collapsed",
+				p.canvas === true && "is-canvas",
+				p.fullscreen === "on" && "is-full",
+			)}
 			data-app={p.app}
 			data-deco={p.deco ? "on" : "off"}
 			data-signals={`{navCollapsed:${p.rail === true},searchOpen:false,q:'',offline:false,fabSmall:false}`}
@@ -336,6 +347,9 @@ export function AdminShell(p: ShellProps): JSX.Element {
 			data-on:online__window="$offline = false"
 			data-on:offline__window="$offline = true"
 		>
+			{p.fullscreen === undefined ? null : (
+				<script dangerouslySetInnerHTML={{ __html: ADMIN_FULLSCREEN_JS }} />
+			)}
 			<a class="adm-skip" href="#adm-content">
 				{l.skip}
 			</a>

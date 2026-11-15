@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+metadata:
+  name: psi-authentik-platform
+# psi's layer for the SEB piece `authentik-platform`. Read by the bundle builder itself, before
+# kustomize renders the piece (schema/slots/authentik-platform.yaml):
+#   slots/groups.yaml   psi's own groups beside SEB's (today: a stale group declared absent)
+# psi's people are still read from ../authentik/people.yaml.

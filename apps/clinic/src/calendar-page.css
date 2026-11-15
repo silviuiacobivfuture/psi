@@ -1,0 +1,119 @@
+/* ── The page: the calendar is a canvas under the top bar (shell `canvas`): one toolbar, then the grid, edge to edge.
+   The page never scrolls; the grid (or the month) does. ───────────────────────────────────────────────────────── */
+.cal-page {
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 0;
+	min-height: 0;
+	min-width: 0;
+}
+.cal-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	flex: none;
+	gap: var(--space-2) var(--space-3);
+	padding: var(--space-2) var(--space-3);
+	background: var(--surface-1);
+	border-bottom: 1px solid var(--line-strong);
+}
+.cal-toolbar > .cal-bar {
+	flex-wrap: nowrap;
+}
+/* The view, the columns and today flow into the toolbar's own row. */
+.cal-toolbar .cal-bar--views {
+	display: contents;
+}
+.cal-toolbar .cal-bar__title {
+	flex: 0 1 auto;
+	padding-inline: var(--space-2);
+}
+.cal-bar--end {
+	margin-left: auto;
+}
+.cal-bar--end .cal-new {
+	margin-left: 0;
+}
+.cal-full__off,
+.cal-full[aria-pressed="true"] .cal-full__on {
+	display: none;
+}
+.cal-full[aria-pressed="true"] .cal-full__off {
+	display: inline-block;
+}
+.adm.is-full .cal-new {
+	display: inline-flex;
+}
+.cal-page__body {
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 0;
+	min-height: 0;
+	min-width: 0;
+	overflow: auto;
+	overscroll-behavior: contain;
+}
+.cal-page__body > .cal-chips {
+	flex: none;
+	padding: var(--space-2) var(--space-3);
+	background: var(--surface-1);
+	border-bottom: 1px solid var(--line);
+}
+.cal-page__body > .adm-empty,
+.cal-page__body > .adm-banner {
+	margin: var(--space-5) var(--space-3);
+}
+/* The shell's own padding below the page and the capsule's room at the foot would scroll the page: the canvas has none. */
+html body:has(.cal-page) {
+	padding-bottom: 0;
+}
+/* The phone keeps its create button over the grid: a canvas hides it elsewhere. */
+@media (max-width: 767px) {
+	.adm.is-canvas:has(.cal-page):not(.is-full) .adm-fab {
+		display: inline-flex;
+	}
+}
+
+/* ── The assistant's bar must not cover appointments: on the calendar it rests as its icon in the corner (the grid
+   scrolls clear of it) and is the whole bar again while it is open. ───────────────────────── */
+body:has(.cal-page) .pz-compass:not(.is-open) {
+	left: auto;
+	align-items: flex-end;
+	padding-inline: var(--space-3);
+}
+body:has(.cal-page) .pz-compass:not(.is-open) .pz-compass__bar {
+	width: auto;
+	min-height: 0;
+	padding: 6px;
+	gap: 0;
+	border-radius: 50%;
+}
+body:has(.cal-page) .pz-compass:not(.is-open) .pz-compass__bar > :not(.pz-compass__orb) {
+	width: 0;
+	min-width: 0;
+	padding: 0;
+	margin: 0;
+	opacity: 0;
+	overflow: hidden;
+	pointer-events: none;
+	border: 0;
+}
+@media (max-width: 767px) {
+	/* Three short rows: the date, then view / today / actions, then the columns' filter. */
+	.cal-toolbar {
+		gap: var(--space-1) var(--space-2);
+		padding: var(--space-1) var(--space-2);
+	}
+	.cal-toolbar > .cal-bar--nav {
+		flex: 1 0 100%;
+	}
+	.cal-toolbar .cal-bar--views > .adm-seg:nth-child(2) {
+		order: 9;
+		flex: 1 0 100%;
+	}
+	/* The create button is at the right: the icon waits at the left. */
+	body:has(.cal-page) .pz-compass:not(.is-open) {
+		left: 0;
+		right: auto;
+	}
+}
