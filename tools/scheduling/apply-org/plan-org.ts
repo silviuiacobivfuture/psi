@@ -118,11 +118,42 @@ export interface StaffPlan {
 	unlinked: string[];
 }
 
+type SeedService = OrgSeed["services"][number];
+
 /**
- * The services the seed lists that the store lacks, as inactive drafts with no price (one the store holds is the
- * owners' and is left alone), and each practitioner with a room of their own given that room first among theirs and
- * linked to the sign-in account the run names. A link to an account another person has, or to a person already linked
- * elsewhere, is refused.
+ * A stored draft given what the seed infers and it still lacks: the price when it has none, the length when it is still
+ * the draft's. A service a person has made or changed is the owners' and stays exactly as they left it.
+ */
+function completeDraft(
+	before: ServiceRow,
+	s: SeedService,
+	org: OrgSeed,
+	owners: ReadonlySet<string>,
+	now: number,
+): Step<ServiceRow> {
+	if (owners.has(before.id)) return { kind: "keep", label: s.slug, before };
+	const prices =
+		before.prices === undefined && s.priceBani !== undefined
+			? { priceCents: s.priceBani, currency: "RON" }
+			: undefined;
+	const durationMinutes =
+		s.durationMinutes !== undefined && before.durationMinutes === org.serviceDraft.durationMinutes
+			? s.durationMinutes
+			: before.durationMinutes;
+	const next: ServiceRow = {
+		...before,
+		durationMinutes,
+		...(prices === undefined ? {} : { prices }),
+		updatedAt: now,
+	};
+	return stepOf(s.slug, before, next, ["durationMinutes", "prices"]);
+}
+
+/**
+ * The services the seed lists that the store lacks, as inactive drafts with the length and price the seed infers (a
+ * stored draft gets what it still lacks of them; one a person has touched is the owners' and is left alone), and each
+ * practitioner with a room of their own given that room first among theirs and linked to the sign-in account the run
+ * names. A link to an account another person has, or to a person already linked elsewhere, is refused.
  */
 export function planStaff(input: {
 	rooms: RoomsSeed;
@@ -131,6 +162,8 @@ export function planStaff(input: {
 	/** The stored id of each seed device, by its name's key. */
 	deviceIds: ReadonlyMap<string, string>;
 	services: ReadonlyArray<ServiceRow>;
+	/** The ids of the services a person (not a `system:` tool) has made or changed, from the audit log. */
+	ownersServices: ReadonlySet<string>;
 	people: ReadonlyArray<PersonRow>;
 	links: ReadonlyArray<AccountLink>;
 	now: number;
@@ -138,7 +171,7 @@ export function planStaff(input: {
 	const { org, now } = input;
 	const services = org.services.map((s): Step<ServiceRow> => {
 		const before = input.services.find((r) => r.slug === s.slug);
-		if (before !== undefined) return { kind: "keep", label: s.slug, before };
+		if (before !== undefined) return completeDraft(before, s, org, input.ownersServices, now);
 		return {
 			kind: "create",
 			label: s.slug,
@@ -147,7 +180,7 @@ export function planStaff(input: {
 				app: org.app,
 				slug: s.slug,
 				name: s.name,
-				durationMinutes: org.serviceDraft.durationMinutes,
+				durationMinutes: s.durationMinutes ?? org.serviceDraft.durationMinutes,
 				bufferMinutes: 0,
 				modes: org.serviceDraft.modes,
 				practitionerIds: [],
@@ -155,6 +188,9 @@ export function planStaff(input: {
 				roomCategory: s.category,
 				roomIds: s.rooms.map((r) => idIn(input.roomIds, r, "room")),
 				deviceIds: s.devices.map((d) => idIn(input.deviceIds, nameKey(d), "device")),
+				...(s.priceBani === undefined
+					? {}
+					: { prices: { priceCents: s.priceBani, currency: "RON" } }),
 				active: false,
 				createdAt: now,
 				updatedAt: now,

@@ -204,8 +204,10 @@ describe("apply-org on a clinic the import made", () => {
 		const services = (await w.store.c.services.list(APP)).filter((s) => s.slug !== "evaluation");
 		expect(services.map((s) => s.slug).sort()).toEqual(ORG.services.map((s) => s.slug).sort());
 		for (const s of services) {
+			const seeded = ORG.services.find((o) => o.slug === s.slug);
 			expect(s.active, s.slug).toBe(false);
-			expect(s.prices, s.slug).toBeUndefined();
+			expect(s.durationMinutes, s.slug).toBe(seeded?.durationMinutes);
+			expect(s.prices, s.slug).toEqual({ priceCents: seeded?.priceBani, currency: "RON" });
 		}
 		const nfb = services.find((s) => s.slug === "neurofeedback");
 		expect(nfb?.deviceIds?.sort()).toEqual([ids["NFB 1"], ids["NFB 2"]].sort());
@@ -270,6 +272,81 @@ describe("apply-org on a clinic the import made", () => {
 			name: { ro: "Logopedie (60)" },
 		});
 		expect(report.staff?.services.find((s) => s.label === "logopedie")?.kind).toBe("keep");
+		expect(held?.prices).toBeUndefined();
+	});
+});
+
+/** The org seed as an earlier run had it: every service a draft at the default length, with no price. */
+const BARE: OrgSeed = {
+	...ORG,
+	services: ORG.services.map(({ durationMinutes: _d, priceBani: _p, basis: _b, ...s }) => s),
+};
+const stored = async (slug: string) =>
+	(await w.store.c.services.list(APP)).find((s) => s.slug === slug);
+
+describe("apply-org completes the drafts an earlier run left", () => {
+	it("gives each draft its inferred price and length, still inactive, and a second run writes nothing", async () => {
+		await run(false, { org: BARE });
+		expect((await stored("evaluare-qeeg"))?.durationMinutes).toBe(40);
+		const report = await run(false);
+		for (const seeded of ORG.services) {
+			const s = await stored(seeded.slug);
+			expect(s?.durationMinutes, seeded.slug).toBe(seeded.durationMinutes);
+			expect(s?.prices, seeded.slug).toEqual({ priceCents: seeded.priceBani, currency: "RON" });
+			expect(s?.active, seeded.slug).toBe(false);
+		}
+		expect((await stored("evaluare-qeeg"))?.durationMinutes).toBe(60);
+		expect(report.staff?.services.map((s) => s.kind)).toEqual(ORG.services.map(() => "update"));
+		const after = await everything();
+		const again = await run(false);
+		expect(await everything()).toBe(after);
+		expect(again.staff?.services.map((s) => s.kind)).toEqual(ORG.services.map(() => "keep"));
+	});
+
+	it("a dry run says what it would fill and writes nothing", async () => {
+		await run(false, { org: BARE });
+		const before = await everything();
+		const report = await run(true);
+		expect(await everything()).toBe(before);
+		const qeeg = report.staff?.services.find((s) => s.label === "evaluare-qeeg");
+		expect(qeeg?.kind).toBe("update");
+		expect(qeeg?.kind === "update" ? qeeg.next.durationMinutes : undefined).toBe(60);
+	});
+
+	it("keeps a price the draft already has and a length that is no longer the draft's", async () => {
+		await run(false, { org: BARE });
+		const nfb = await stored("neurofeedback");
+		const qeeg = await stored("evaluare-qeeg");
+		if (nfb === undefined || qeeg === undefined) throw new Error("the drafts are missing");
+		await w.store.c.services.replace({ ...nfb, prices: { priceCents: 25_000, currency: "RON" } });
+		await w.store.c.services.replace({ ...qeeg, durationMinutes: 90 });
+		await run(false);
+		expect((await stored("neurofeedback"))?.prices).toEqual({
+			priceCents: 25_000,
+			currency: "RON",
+		});
+		expect((await stored("evaluare-qeeg"))?.durationMinutes).toBe(90);
+		expect((await stored("evaluare-qeeg"))?.prices).toEqual({
+			priceCents: 20_000,
+			currency: "RON",
+		});
+	});
+
+	it("leaves a draft a person has changed exactly as they left it, price and length", async () => {
+		await run(false, { org: BARE });
+		const qeeg = await stored("evaluare-qeeg");
+		if (qeeg === undefined) throw new Error("the draft is missing");
+		const renamed = await w.call("olga", "PATCH", `/v1/apps/${APP}/services/${qeeg.id}`, {
+			name: { ro: "Evaluare QEEG (copii)", en: "QEEG assessment" },
+		});
+		expect(renamed.status).toBeLessThan(300);
+		const held = await stored("evaluare-qeeg");
+		const report = await run(false);
+		expect(await stored("evaluare-qeeg")).toEqual(held);
+		expect(held?.prices).toBeUndefined();
+		expect(held?.durationMinutes).toBe(40);
+		expect(report.staff?.services.find((s) => s.label === "evaluare-qeeg")?.kind).toBe("keep");
+		expect((await stored("logopedie"))?.prices).toEqual({ priceCents: 13_000, currency: "RON" });
 	});
 });
 

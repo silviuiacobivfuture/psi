@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { nameKey, type RoomsSeed, roomsPlanDocument } from "@psi/scheduling/clinic";
 import { withActor } from "@psi/scheduling-api/store-actor";
-import type { AppointmentRow, StorePort } from "@psi/scheduling-api/store-types";
+import type { AppointmentRow, ServiceRow, StorePort } from "@psi/scheduling-api/store-types";
 import { FloorPlanDocument } from "@psi/scheduling-sdk/contract";
 import {
 	type AccountLink,
@@ -99,6 +99,23 @@ async function write<R extends { id: string }>(
 			return never;
 		}
 	}
+}
+
+/**
+ * The services a person has made or changed: those with an event in the whole audit log whose actor is not one of the
+ * `system:` tools (this one, the import). Their fields are the owners', whatever they hold.
+ */
+async function touchedByPeople(
+	store: StorePort,
+	app: string,
+	services: ReadonlyArray<ServiceRow>,
+): Promise<Set<string>> {
+	const ids = new Set(services.map((s) => s.id));
+	return new Set(
+		(await store.c.audit.list(app))
+			.filter((e) => ids.has(e.target.id) && !e.actor.subject.startsWith("system:"))
+			.map((e) => e.target.id),
+	);
 }
 
 /**
@@ -209,12 +226,14 @@ export async function applyOrg(input: {
 			deviceIds.set(nameKey(row.name), row.id);
 		}
 		if (!dryRun) for (const step of catalog.groups) await run(() => write(step, c.groups, "g"));
+		const services = await c.services.list(app);
 		const staff = planStaff({
 			rooms: seed,
 			org,
 			roomIds,
 			deviceIds,
-			services: await c.services.list(app),
+			services,
+			ownersServices: await touchedByPeople(store, app, services),
 			people: await c.people.list(app),
 			links: input.links,
 			now,

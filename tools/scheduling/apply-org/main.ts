@@ -16,7 +16,8 @@ const USAGE = `usage: apply-org [--app <slug>] [--only rooms|profile] [--link "<
   the owner's rooms (an imported room renamed in place, keeping its id and every appointment booked in it; one the
   seed names a former name of), the old rooms that are none of them taken off the plan and out of booking, the floor
   plan; then the organisation's name, its devices in their rooms, its groups, the services it lacks (drafts: inactive,
-  no price), each practitioner's own room, the sign-in accounts given with --link, and the contact profile (only the
+  with the inferred length and price; a stored draft gets the price it lacks and the length when still the draft's, a
+  service a person has made or changed is left alone), each practitioner's own room, the sign-in accounts given with --link, and the contact profile (only the
   fields the owners left unset are filled; the save is journaled as org.profile). Safe to run again: a second run
   writes nothing. Writes the store only: run reconcile-authz afterwards for the new rooms', devices' and links' tuples.
   --app       the app (default psizone)
