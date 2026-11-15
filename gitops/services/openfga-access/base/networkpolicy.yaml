@@ -2,7 +2,7 @@
 # Polaris and Authentik; NetworkPolicies are additive, so psi's apps are admitted by this second policy on the same pods
 # rather than by an edit to SEB's. Each `from` element is namespace AND pod (an AND; two elements would be an OR).
 #
-#   :8081  Service openfga       Check / ListObjects    clinic (the console) and scheduling-api
+#   :8081  Service openfga       Check / ListObjects    clinic (the console), scheduling-api, Sigma, Rho
 #   :8080  Service openfga-admin tuple writes           scheduling-api only
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -32,6 +32,21 @@ spec:
             matchLabels: { kubernetes.io/metadata.name: scheduling-api-prod }
           podSelector:
             matchLabels: { app: scheduling-api }
+        # The shared applications psi runs from the bundle (plan row 7.6), which read the engine's Check port with
+        # their pinned model: Sigma's service and worker (the register, REGISTER_APP psi-register) and Rho's
+        # program API (flows, FLOWS_APP psi-flows). SEB's piece does not admit a shared application itself yet.
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: psi-register }
+          podSelector:
+            matchLabels: { app: psi-register-svc }
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: psi-register }
+          podSelector:
+            matchLabels: { app: psi-register-worker }
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: psi-flows }
+          podSelector:
+            matchLabels: { app: psi-flows }
       ports:
         - { protocol: TCP, port: 8081 }
     - from:
