@@ -817,3 +817,10 @@ data:
       #   e2e-jurnale-gol  kept empty for UI-APP-02 (sorts after the first one)
       - { model: authentik_core.group, identifiers: { name: autorizare-tenant-e2e-jurnale },     attrs: { is_superuser: false, users: [] } }
       - { model: authentik_core.group, identifiers: { name: autorizare-tenant-e2e-jurnale-gol }, attrs: { is_superuser: false, users: [] } }
+      # autorizare-tenant-recomex is ANOTHER estate's console tenant group. psi's blueprints carried it
+      # until f1158a2e ("no other estate's names or people"); a blueprint never deletes what it stops
+      # declaring, so it stayed, with the operator in it, and Polaris's console-access read it as a
+      # tenant psi does not have (2026-11-15). Declared absent: the worker deletes it.
+      - model: authentik_core.group
+        state: absent
+        identifiers: { name: autorizare-tenant-recomex }
