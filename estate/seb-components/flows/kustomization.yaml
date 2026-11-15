@@ -6,7 +6,7 @@ kind: Component
 # sha256:eb3160c8… in registry.psizone.ro/psi, signed.
 images:
   - name: WLREGISTRY/WLAPPS/flows
-    newTag: seb-8bddfbf2b
+    newTag: seb-b627bf80d
 # Slot `homepage-name`: the product's name on psi's homepage tile. Slot `browser-runner` is left at
 # SEB's never-resolving default: psi runs no browser-automation API, so a flow RUN fails loudly on its
 # first call rather than sending the runner key anywhere; authoring, versions and keys work.
