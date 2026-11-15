@@ -1,0 +1,9 @@
+# Rho's Convex instance (the shared flows application, FLOWS_APP psi-flows), in namespace
+# convex-psi-flows.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: convex-psi-flows
+resources:
+  - instance.yaml
+components:
+  - ../../instance

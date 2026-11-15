@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# psi's own namespaces excused from SEB's require-run-as-non-root (slot run-as-root-namespaces),
+# appended after the platform's. They still set allowPrivilegeEscalation:false
+# (disallow-privileged is enforced and does NOT exclude them).
+#   - convex-psi-flows: Rho's self-hosted Convex backend. The convex-backend image declares NO USER
+#     and copies its executables in with mode 744 (owner-execute only), so a non-root uid cannot
+#     exec the entrypoint (SEB pieces/convex). Only the backend needs this: its dashboard, the
+#     assert-secrets initContainer and the CNPG pods run non-root.
+patches:
+  - target: { kind: ClusterPolicy, name: require-run-as-non-root }
+    patch: |-
+      - { op: add, path: /spec/rules/0/exclude/any/0/resources/namespaces/-, value: convex-psi-flows }

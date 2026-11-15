@@ -21,6 +21,28 @@
 					"linked": false
 				}
 			}
+		},
+		{
+			"client_id": "rho",
+			"tenant": "psi",
+			"application": "flow",
+			"name": "Rho",
+			"module": "flow",
+			"kind": "confidential",
+			"redirect_uris": ["https://rho.{base}/api/auth/callback/autorizare"],
+			"post_logout_redirect_uris": ["https://rho.{base}/admin"],
+			"frontchannel_logout_uris": ["https://rho.{base}/api/auth/frontchannel-logout"],
+			"delegation": true,
+			"platform": false,
+			"estate": {
+				"key": "rho",
+				"notifications": true,
+				"home": "https://rho.{base}/",
+				"changelog": {
+					"author": "flow_admin",
+					"linked": false
+				}
+			}
 		}
 	]
 }

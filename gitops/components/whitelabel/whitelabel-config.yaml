@@ -48,7 +48,7 @@ data:
   MESH: none
   ENVIRONMENTS: dev
   # platform-apps
-  PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,nextcloud,test-reports,pdfcraft,affine,stalwart,invoicing
+  PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,nextcloud,test-reports,pdfcraft,affine,stalwart,invoicing,flows
   AUTHENTIK_HOST_PREFIX: auth
   AUTORIZARE_HOST_PREFIX: access
   HARBOR_HOST_PREFIX: registry
