@@ -1,4 +1,5 @@
-# psi (2026-11-12): ONE server (CPX62, the account's core limit allows one), about 4Gi of
-# reservable memory left after the estate. One warm runner reserving 3Gi; the RMX numbers
-# above assume two agent nodes. Raise when psi's dedicated CI workers join.
-minRunners: 1
+# psi (2026-11-15): ONE server (CPX62). No warm runner: an idle one held 3Gi of the node's
+# memory requests (67Mi used) while the node sat at 98% requested, and the backup's volume pods
+# could not be admitted. A job now waits for its runner pod to start (the image is on the node).
+# Raise when psi's dedicated CI workers join.
+minRunners: 0
