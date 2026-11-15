@@ -54,3 +54,4 @@ resources:
   - seb-register-web.yaml
   - seb-authentik.yaml
   - seb-authentik-platform.yaml
+  - seb-changelog.yaml
