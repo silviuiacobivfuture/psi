@@ -1,4 +1,4 @@
-import { toastElement } from "@psi/ui/admin";
+import { Skeleton, toastElement } from "@psi/ui/admin";
 import type { Context, Hono } from "hono";
 import { z } from "zod";
 import type { Env } from "../app";
@@ -8,32 +8,21 @@ import { at } from "../lib/i18n";
 import { signalsOf, sse } from "../lib/sse";
 import { m } from "../paraglide/messages.js";
 import { PortError } from "../port/port";
-import { PaymentMethodSchema } from "../port/schema";
+import { type Appointment, PaymentMethodSchema } from "../port/schema";
 import { DetailBody, type DetailData } from "./detail";
 
-async function load(ctx: Ctx, id: string): Promise<DetailData | null> {
-	const appointment = await ctx.port.appointment(ctx.app, id);
-	if (appointment === null) return null;
-	const [client, columns, services, packages, clientAppointments] = await Promise.all([
-		appointment.clientId === null
-			? Promise.resolve(null)
-			: ctx.port.client(ctx.app, appointment.clientId),
-		ctx.port.columns(ctx.app),
-		ctx.port.services(ctx.app),
-		appointment.clientId === null
-			? Promise.resolve([])
-			: ctx.port.packages(ctx.app, appointment.clientId),
-		appointment.clientId === null
-			? Promise.resolve([])
-			: ctx.port.clientAppointments(ctx.app, appointment.clientId),
-	]);
-	const flag =
-		appointment.clientId === null || !ctx.can.any("blacklist_view", "clients_view")
-			? undefined
-			: await ctx.port
-					.clientFlags(ctx.app, [appointment.clientId])
+/** Everything the sheet shows about a visit already read: the client, their flags, packages and visits, the lists. */
+async function load(ctx: Ctx, appointment: Appointment): Promise<DetailData> {
+	const { clientId } = appointment;
+	// The client, the flags on them, their packages and visits, and the lists the sheet names things from, all at once.
+	const [client, flag, columns, services, packages, clientAppointments] = await Promise.all([
+		clientId === null ? Promise.resolve(null) : ctx.port.client(ctx.app, clientId),
+		clientId === null || !ctx.can.any("blacklist_view", "clients_view")
+			? Promise.resolve(undefined)
+			: ctx.port
+					.clientFlags(ctx.app, [clientId])
 					.then((all) => {
-						const f = all[appointment.clientId ?? ""];
+						const f = all[clientId];
 						if (f === undefined) return undefined;
 						return {
 							blacklist: ctx.can.has("blacklist_view") ? f.blacklist : null,
@@ -41,7 +30,12 @@ async function load(ctx: Ctx, id: string): Promise<DetailData | null> {
 								f.pinned?.category === "clinical" && !ctx.can.group("clinical") ? null : f.pinned,
 						};
 					})
-					.catch(() => undefined);
+					.catch(() => undefined),
+		ctx.port.columns(ctx.app),
+		ctx.port.services(ctx.app),
+		clientId === null ? Promise.resolve([]) : ctx.port.packages(ctx.app, clientId),
+		clientId === null ? Promise.resolve([]) : ctx.port.clientAppointments(ctx.app, clientId),
+	]);
 	return {
 		appointment,
 		flag,
@@ -54,21 +48,23 @@ async function load(ctx: Ctx, id: string): Promise<DetailData | null> {
 	};
 }
 
+async function sheetOf(ctx: Ctx, appointment: Appointment): Promise<string> {
+	return await (
+		<DetailBody
+			d={await load(ctx, appointment)}
+			locale={ctx.locale}
+			rights={{
+				edit: ctx.can.write("appointments_edit"),
+				cancel: ctx.can.write("appointments_cancel"),
+				pay: ctx.can.write("payments_create"),
+			}}
+		/>
+	).toString();
+}
+
 export async function detailBody(ctx: Ctx, id: string): Promise<string | null> {
-	const d = await load(ctx, id);
-	return d === null
-		? null
-		: await (
-				<DetailBody
-					d={d}
-					locale={ctx.locale}
-					rights={{
-						edit: ctx.can.write("appointments_edit"),
-						cancel: ctx.can.write("appointments_cancel"),
-						pay: ctx.can.write("payments_create"),
-					}}
-				/>
-			).toString();
+	const appointment = await ctx.port.appointment(ctx.app, id);
+	return appointment === null ? null : await sheetOf(ctx, appointment);
 }
 
 const ReasonSignals = z.object({
@@ -80,16 +76,33 @@ const PaySignals = z.object({ dtPay: PaymentMethodSchema });
 export function registerDetail(app: Hono<Env>): void {
 	app.get("/calendar/appointment/:id", async (c) => {
 		const ctx = c.var.ctx;
-		const body = await detailBody(ctx, c.req.param("id"));
+		const o = at(ctx.locale);
+		// The visit itself is asked first, as ever: a refusal of the service is answered as it always was.
+		const appointment = await ctx.port.appointment(ctx.app, c.req.param("id"));
 		return sse(async (stream) => {
-			if (body === null) {
+			if (appointment === null) {
+				stream.patchElements(toastElement(m.error_title({}, o), m.dismiss({}, o)));
+				return;
+			}
+			// The sheet opens now on a placeholder; what it shows about the visit (a handful of reads) follows.
+			stream.patchSignals(JSON.stringify({ detail: true, editor: false }));
+			stream.patchElements(
+				await (
+					<div id="detail-body" class="dt adm-stack" aria-busy="true">
+						<Skeleton lines={5} label={m.loading({}, o)} />
+					</div>
+				).toString(),
+			);
+			try {
+				stream.patchElements(await sheetOf(ctx, appointment));
+			} catch (err) {
+				if (!(err instanceof PortError)) console.error("[clinic] a visit's sheet failed:", err);
+				stream.patchSignals(JSON.stringify({ detail: false }));
 				stream.patchElements(
-					toastElement(m.error_title({}, at(ctx.locale)), m.dismiss({}, at(ctx.locale))),
+					toastElement(refusalText(err, ctx.locale) ?? m.error_title({}, o), m.dismiss({}, o)),
 				);
 				return;
 			}
-			stream.patchElements(body);
-			stream.patchSignals(JSON.stringify({ detail: true, editor: false }));
 			stream.executeScript(
 				"setTimeout(() => document.querySelector('#detail-body .adm-btn')?.focus(), 60)",
 			);

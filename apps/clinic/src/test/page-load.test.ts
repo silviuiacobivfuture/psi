@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../app";
 import { devApiSignIn } from "../dev-signin";
 import { createFakeNotifications } from "../notifications/fake";
+import { m } from "../paraglide/messages.js";
 import { createSdkPort } from "../port/sdk/index";
 import { sdkPortSource } from "../port/sdk/source";
 import { createConsolePwa } from "../pwa";
@@ -35,9 +36,42 @@ function recorder() {
 	return { calls, fetchVia };
 }
 
-/** The console over the service, recording every call it makes to it. */
-function consoleWith() {
-	const { calls, fetchVia } = recorder();
+/** The service refusing one path as forbidden, whatever is asked (the answer the real service gives who may not). */
+function refusing(path: string, via: typeof globalThis.fetch): typeof globalThis.fetch {
+	return (input, init) => {
+		const raw = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+		if (new URL(raw).pathname !== path) return via(input, init);
+		return Promise.resolve(
+			new Response(
+				JSON.stringify({ error: { code: "forbidden", message: "no", requestId: "r" } }),
+				{ status: 403, headers: { "content-type": "application/json" } },
+			),
+		);
+	};
+}
+
+/** The calls to these paths take 150 ms each, and say when they were under way. */
+function slowing(
+	paths: ReadonlyArray<string>,
+	spans: Map<string, { start: number; end: number }>,
+	via: typeof globalThis.fetch,
+): typeof globalThis.fetch {
+	return async (input, init) => {
+		const raw = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+		const path = new URL(raw).pathname;
+		if (!paths.includes(path)) return via(input, init);
+		const start = performance.now();
+		await new Promise((resolve) => setTimeout(resolve, 150));
+		const res = await via(input, init);
+		spans.set(path, { start, end: performance.now() });
+		return res;
+	};
+}
+
+/** The console over the service, recording every call it makes to it (its fetch changed by `through`, when given). */
+function consoleWith(through?: (via: typeof globalThis.fetch) => typeof globalThis.fetch) {
+	const { calls, fetchVia: recorded } = recorder();
+	const fetchVia = through === undefined ? recorded : through(recorded);
 	const dev = devApiSignIn(api.url, ORIGIN);
 	const pwa = createConsolePwa(
 		ORIGIN,
@@ -60,15 +94,15 @@ function consoleWith() {
 			pwa.mount(h);
 		},
 	});
-	const page = async (path: string, subject = "olga") => {
+	const read = async (path: string, subject = "olga") => {
 		const res = await app.request(`${ORIGIN}${path}`, {
 			headers: { cookie: `psi-clinic-dev-subject=${subject}; lang=ro; theme=light` },
 		});
-		await res.text();
-		return res;
+		return { res, html: await res.text() };
 	};
+	const page = async (path: string, subject = "olga") => (await read(path, subject)).res;
 	const capsAsked = () => calls.filter((c) => CAPS.test(c.slice(c.indexOf(" ") + 1))).length;
-	return { page, calls, capsAsked };
+	return { page, read, calls, capsAsked };
 }
 
 const PAGES = [
@@ -113,6 +147,40 @@ describe("the lists a page shows are asked once, however many of its parts need 
 			const n = c.calls.filter((x) => x === `GET /v1/apps/psizone/${list}`).length;
 			expect(n, list).toBeLessThanOrEqual(1);
 		}
+	});
+});
+
+describe("what the shell asks beside the screen's own reads", () => {
+	const forbidden = m.forbidden_title({}, { locale: "ro" });
+
+	it("a pause list the service refuses is no refusal of the screen: the page is the page, without a notice", async () => {
+		const c = consoleWith((via) => refusing("/v1/apps/psizone/booking-pauses", via));
+		const { res, html } = await c.read("/settings");
+		expect(res.status).toBe(200);
+		expect(html).not.toContain(forbidden);
+		expect(html).not.toContain("data-pause-banner");
+	});
+
+	it("the request count the service refuses is: the screen says it is not theirs", async () => {
+		const c = consoleWith((via) => refusing("/v1/apps/psizone/requests", via));
+		const { html } = await c.read("/settings");
+		expect(html).toContain(forbidden);
+	});
+
+	it("the badge and the pause list are asked together, not one after the other", async () => {
+		const spans = new Map<string, { start: number; end: number }>();
+		const requests = "/v1/apps/psizone/requests";
+		const pauses = "/v1/apps/psizone/booking-pauses";
+		const c = consoleWith((via) => slowing([requests, pauses], spans, via));
+		expect((await c.page("/settings")).status).toBe(200);
+		const first = spans.get(requests);
+		const second = spans.get(pauses);
+		expect(first).toBeDefined();
+		expect(second).toBeDefined();
+		if (first === undefined || second === undefined) return;
+		// Each took 150 ms: asked in turn, the second would start after the first ended.
+		expect(second.start).toBeLessThan(first.end);
+		expect(first.start).toBeLessThan(second.end);
 	});
 });
 
