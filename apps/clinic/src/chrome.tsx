@@ -181,6 +181,8 @@ export interface PageProps {
 	noFab?: boolean;
 	/** The calendar: the navigation starts as a rail so the columns fill the screen. */
 	wide?: boolean;
+	/** The page offers "full screen" (the calendar): the saved choice is read from the `adm-full` cookie. */
+	fullscreen?: boolean;
 }
 
 /** One signed-in page: the document and the responsive shell around the screen. */
@@ -194,6 +196,7 @@ export async function Page({
 	noFab,
 	wide,
 	canvas,
+	fullscreen,
 }: PageProps): Promise<JSX.Element> {
 	const { locale } = ctx;
 	const o = at(locale);
@@ -297,6 +300,11 @@ export async function Page({
 				}
 				rail={railPreferenceFrom(getCookie(ctx.c, "adm-rail")) ?? wide === true}
 				canvas={canvas === true}
+				{...(fullscreen === true
+					? {
+							fullscreen: getCookie(ctx.c, "adm-full") === "1" ? ("on" as const) : ("off" as const),
+						}
+					: {})}
 				prefsAction="/prefs"
 				signOutAction={ctx.signOut}
 				choices={

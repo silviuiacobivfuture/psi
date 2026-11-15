@@ -36,6 +36,8 @@ export const ADMIN_ICONS = [
 	"download",
 	"edit",
 	"chart",
+	"maximize",
+	"minimize",
 ] as const;
 export type AdminIcon = (typeof ADMIN_ICONS)[number];
 
@@ -80,6 +82,8 @@ const PATHS: Readonly<Record<AdminIcon, string>> = {
 	download: "M12 4v11M7.5 10.5L12 15l4.5-4.5M5 20h14",
 	edit: "M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17zM14 7l3 3",
 	chart: "M4 4v16h16M8 16v-5M12.5 16V8M17 16v-3",
+	maximize: "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5",
+	minimize: "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5",
 };
 
 export interface IconProps {

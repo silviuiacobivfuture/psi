@@ -28,16 +28,13 @@
 		height: calc(100dvh - var(--adm-tab-h) - env(safe-area-inset-bottom));
 	}
 }
-.adm.is-canvas.is-fp-full {
+/* `is-fp-full` is the floor plan's own control, `is-full` the shell's (fullscreen.ts): the same state. */
+.adm.is-canvas:is(.is-fp-full, .is-full) {
 	grid-template-columns: minmax(0, 1fr);
 }
-.adm.is-fp-full .adm-nav,
-.adm.is-fp-full .adm-top,
-.adm.is-fp-full .adm-tabs,
-.adm.is-fp-full .adm-fab,
-.adm.is-fp-full .adm-banner--offline {
+.adm:is(.is-fp-full, .is-full) :is(.adm-nav, .adm-top, .adm-tabs, .adm-fab, .adm-banner--offline) {
 	display: none;
 }
-.adm.is-canvas.is-fp-full .adm-main {
+.adm.is-canvas:is(.is-fp-full, .is-full) .adm-main {
 	height: 100dvh;
 }
