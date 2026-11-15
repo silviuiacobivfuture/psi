@@ -48,7 +48,7 @@ data:
   MESH: none
   ENVIRONMENTS: dev
   # platform-apps
-  PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,nextcloud,test-reports,pdfcraft,affine,stalwart
+  PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,nextcloud,test-reports,pdfcraft,affine,stalwart,invoicing
   AUTHENTIK_HOST_PREFIX: auth
   AUTORIZARE_HOST_PREFIX: access
   HARBOR_HOST_PREFIX: registry
@@ -62,6 +62,8 @@ data:
   PDFCRAFT_HOST_PREFIX: pdf
   AFFINE_HOST_PREFIX: docs
   MAIL_HOST_PREFIX: post
+  INVOICING_HOST_PREFIX: mu
+  FLOWS_HOST_PREFIX: rho
   BULWARK_HOST_PREFIX: inbox
   NOVU_BRIDGE_URL: "http://notify-bridge.notify-bridge.svc.cluster.local:8080/api/novu"
   # identity
@@ -107,9 +109,8 @@ data:
   INVOICING_SVC: psi-invoice-svc
   INVOICING_WEB: psi-invoice-web
   INVOICING_VALIDATOR: psi-ubl-validator
-  INVOICING_HOST_PREFIX: invoicing
-  INVOICING_HOST: invoicing.psizone.ro
-  INVOICING_API_HOST: api.invoicing.psizone.ro
+  INVOICING_HOST: mu.psizone.ro
+  INVOICING_API_HOST: api.mu.psizone.ro
   CASES_APP: psi-cases
   CASES_HOST_PREFIX: cases
   CASES_HOST: cases.psizone.ro
@@ -117,6 +118,15 @@ data:
   REF_SIGNATURE_PULL_PATH: secret/platform/harbor/verify
   SIGNATURE_PULL_STORE_KEY: platform/harbor/verify
   FLOWS_APP: psi-flows
-  FLOWS_HOST_PREFIX: flows
-  FLOWS_HOST: flows.psizone.ro
+  FLOWS_HOST: rho.psizone.ro
+  REGISTER_APP: psi-register
+  REGISTER_SVC: psi-register-svc
+  REGISTER_WORKER: psi-register-worker
+  REGISTER_DB: psi-register-db
+  REGISTER_DB_OWNER: psi_register_svc
+  REGISTER_OCR: psi-register-ocr
+  REGISTER_WEB: psi-register-web
+  REGISTER_HOST_PREFIX: register
+  REGISTER_HOST: register.psizone.ro
+  REGISTER_API_HOST: api.register.psizone.ro
   NOVU_BRIDGE_HOST: notify-bridge.notify-bridge.svc.cluster.local
