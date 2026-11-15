@@ -375,23 +375,28 @@ export async function renderCalendarLive(ctx: Ctx, query: CalendarQuery): Promis
 
 export async function renderCalendar(ctx: Ctx, query: CalendarQuery): Promise<JSX.Element> {
 	const date = query.date === "" ? todayIso() : query.date;
-	const view = await loadCalendar(ctx, query);
 	const o = at(ctx.locale);
 	const canCreate = ctx.can.write("appointments_create");
-	const editorState =
-		canCreate && query.new === "1"
-			? await openState(ctx, {
+	const opening = canCreate && query.new === "1";
+	// What the grid shows, the editor's state and the visit opened by the address do not depend on one another: they are
+	// read together, the page waiting for the slowest.
+	const [view, editorState, detail, fresh] = await Promise.all([
+		loadCalendar(ctx, query),
+		opening
+			? openState(ctx, {
 					date,
 					time: query.time ?? "09:00",
 					col: query.col ?? "",
 					id: "",
 					client: query.client ?? "",
 				})
-			: null;
-	const detail = query.appt === undefined ? null : await detailBody(ctx, query.appt);
-	const blank =
-		editorState ??
-		(canCreate ? await openState(ctx, { date, time: "09:00", col: "", id: "" }) : null);
+			: Promise.resolve(null),
+		query.appt === undefined ? Promise.resolve(null) : detailBody(ctx, query.appt),
+		canCreate && !opening
+			? openState(ctx, { date, time: "09:00", col: "", id: "" })
+			: Promise.resolve(null),
+	]);
+	const blank = editorState ?? fresh;
 	const live = new URLSearchParams({
 		screen: "calendar",
 		view: query.view,

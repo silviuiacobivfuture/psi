@@ -16,9 +16,12 @@ export function failuresOf(c: Context): ReadonlyArray<PortError> {
 	return seen.get(c.req.raw) ?? [];
 }
 
-/** The most telling refusal of this request: sign-in gone, then no access, then not built yet. */
-export function worstFailure(c: Context): PortError | null {
-	const list = failuresOf(c);
+/**
+ * The most telling refusal of this request: sign-in gone, then no access, then not built yet. `except` is an error to
+ * leave out of the judgement (the one a call that must never fail the page ended in).
+ */
+export function worstFailure(c: Context, except?: unknown): PortError | null {
+	const list = failuresOf(c).filter((e) => e !== except);
 	for (const code of [
 		"unauthenticated",
 		"forbidden",

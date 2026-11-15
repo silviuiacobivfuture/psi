@@ -228,14 +228,26 @@ export async function practitionersOf(ctx: Ctx): Promise<ReadonlyArray<Column>> 
 	}
 }
 
+/** What the list's page shows beside its results: the online accounts waiting, and the team the filter offers. */
+export interface ClientsAside {
+	waiting: number;
+	practitioners: ReadonlyArray<Column>;
+}
+
+/** Read while the results are, not after them: neither depends on which clients the page holds. */
+export async function clientsAside(ctx: Ctx): Promise<ClientsAside> {
+	const [waiting, practitioners] = await Promise.all([waitingLinks(ctx), practitionersOf(ctx)]);
+	return { waiting, practitioners };
+}
+
 export async function renderClients(
 	ctx: Ctx,
 	ask: ClientListAsk,
 	result: ClientsResult,
+	{ waiting, practitioners }: ClientsAside,
 	openNew = false,
 ): Promise<JSX.Element> {
 	const o = at(ctx.locale);
-	const [waiting, practitioners] = await Promise.all([waitingLinks(ctx), practitionersOf(ctx)]);
 	// The page really shown (past the end: the last) is the address the person lands on.
 	const shown = result.ok ? { ...ask, page: result.page.page } : ask;
 	return Page({

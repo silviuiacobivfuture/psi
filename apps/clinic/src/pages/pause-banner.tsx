@@ -5,19 +5,43 @@ import { at } from "../lib/i18n";
 import { m } from "../paraglide/messages.js";
 import type { BookingPauses } from "../port/availability-port";
 
+/** The pause list being read, and the error it ended in (none yet, or none at all). */
+export interface PauseRead {
+	/** The pauses; null when the list could not be read. */
+	list: Promise<BookingPauses | null>;
+	/** What the read failed with, once it has: the screen's own refusals are judged without it. */
+	failure(): unknown;
+}
+
+/**
+ * Starts reading the pause list now, so the page can ask for it beside its other chrome. Never fails the page: a pause
+ * list that cannot be read shows no notice, and its refusal is not the screen's (see `failure`).
+ */
+export function readPauses(ctx: Ctx): PauseRead {
+	let failure: unknown = null;
+	const list = (async (): Promise<BookingPauses | null> => {
+		try {
+			return await ctx.port.bookingPauses(ctx.app);
+		} catch (error) {
+			failure = error;
+			return null;
+		}
+	})();
+	return { list, failure: () => failure };
+}
+
 /**
  * The console-wide notice while online booking is stopped: for the whole organisation or a part of it, whether staff
- * can still book from the console, and, for those who may change it, the way to Setări → Programări online. Never fails
- * the page: a pause list that cannot be read shows no notice.
+ * can still book from the console, and, for those who may change it, the way to Setări → Programări online.
  */
-export async function PauseBanner({ ctx }: { ctx: Ctx }): Promise<JSX.Element | null> {
-	let list: BookingPauses;
-	try {
-		list = await ctx.port.bookingPauses(ctx.app);
-	} catch {
-		return null;
-	}
-	if (!list.paused) return null;
+export function PauseBanner({
+	ctx,
+	list,
+}: {
+	ctx: Ctx;
+	list: BookingPauses | null;
+}): JSX.Element | null {
+	if (list === null || !list.paused) return null;
 	const o = at(ctx.locale);
 	const active = list.items.filter((p) => p.state === "active");
 	const whole = active.some((p) => p.scope.level === "organisation");

@@ -330,6 +330,17 @@ describe("the details of an appointment", () => {
 		expect(cancelled).not.toContain("wa.me");
 		expect(cancelled).not.toContain("Marchează prezent");
 	});
+	it("opens the sheet at once on a placeholder, and the visit's own sheet replaces it", async () => {
+		await save({ time: "16:00" });
+		const id = (await day()).find((a) => a.startMin === 960)?.id ?? "";
+		const body = await (await c.get(`/calendar/appointment/${id}`)).text();
+		const opened = body.indexOf('"detail":true');
+		const placeholder = body.indexOf("aria-busy");
+		const filled = body.indexOf(`data-appt="${id}"`);
+		expect(opened).toBeGreaterThanOrEqual(0);
+		expect(placeholder).toBeGreaterThan(opened);
+		expect(filled).toBeGreaterThan(placeholder);
+	});
 });
 
 describe("the port's own rules (what the SDK must mirror)", () => {
