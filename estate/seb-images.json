@@ -1,5 +1,5 @@
 {
-	"autorizare-svc": "registry.psizone.ro/psi/autorizare-svc@sha256:c6c752e04ff543ffc57c369cbcf071eb2ba0e2583966cf9cfbdf34d8a0b43a06",
+	"autorizare-svc": "registry.psizone.ro/psi/autorizare-svc@sha256:a0809d855c5a55f17b01dbbe009d3f93814d985759182bbaf4b16883ae1e573b",
 	"changelog": "registry.psizone.ro/psi/changelog@sha256:bf2b44c9492e8b5dbf6e45c68949fa04a5fe7e342bd1df71b48d13360f531fb7",
 	"flows": "registry.psizone.ro/psi/flows@sha256:9c85028eb9070058694c3c856d1ad9ca127d465b2afa8c53a27192ac6bf37d90",
 	"novu-bridge": "registry.psizone.ro/psi/novu-bridge@sha256:345f29859ab10e1af6a340a283b49b216477bad6a73f5bcbe64ec4b5080d7cde",
