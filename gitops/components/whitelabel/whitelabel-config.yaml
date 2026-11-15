@@ -77,6 +77,8 @@ data:
   HUB_NAME: "Psi Sign-in"
   HUB_TILE_TITLE: PSI
   MODEL_PIN_HOLDERS: authentik-tiles
+  E2E_ORG_SLUG: e2e-hub-robot
+  E2E_COLLEAGUE_ORG_SLUG: e2e-coleg-robot
   # secret-references
   REF_DNS_TOKEN_PATH: secret/platform/dns/token
   REF_DNS_TOKEN_FIELD: api_token
