@@ -5,5 +5,8 @@
 	"novu-bridge": "registry.psizone.ro/psi/novu-bridge@sha256:345f29859ab10e1af6a340a283b49b216477bad6a73f5bcbe64ec4b5080d7cde",
 	"nx-cache-svc": "registry.psizone.ro/psi/nx-cache-svc@sha256:490454bd01d6fe2bf4d1f3e0d2fef60b4381d1cebbfc6cf94745c16eed377318",
 	"otel-collector-journald": "registry.psizone.ro/psi/otel-collector-journald@sha256:5c444221fd4ba285fb7a98c949eb77c735702fad03f8084f42327681b0aa0bfb",
+	"register-ocr": "registry.psizone.ro/psi/register-ocr@sha256:3a4c71841a7be48d12792b3adfe2bddaa4c9ee7a6408a1fb6becbbfa0c821aa3",
+	"register-svc": "registry.psizone.ro/psi/register-svc@sha256:ba5f989682fa9437c3f4f92940f4553f105faaff1ad3281c7983eb1128af0b93",
+	"register-web": "registry.psizone.ro/psi/register-web@sha256:cf7113099721c297551af1a9ee586786d59161d3b94616fcb7d26aebf7f5577d",
 	"ubl-validator": "registry.psizone.ro/psi/ubl-validator@sha256:20b754c8b1588085f6649d5bd3435ca42dda02ff31c2f8994b28f6be9f9baf49"
 }
