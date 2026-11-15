@@ -43,6 +43,23 @@
 					"linked": false
 				}
 			}
+		},
+		{
+			"client_id": "sigma",
+			"tenant": "psi",
+			"application": "vega",
+			"name": "Sigma",
+			"module": "vega",
+			"kind": "public",
+			"redirect_uris": ["https://sigma.{base}/auth/callback"],
+			"post_logout_redirect_uris": ["https://sigma.{base}/"],
+			"frontchannel_logout_uris": ["https://sigma.{base}/auth/front-channel"],
+			"delegation": false,
+			"platform": false,
+			"estate": {
+				"key": "sigma",
+				"home": "https://sigma.{base}/"
+			}
 		}
 	]
 }

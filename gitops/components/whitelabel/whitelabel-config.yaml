@@ -48,7 +48,7 @@ data:
   MESH: none
   ENVIRONMENTS: dev
   # platform-apps
-  PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,nextcloud,test-reports,pdfcraft,affine,stalwart,invoicing,flows
+  PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,nextcloud,test-reports,pdfcraft,affine,stalwart,invoicing,flows,register
   AUTHENTIK_HOST_PREFIX: auth
   AUTORIZARE_HOST_PREFIX: access
   HARBOR_HOST_PREFIX: registry
@@ -64,6 +64,7 @@ data:
   MAIL_HOST_PREFIX: post
   INVOICING_HOST_PREFIX: mu
   FLOWS_HOST_PREFIX: rho
+  REGISTER_HOST_PREFIX: sigma
   BULWARK_HOST_PREFIX: inbox
   NOVU_BRIDGE_URL: "http://notify-bridge.notify-bridge.svc.cluster.local:8080/api/novu"
   # identity
@@ -128,7 +129,6 @@ data:
   REGISTER_DB_OWNER: psi_register_svc
   REGISTER_OCR: psi-register-ocr
   REGISTER_WEB: psi-register-web
-  REGISTER_HOST_PREFIX: register
-  REGISTER_HOST: register.psizone.ro
-  REGISTER_API_HOST: api.register.psizone.ro
+  REGISTER_HOST: sigma.psizone.ro
+  REGISTER_API_HOST: api.sigma.psizone.ro
   NOVU_BRIDGE_HOST: notify-bridge.notify-bridge.svc.cluster.local

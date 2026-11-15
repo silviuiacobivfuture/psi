@@ -101,6 +101,55 @@
 					"to": "#424d63"
 				}
 			}
+		},
+		{
+			"key": "sigma",
+			"name": "Sigma",
+			"description": {
+				"ro": "Registrul persoanelor și firmelor",
+				"en": "The register of people and companies"
+			},
+			"mark": [
+				{
+					"d": "M24 8.5 A15.5 15.5 0 1 1 24 39.5 A15.5 15.5 0 1 1 24 8.5 Z",
+					"fill": "film"
+				},
+				{
+					"d": "M15 13 L33 13 L33 17.5 L21.5 17.5 L28 24 L21.5 30.5 L33 30.5 L33 35 L15 35 L15 31.5 L22.5 24 L15 16.5 Z",
+					"fill": "solid"
+				}
+			],
+			"search": {
+				"served": false,
+				"host": "api.sigma",
+				"path": "/v1/estate/search"
+			},
+			"module": "vega",
+			"impersonable": false,
+			"email": {
+				"light": {
+					"page": "#f9fafd",
+					"card": "#fcfeff",
+					"text": "#0e192e",
+					"muted": "#525d70",
+					"line": "#e1e5ed",
+					"action": "#1059ac",
+					"actionText": "#f9fafd"
+				},
+				"dark": {
+					"page": "#0c0f15",
+					"card": "#161a21",
+					"text": "#eaedf2",
+					"muted": "#a5adba",
+					"line": "#262b33",
+					"action": "#589cf6",
+					"actionText": "#0b0f18"
+				},
+				"brand": {
+					"from": "#586474",
+					"to": "#424d63"
+				}
+			}
 		}
 	],
 	"screens": {}

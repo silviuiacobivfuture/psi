@@ -46,7 +46,7 @@ MESH: none
 ENVIRONMENTS: dev
 
 # ── platform apps: the first estate's full platform set ─────────────────────
-PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,nextcloud,test-reports,pdfcraft,affine,stalwart,invoicing,flows
+PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,nextcloud,test-reports,pdfcraft,affine,stalwart,invoicing,flows,register
 AUTHENTIK_HOST_PREFIX: auth
 AUTORIZARE_HOST_PREFIX: access
 HARBOR_HOST_PREFIX: registry
@@ -86,6 +86,8 @@ REF_OBJECT_STORAGE_PATH: secret/platform/object-storage/{env}
 REF_APP_ENV_PATH: secret/apps/{app}/env
 BULWARK_HOST_PREFIX: inbox
 # The shared business applications under psi's names (plan row 7.6, Greek letters): Mu is invoicing
-# (interface mu., API api.mu.), Rho is flows — not `flows.`, which is n8n's.
+# (interface mu., API api.mu.), Rho is flows — not `flows.`, which is n8n's —, Sigma is the register
+# (interface sigma., API api.sigma.; its hub client and estate key are `sigma` too).
 INVOICING_HOST_PREFIX: mu
 FLOWS_HOST_PREFIX: rho
+REGISTER_HOST_PREFIX: sigma
