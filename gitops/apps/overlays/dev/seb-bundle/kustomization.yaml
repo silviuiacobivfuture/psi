@@ -49,5 +49,8 @@ resources:
   - seb-autorizare.yaml
   - seb-ubl-validator.yaml
   - seb-flows.yaml
+  - seb-register.yaml
+  - seb-register-ocr.yaml
+  - seb-register-web.yaml
   - seb-authentik.yaml
   - seb-authentik-platform.yaml
