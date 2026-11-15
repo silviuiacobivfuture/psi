@@ -2,10 +2,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  # Authentik (the chart) and its platform layer, git-sourced until estate/seb-pieces.dev lists them
-  # (the predecessors estate/seb-upgrade.sh takes their names and sync options from).
-  - authentik.yaml
-  - authentik-platform.yaml
   - homepage.yaml
   - netdata.yaml
   - public-doors.yaml
