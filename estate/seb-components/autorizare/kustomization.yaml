@@ -45,6 +45,22 @@ patches:
       - op: replace
         path: /data/HUB_REQUIRE_MFA
         value: "false"
+  # psi's robots' roles (`autorizared e2e-org`), mirroring RMX's set as least privilege: a read-only
+  # right in ONE company of the robot organisation (Meridian's invoice_company#role_invoice_viewer,
+  # exactly RMX's). RMX's colleague holds Altair's two sign roles; psi runs no Altair, so its
+  # colleague holds the one read-only organisation role of the same module instead
+  # (role_invoice_viewer): the least an organisation role grants here. Decided 2026-11-15 (main).
+  - target: { kind: ConfigMap, name: autorizare-config }
+    patch: |-
+      - op: add
+        path: /data/E2E_COMPANY_TYPE
+        value: "invoice_company"
+      - op: add
+        path: /data/E2E_COMPANY_RELATION
+        value: "role_invoice_viewer"
+      - op: add
+        path: /data/E2E_COLLEAGUE_ROLES
+        value: "role_invoice_viewer"
   - target: { kind: ConfigMap, name: autorizare-config }
     patch: |-
       - op: add
