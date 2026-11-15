@@ -2,10 +2,10 @@
 # its two groups, its forward-auth proxy provider and application, and who may pass the gate.
 #
 # NOT YET WIRED (docs/plans/agent-studio.md, Registration): this ConfigMap must be listed in this
-# directory's kustomization.yaml AND under blueprints.configMaps in
-# gitops/apps/overlays/dev/authentik.yaml, as authentik-blueprints-cms is; and the `agent-studio`
-# provider must be added to the embedded outpost's provider list in blueprints-providers.yaml —
-# that list REPLACES the outpost's set, so it cannot be appended from here.
+# directory's kustomization.yaml AND in estate/seb-components/authentik/estate-blueprints.yaml (the
+# chart's mount), as authentik-blueprints-cms is; and the `agent-studio` provider must be added to
+# the embedded outpost's provider list in SEB's blueprints-providers.yaml — that list REPLACES the
+# outpost's set, so it cannot be appended from here (SEB declares no slot for it yet).
 #
 # Mode forward_single, as pdfcraft, novu and plunk: the outpost looks the Host up exactly among the
 # per-host providers before the domain-wide one, so ONLY the bindings below decide who reaches

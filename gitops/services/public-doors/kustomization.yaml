@@ -4,7 +4,7 @@
 # (tools/identity/lib/render.mjs). Each is behind sign-in: the tools with a login of their own
 # (Argo CD, Headlamp, OpenBao) ALSO behind the estate's domain sign-in (the forward-auth
 # Middleware); the hub and Netdata through Authentik's embedded outpost, exactly as their
-# tailnet gates are (gitops/platform/authentik/ingress-proxied-apps.yaml).
+# tailnet gates are (SEB's pieces/authentik-platform/ingress-proxied-apps.yaml).
 #
 # Deployed only on such an estate: tools/estate-pieces.mjs writes its Application (public-doors)
 # when the identity says MESH: none, and never otherwise — an estate on a mesh keeps these tools

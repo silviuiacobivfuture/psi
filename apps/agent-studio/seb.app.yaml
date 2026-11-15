@@ -63,11 +63,11 @@ secrets:
 groups:
   - name: app-agent-studio-viewer
     state: present
-    declaredIn: gitops/platform/authentik/blueprints-agent-studio.yaml
+    declaredIn: estate/seb-components/authentik-platform/clients/blueprints-agent-studio.yaml
     role: viewer
   - name: app-agent-studio-operator
     state: present
-    declaredIn: gitops/platform/authentik/blueprints-agent-studio.yaml
+    declaredIn: estate/seb-components/authentik-platform/clients/blueprints-agent-studio.yaml
     role: operator
 consumes:
   - service: chroma

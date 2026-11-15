@@ -43,7 +43,7 @@ spec:
 ---
 # The outpost's CALLBACK on this host, with the estate's restart in front of the gate: a callback
 # the outpost refuses (state from another browser or session) is answered by the sign-in restart
-# page instead of a blank 400. Order is the mechanism (gitops/platform/authentik/sso-restart.yaml).
+# page instead of a blank 400. Order is the mechanism (SEB's pieces/authentik-platform/sso-restart.yaml).
 # The backend is never reached — the outpost answers the callback itself.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
