@@ -1,0 +1,28 @@
+# The changelog (the piece `changelog`): its HTTP API, /health without a key and /trpc/* with a
+# Bearer key, behind the estate's domain sign-in. On a mesh it is a tailnet-only Tailscale Ingress,
+# which the bundle leaves out with no mesh; this door is what keeps the hub's changelog card
+# answering. Polaris's bell reads the Service in-cluster (CHANGELOG_URL), never this host, so the
+# gate changes nothing for it.
+# The namespace is the piece's: while the piece is held for its image (tools/estate-pieces.mjs), the
+# door has no namespace to land in and Argo CD reports it until the piece is deployed.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: changelog-public
+  namespace: changelog
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [changelog.WLTAILNET]
+      secretName: changelog-public-tls
+  rules:
+    - host: changelog.WLTAILNET
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: changelog, port: { number: 80 } } }
