@@ -1,1 +1,5 @@
-memory: 3Gi
+# psi (2026-11-15): 2560Mi requested, the 12Gi ceiling unchanged. The node is one server with its
+# memory nearly all requested; since the warm runner went (min-runners 0) and Sigma's pods arrived,
+# a 3Gi runner pod found 3031Mi free and stayed Pending. Measured use is 1.0-2.4Gi per runner
+# (SEB's note above); a build that needs more grows into the ceiling.
+memory: 2560Mi
