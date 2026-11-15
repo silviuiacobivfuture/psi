@@ -11,6 +11,14 @@ metadata:
   name: changelog-public
   namespace: changelog
   annotations:
+    # The hub tile its mesh door carries (the same name, group, icon and status pod), which the
+    # bundle leaves out with the mesh. No href: Homepage links the first rule's host.
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "Changelog"
+    gethomepage.dev/description: "Release notes per application"
+    gethomepage.dev/group: "Delivery"
+    gethomepage.dev/icon: "mdi-timeline-text"
+    gethomepage.dev/pod-selector: "app=changelog"
     cert-manager.io/cluster-issuer: letsencrypt-prod
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forwardauth@kubernetescrd

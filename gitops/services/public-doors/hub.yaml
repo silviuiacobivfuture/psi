@@ -5,6 +5,14 @@ metadata:
   name: hub-public
   namespace: authentik
   annotations:
+    # The hub tile its mesh door carries (the same name, group, icon and status pod), which the
+    # bundle leaves out with the mesh. No href: Homepage links the first rule's host.
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: "System Hub"
+    gethomepage.dev/description: "This page — every service in the cluster"
+    gethomepage.dev/group: "Observability"
+    gethomepage.dev/icon: "homepage.png"
+    gethomepage.dev/pod-selector: "app.kubernetes.io/name=authentik,app.kubernetes.io/component=server"
     cert-manager.io/cluster-issuer: letsencrypt-prod
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
 spec:
