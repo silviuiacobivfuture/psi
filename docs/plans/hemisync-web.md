@@ -290,7 +290,7 @@ public with `gate: off`; it is noindex by the rule above. PR previews come throu
 - `gitops/services/hemisync-web/base/`: kustomization; deployment (non-root, owner alert annotation,
   `assert-secrets` initContainer for the four keys, Reloader on the app secret); service; ingress; resourcequota
   (LimitRange plus quota); harbor-pull and app ExternalSecrets. Images follow psi's `WLREGISTRY/WLAPPS` pattern
-  (as `gitops/services/changelog`), not rmx's hard-coded Harbor host.
+  (as SEB's `pieces/changelog`), not rmx's hard-coded Harbor host.
 - `gitops/services/hemisync-web/overlays/dev/kustomization.yaml`: the whitelabel component; `images:` with the
   CI tag; host `hemisync.WLDOMAIN` set through replacements.
 - `gitops/apps/overlays/dev/hemisync-web.yaml` (Argo Application, git-sourced label), added to that overlay's

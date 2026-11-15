@@ -329,7 +329,7 @@ not scanned otherwise). **Datastar**: `/assets/datastar.js` from `@psi/ui`; SSE 
 ### Health, secrets, image, declaration
 - **Health**: `GET /healthz` → `200 ok`, with no dependency on the CMS (readiness and liveness).
   Content outages are served from the stale cache.
-- **Secrets fail loud, four layers** (as `gitops/services/changelog/base/externalsecret.yaml`
+- **Secrets fail loud, four layers** (as SEB's `pieces/changelog/base/externalsecret.yaml`
   and rmx `flow-platform`): `src/env.ts` zod at boot prints `MISSING REQUIRED SECRET: <KEY>` per
   key, then `process.exit(1)`; the ExternalSecret uses per-key `data[].remoteRef.property`
   (`dataFrom.extract` only for optional keys); an `assert-secrets` busybox initContainer runs one
@@ -369,7 +369,7 @@ not scanned otherwise). **Datastar**: `/assets/datastar.js` from `@psi/ui`; SSE 
   `reloader.stakater.com/auto`, `alerts.psizone.ro/owner`; Ingress on traefik +
   `cert-manager.io/cluster-issuer: letsencrypt-prod`, host patched per overlay. **blog-web has no
   Ingress**: only a ClusterIP Service that the sites call. The overlay follows psi's own
-  `gitops/services/changelog` convention (whitelabel component + `images: [{name:
+  SEB `pieces/changelog` convention (whitelabel component + `images: [{name:
   WLREGISTRY/WLAPPS/<n>, newTag: "unbuilt"}]`, which CI moves), as the sibling plans do.
   Registration (the Argo Application under `gitops/apps/overlays/dev/` and its kustomization
   entry) is **not** in this plan: genesis owns that tree (B2). The psizone/hemisync plans list

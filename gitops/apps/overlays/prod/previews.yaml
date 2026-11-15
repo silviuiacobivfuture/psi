@@ -1,11 +1,5 @@
-# Preview environments for the PROD cluster.
-#
-# Any open PR whose BASE branch is `prod` (a transient branch forked from prod —
-# e.g. a hotfix — "belonging" to the prod environment) gets an ephemeral
-# deployment in its own `preview-pr-<n>` namespace at its own host, built from the
-# PR's head commit, on the prod cluster. Auto-destroyed when the PR closes. Lets
-# you validate a prod-targeted change against prod-like infra before merging,
-# without touching the live prod app.
+# Preview environments for the PROD cluster: none today (the changelog's was retired on
+# 2026-11-15 with its git copy; see the dev overlay's previews.yaml).
 #
 # Same `github-pr-creds` Secret contract as the dev overlay (ESO ← OpenBao
 # secret/github key `token`).
@@ -28,67 +22,3 @@ spec:
       remoteRef:
         key: platform/github/token
         property: token
----
-apiVersion: argoproj.io/v1alpha1
-kind: ApplicationSet
-metadata:
-  name: previews-prod
-  namespace: argocd
-spec:
-  goTemplate: true
-  goTemplateOptions: ["missingkey=error"]
-  generators:
-    - pullRequest:
-        github:
-          owner: WLGITOWNER
-          repo: WLGITREPO
-          tokenRef:
-            secretName: github-pr-creds
-            key: token
-        # Only PRs targeting `prod` → previews belong to the prod environment.
-        filters:
-          - targetBranchMatch: "^prod$"
-        requeueAfterSeconds: 120
-  template:
-    metadata:
-      name: "preview-{{.number}}-changelog"
-      labels:
-        platform.psizone.ro/preview: prod
-        platform.psizone.ro/pr: "{{.number}}"
-    spec:
-      project: default
-      source:
-        repoURL: git@github.com:silviuiacobivfuture/psi.git
-        targetRevision: "{{.head_sha}}"
-        path: gitops/services/changelog/overlays/prod
-        kustomize:
-          # Per-PR namespace isolation + own host (rule + TLS SAN). Requires a
-          # wildcard *.<apex> DNS/cert (or adjust to a preview subdomain).
-          namespace: "preview-pr-{{.number}}"
-          patches:
-            - target:
-                kind: Ingress
-              patch: |
-                - op: replace
-                  path: /spec/rules/0/host
-                  value: changelog-pr-{{.number}}.psizone.ro
-                - op: replace
-                  path: /spec/tls/0/hosts/0
-                  value: changelog-pr-{{.number}}.psizone.ro
-            # Per-PR isolated Neon branch (secret/previews/changelog/pr-<n>/env).
-            - target:
-                kind: ExternalSecret
-                name: changelog-db
-              patch: |
-                - op: replace
-                  path: /spec/dataFrom/0/extract/key
-                  value: previews/changelog/pr-{{.number}}/env
-      destination:
-        server: https://kubernetes.default.svc
-        namespace: "preview-pr-{{.number}}"
-      syncPolicy:
-        automated:
-          prune: true
-          selfHeal: true
-        syncOptions:
-          - CreateNamespace=true

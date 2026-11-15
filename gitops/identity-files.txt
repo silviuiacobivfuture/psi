@@ -14,7 +14,6 @@ gitops/apps/overlays/prod/previews.yaml
 # The estate's label domain in annotation and label KEYS (alerts.<ESTATE_LABEL_DOMAIN>/owner,
 # platform.<ESTATE_LABEL_DOMAIN>/source), which no replacement can write, and in the replacements
 # and selectors that name those keys.
-gitops/apps/overlays/dev/changelog.yaml
 gitops/apps/overlays/dev/harbor-route.yaml
 gitops/apps/overlays/dev/kustomization.yaml
 gitops/apps/overlays/dev/secret-store.yaml
@@ -24,6 +23,3 @@ gitops/platform/openbao/auth/reconcile.yaml
 gitops/platform/openbao/model-pin-alarm.yaml
 gitops/platform/openbao/secret-watcher.yaml
 gitops/platform/openbao/whitelabel-replacements.yaml
-gitops/services/changelog/base/cnpg-cluster.yaml
-gitops/services/changelog/base/deployment.yaml
-gitops/services/changelog/overlays/dev/whitelabel-replacements.yaml

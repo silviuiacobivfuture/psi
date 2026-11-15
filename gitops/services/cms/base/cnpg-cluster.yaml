@@ -1,5 +1,5 @@
 # cms's Postgres — a CloudNativePG Cluster, the shape of every in-cluster database here
-# (gitops/services/changelog/base/cnpg-cluster.yaml; reasoning there). One role, the owner:
+# (SEB's pieces/changelog/base/cnpg-cluster.yaml; reasoning there). One role, the owner:
 # Payload applies its own migrations when the server starts (prodMigrations), so the process
 # that owns the schema and the one that reads it are the same program.
 apiVersion: postgresql.cnpg.io/v1
