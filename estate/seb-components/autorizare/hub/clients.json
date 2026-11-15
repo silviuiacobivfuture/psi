@@ -39,7 +39,7 @@
 				"notifications": true,
 				"home": "https://rho.{base}/",
 				"changelog": {
-					"author": "flow_admin",
+					"author": "platform",
 					"linked": false
 				}
 			}

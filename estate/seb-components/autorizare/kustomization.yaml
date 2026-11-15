@@ -59,10 +59,12 @@ patches:
         value: "o-01a1ce922e3d71f990932be31d8d07fb"
       # The clinic's app object is a grant scope owned through a tuple (sched_role, sched_client …
       # hang from sched_app), so its changes are told to the platform tenant that operates the
-      # clinic, or Polaris refuses to start once psi's permissions bundle declares it.
+      # clinic, or Polaris refuses to start once psi's permissions bundle declares it. Rho's
+      # flow_workspace is the same shape (a workspace owned through flow_workspace#parent_org, never
+      # named in the scope string), told to the platform tenant that operates Rho.
       - op: add
         path: /data/WEBHOOK_PLATFORM_SCOPE_TYPES
-        value: "sched_app"
+        value: "sched_app,flow_workspace"
   - target: { kind: Deployment, name: autorizare-hub }
     patch: |-
       # The hub reads its ConfigMap at start only; this restarts it when the TOTP setting above changes.
