@@ -79,6 +79,9 @@ export interface AppDeps {
 
 export type Env = { Variables: { ctx: Ctx } };
 
+/** The errors already written to the log (an error is written once, however many handlers it passes through). */
+const told = new WeakSet<Error>();
+
 /** The console: every page behind sign-in and an app membership; every write checked for its origin. */
 export function createApp(deps: AppDeps): Hono<Env> {
 	const root = new Hono({ strict: false });
@@ -273,7 +276,15 @@ export function createApp(deps: AppDeps): Hono<Env> {
 		c.html(await MorePage(c.var.ctx), 200, { "cache-control": "private, no-store" }),
 	);
 	app.onError(async (err, c) => {
-		if (!(err instanceof PortError)) throw err;
+		if (!(err instanceof PortError)) {
+			// Anything but a refusal of the service is a defect here: the answer stays a bare 500, but never an unsaid one.
+			// The rethrow meets this handler again at every level of the app, so each error is told once.
+			if (!told.has(err)) {
+				told.add(err);
+				console.error(`[clinic] ${c.req.method} ${c.req.path} failed:`, err);
+			}
+			throw err;
+		}
 		if (err.code === "unauthenticated")
 			return c.redirect(
 				deps.auth.signInHref(`${new URL(c.req.url).pathname}${new URL(c.req.url).search}`),
