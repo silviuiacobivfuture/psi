@@ -6,9 +6,19 @@
 # (estate/seb-components/authentik/env-secrets.yaml); cms reads the SAME path (gitops/services/cms),
 # so the two cannot drift. Mounted by the chart through estate-blueprints.yaml there.
 #
-# cms signs in with the authorization code flow + PKCE and asks for openid, email and profile;
-# it matches a person on their e-mail. Sign-out goes through default-invalidation-flow (the one
-# with the user-logout stage), as every provider here does.
+# cms signs in with the authorization code flow + PKCE and asks for openid, email, profile and
+# offline_access; it matches a person on their e-mail. Sign-out goes through
+# default-invalidation-flow (the one with the user-logout stage), as every provider here does.
+#
+# HOW LONG A CMS SIGN-IN LASTS (owner, 16 Nov: "never logged out, 10 devices, 4 months idle"): the
+# CMS's own session, for psi's SESSION_LIFETIME after its last use (apps/cms/src/auth/
+# session-lifetime.ts, from the whitelabel ConfigMap). The refresh token offline_access hands
+# back is never spent: the CMS keeps it and asks this directory every two minutes whether it is
+# still active (introspection), so a person disabled here is signed out of every CMS device
+# within minutes (apps/cms/src/auth/directory-check.ts). It therefore lives as long as psi's
+# sign-ins do: refresh_token_validity days=36500 is psi's SESSION_LIFETIME "never" in Authentik's
+# spelling (the derived AUTHENTIK_SESSION_DURATION, gitops/components/whitelabel), threshold
+# seconds=0 as SEB's providers have it. Change the two together.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -41,6 +51,9 @@ data:
           signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
           grant_types:
             - authorization_code
+            - refresh_token
+          refresh_token_validity: days=36500
+          refresh_token_threshold: seconds=0
           authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
           authentication_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
           invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
@@ -49,6 +62,7 @@ data:
             - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
             - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
             - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-offline_access]]
           redirect_uris:
             - matching_mode: strict
               url: https://cms.psizone.ro/api/users/oauth/callback
@@ -59,6 +73,8 @@ data:
           name: CMS
           provider: !Find [authentik_providers_oauth2.oauth2provider, [name, cms]]
           meta_launch_url: https://cms.psizone.ro/admin
+          # Its tile's icon, served by the directory itself (look/app-cms.svg).
+          meta_icon: /static/dist/assets/psi/app-cms.svg
       # Without a binding an application lets ANY authenticated user through. Two bindings,
       # engine mode `any`: the editors' group, and `authentik Admins` (Authentik's own
       # superuser group, present in every directory) as break-glass — a binding must never

@@ -8,6 +8,12 @@ kind: Component
 #                     <ESTATE_SLUG>.css; the theme blueprint reads it.
 #   fundal-light.svg  the ambient field's light ground, which psi.css draws (fundal.svg, the dark
 #                     one, is the painter's and identical).
+#   app-cms.svg       the tile icon of psi's CMS (clients/blueprints-cms.yaml meta_icon): the CMS's
+#                     own mark, the gradient orb apps/cms/src/components/brand/PsiMark.tsx draws.
+#   app-clinic.svg    the tile icon of psi's clinic console, dev and production (clients/
+#                     blueprints-clinic*.yaml meta_icon): the console's own favicon, byte for byte
+#                     (apps/clinic/public/favicon.svg).
+# Served at /static/dist/assets/psi/<file>, beside SEB's tile icons.
 configMapGenerator:
   - name: authentik-estate
     behavior: merge
@@ -16,3 +22,5 @@ configMapGenerator:
     files:
       - psi.css=psi.generated.css
       - fundal-light.svg
+      - app-cms.svg
+      - app-clinic.svg
