@@ -1,5 +1,5 @@
 import { nameKey, type RoomsSeed } from "@psi/scheduling/clinic";
-import { OrgProfile, type OrgProfileType } from "@psi/scheduling-sdk/contract";
+import { Money, OrgProfile, type OrgProfileType } from "@psi/scheduling-sdk/contract";
 import { z } from "zod";
 
 const Name = z.string().min(1).max(80);
@@ -7,8 +7,9 @@ const SeedRoomId = z.string().regex(/^[a-z][a-z0-9-]{1,39}$/);
 
 /**
  * What a clinic is beyond its rooms, as the owner set it up: the organisation's name, its devices and the room each
- * stands in, the groups that run there, and the services it gives. The services come as drafts (inactive, no price):
- * the old system kept no catalogue and the site publishes no fixed price, so the owner completes and opens each one.
+ * stands in, the groups that run there, and the services it gives. The services come as drafts (inactive): the old
+ * system kept no catalogue and the site publishes no fixed price, so each one's length and price are inferred from
+ * the old system's sessions and packages (`basis` says how), and the owner corrects and opens each one.
  */
 export const orgSeedSchema = z.object({
 	app: z.string().regex(/^[a-z][a-z0-9-]{1,40}$/),
@@ -43,10 +44,23 @@ export const orgSeedSchema = z.object({
 				rooms: z.array(SeedRoomId).max(20),
 				/** Device names, of this seed's devices. */
 				devices: z.array(Name).max(20),
+				/** The inferred length (absent: the draft's). */
+				durationMinutes: z.number().int().min(5).max(480).optional(),
+				/** The inferred price of one session, in bani (RON), as the service's contract keeps money. */
+				priceBani: z
+					.custom<number>((v) => Money.safeParse(v).success, {
+						message: "the price is not one the service keeps (whole bani, 0 or more)",
+					})
+					.optional(),
+				/** Where the length and the price come from. */
+				basis: z.string().min(1).max(300).optional(),
 			}),
 		)
 		.max(100),
-	/** What a draft service starts with: the length is the old system's most frequent appointment, to be confirmed. */
+	/**
+	 * What a draft service starts with when the seed infers no length: the old system's most frequent appointment, to be
+	 * confirmed. A stored service still at this length is still the draft's.
+	 */
 	serviceDraft: z.object({
 		durationMinutes: z.number().int().min(5).max(480),
 		modes: z.array(z.enum(["onsite", "online"])).min(1),

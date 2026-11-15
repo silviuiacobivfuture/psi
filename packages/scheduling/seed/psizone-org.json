@@ -13,49 +13,70 @@
 			"name": { "ro": "Terapie cognitiv-comportamentală", "en": "Cognitive behavioural therapy" },
 			"category": "therapy",
 			"rooms": [],
-			"devices": []
+			"devices": [],
+			"durationMinutes": 40,
+			"priceBani": 13000,
+			"basis": "old system: 91 of 235 sessions 40 min; packages 2080/16, 1820/14, 1040/8 = 130 lei a session"
 		},
 		{
 			"slug": "psihoterapie-individuala",
 			"name": { "ro": "Psihoterapie individuală", "en": "Individual psychotherapy" },
 			"category": "therapy",
 			"rooms": [],
-			"devices": []
+			"devices": [],
+			"durationMinutes": 40,
+			"priceBani": 20000,
+			"basis": "old system: 40 and 60 min 30 sessions each (40 kept); six sessions at 200 lei, a package 800/4"
 		},
 		{
 			"slug": "logopedie",
 			"name": { "ro": "Logopedie", "en": "Speech therapy" },
 			"category": "therapy",
 			"rooms": ["cabinet-1", "cabinet-2"],
-			"devices": []
+			"devices": [],
+			"durationMinutes": 40,
+			"priceBani": 13000,
+			"basis": "old system: 3 of 5 sessions 40 min; a package 1040/8 = 130 lei a session"
 		},
 		{
 			"slug": "terapie-integrare-senzoriala",
 			"name": { "ro": "Terapie de integrare senzorială", "en": "Sensory integration therapy" },
 			"category": "therapy",
 			"rooms": [],
-			"devices": []
+			"devices": [],
+			"durationMinutes": 40,
+			"priceBani": 20000,
+			"basis": "old system: one 40 min session, no price kept; the clinic's 200 lei single session"
 		},
 		{
 			"slug": "race-me-up",
 			"name": { "ro": "Race Me Up", "en": "Race Me Up" },
 			"category": "therapy",
 			"rooms": ["sala-terapie-grup"],
-			"devices": []
+			"devices": [],
+			"durationMinutes": 40,
+			"priceBani": 20000,
+			"basis": "old system: a package 1600/8 = 200 lei a session; 40 min"
 		},
 		{
 			"slug": "neurofeedback",
 			"name": { "ro": "Neurofeedback", "en": "Neurofeedback" },
 			"category": "neuro",
 			"rooms": ["neurofeedback-1", "neurofeedback-2"],
-			"devices": ["NFB 1", "NFB 2"]
+			"devices": ["NFB 1", "NFB 2"],
+			"durationMinutes": 40,
+			"priceBani": 20000,
+			"basis": "old system: 276 of 283 sessions 40 min; five sessions at 200 lei, a package 1200/6 (2000/16 discounted)"
 		},
 		{
 			"slug": "evaluare-qeeg",
 			"name": { "ro": "Evaluare QEEG", "en": "QEEG assessment" },
 			"category": "neuro",
 			"rooms": ["mapping-cerebral"],
-			"devices": ["QEEG"]
+			"devices": ["QEEG"],
+			"durationMinutes": 60,
+			"priceBani": 20000,
+			"basis": "old system (Mapping): 6 of 8 sessions 60 min; no price kept: the clinic's 200 lei single session"
 		}
 	],
 	"serviceDraft": { "durationMinutes": 40, "modes": ["onsite"] },
