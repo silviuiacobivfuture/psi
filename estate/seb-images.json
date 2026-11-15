@@ -1,12 +1,12 @@
 {
-	"autorizare-svc": "registry.psizone.ro/psi/autorizare-svc@sha256:a0809d855c5a55f17b01dbbe009d3f93814d985759182bbaf4b16883ae1e573b",
+	"autorizare-svc": "registry.psizone.ro/psi/autorizare-svc@sha256:7d3034c52ab27545344b69bada76102e014ab1d94431bbe20a1914663e7db6e1",
 	"changelog": "registry.psizone.ro/psi/changelog@sha256:bf2b44c9492e8b5dbf6e45c68949fa04a5fe7e342bd1df71b48d13360f531fb7",
 	"flows": "registry.psizone.ro/psi/flows@sha256:9c85028eb9070058694c3c856d1ad9ca127d465b2afa8c53a27192ac6bf37d90",
 	"novu-bridge": "registry.psizone.ro/psi/novu-bridge@sha256:345f29859ab10e1af6a340a283b49b216477bad6a73f5bcbe64ec4b5080d7cde",
 	"nx-cache-svc": "registry.psizone.ro/psi/nx-cache-svc@sha256:490454bd01d6fe2bf4d1f3e0d2fef60b4381d1cebbfc6cf94745c16eed377318",
 	"otel-collector-journald": "registry.psizone.ro/psi/otel-collector-journald@sha256:5c444221fd4ba285fb7a98c949eb77c735702fad03f8084f42327681b0aa0bfb",
 	"register-ocr": "registry.psizone.ro/psi/register-ocr@sha256:3a4c71841a7be48d12792b3adfe2bddaa4c9ee7a6408a1fb6becbbfa0c821aa3",
-	"register-svc": "registry.psizone.ro/psi/register-svc@sha256:ba5f989682fa9437c3f4f92940f4553f105faaff1ad3281c7983eb1128af0b93",
+	"register-svc": "registry.psizone.ro/psi/register-svc@sha256:d744f8b600acb753fce4fcbff82462be838cb534ec9bb7b208562d8dd9a70a3c",
 	"register-web": "registry.psizone.ro/psi/register-web@sha256:cf7113099721c297551af1a9ee586786d59161d3b94616fcb7d26aebf7f5577d",
-	"ubl-validator": "registry.psizone.ro/psi/ubl-validator@sha256:20b754c8b1588085f6649d5bd3435ca42dda02ff31c2f8994b28f6be9f9baf49"
+	"ubl-validator": "registry.psizone.ro/psi/ubl-validator@sha256:102aa069d1df343293fa3d088cb5ae10e790e7702d3dc49771505f05af038f22"
 }
