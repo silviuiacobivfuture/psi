@@ -228,7 +228,7 @@
 				"ro": "Integrarea serviciului de facturare"
 			},
 			"description": {
-				"ro": "Pentru programul serviciului de facturare: credențialul cu care serviciul scrie și retrage drepturile pe firme prin Polaris. Nu dă niciun drept pe o firmă. Se dă doar unui program, în Polaris."
+				"ro": "Pentru programul serviciului de facturare: credențialul cu care serviciul scrie și retrage drepturile pe firme prin planul de control. Nu dă niciun drept pe o firmă. Se dă doar unui program, în consolă."
 			},
 			"scope_type": "org",
 			"relation": "role_invoice_integration",

@@ -1,0 +1,448 @@
+{
+	"$schema": "./catalog.schema.json",
+	"$generated": "from .seb-bundle/apps/vega-svc/authz.manifest.json — do not edit; run authz/tools/generate.py",
+	"module": "vega",
+	"version": 1,
+	"scope_resolvers": {
+		"vega_register": {
+			"scope_type": "org",
+			"relation": "parent_org"
+		},
+		"vega_platform": {
+			"scope_type": "platform",
+			"relation": "parent_platform"
+		},
+		"vega_permission_set": {
+			"scope_type": "org",
+			"relation": "parent_org"
+		},
+		"vega_program": {
+			"scope_type": "org",
+			"relation": "parent_org"
+		}
+	},
+	"programs": {
+		"subject": "vega_program",
+		"roles": ["vega:integration"],
+		"resource": "vega_register",
+		"org_relation": "program_vega",
+		"application": {
+			"relation": "application_program",
+			"role": "vega:integration",
+			"names": ["sigma-integration"]
+		}
+	},
+	"group_bindings": [],
+	"mirror_relations": [
+		"org#perm_vega_capture_appoint_administrator",
+		"org#perm_vega_capture_look_up_company",
+		"org#perm_vega_capture_record_address",
+		"org#perm_vega_capture_record_bank_account",
+		"org#perm_vega_capture_record_civil_status",
+		"org#perm_vega_capture_record_contact",
+		"org#perm_vega_capture_register_company",
+		"org#perm_vega_capture_register_person",
+		"org#perm_vega_capture_register_person_from_document",
+		"org#perm_vega_capture_scan_identity_document",
+		"org#perm_vega_capture_session",
+		"org#perm_vega_cases_keep_apart",
+		"org#perm_vega_cases_list",
+		"org#perm_vega_cases_merge",
+		"org#perm_vega_cases_read",
+		"org#perm_vega_conflicts_list",
+		"org#perm_vega_connections_read",
+		"org#perm_vega_contact_read",
+		"org#perm_vega_disclosures_list",
+		"org#perm_vega_documents_list_expiring",
+		"org#perm_vega_dossier_outcomes_apply",
+		"org#perm_vega_facts_explain",
+		"org#perm_vega_history_compare",
+		"org#perm_vega_history_list_changes",
+		"org#perm_vega_history_list_events",
+		"org#perm_vega_history_read",
+		"org#perm_vega_identity_record",
+		"org#perm_vega_import_run",
+		"org#perm_vega_personal_read",
+		"org#perm_vega_proposals_confirm",
+		"org#perm_vega_proposals_decline",
+		"org#perm_vega_proposals_list",
+		"org#perm_vega_registry_refresh",
+		"org#perm_vega_relay_typed_input",
+		"org#perm_vega_requests_close",
+		"org#perm_vega_requests_list",
+		"org#perm_vega_requests_record",
+		"org#perm_vega_restrictions_lift",
+		"org#perm_vega_retention_list",
+		"org#perm_vega_sources_list",
+		"org#perm_vega_stale_list",
+		"org#perm_vega_statements_issue",
+		"org#perm_vega_statements_list",
+		"org#perm_vega_statements_read",
+		"org#perm_vega_structure_read",
+		"org#perm_vega_structure_record_representative",
+		"org#perm_vega_structure_record_shareholding",
+		"org#perm_vega_subjects_find",
+		"org#perm_vega_subjects_read_profile",
+		"org#perm_vega_usages_list",
+		"org#role_vega_integration",
+		"org#role_vega_operator",
+		"org#role_vega_reader",
+		"platform#administrator",
+		"platform#perm_vega_system_cases_keep_apart",
+		"platform#perm_vega_system_cases_list",
+		"platform#perm_vega_system_cases_merge",
+		"platform#role_vega_platform_admin",
+		"vega_permission_set#member"
+	],
+	"features": [
+		{
+			"key": "subjects",
+			"name": {
+				"ro": "Persoane și firme",
+				"en": "People and companies"
+			}
+		},
+		{
+			"key": "structure",
+			"name": {
+				"ro": "Structura firmelor",
+				"en": "Company structure"
+			}
+		},
+		{
+			"key": "connections",
+			"name": {
+				"ro": "Legături",
+				"en": "Connections"
+			}
+		},
+		{
+			"key": "facts",
+			"name": {
+				"ro": "Proveniența valorilor",
+				"en": "Where values come from"
+			}
+		},
+		{
+			"key": "history",
+			"name": {
+				"ro": "Istoric",
+				"en": "History"
+			}
+		},
+		{
+			"key": "cases",
+			"name": {
+				"ro": "Posibile dubluri",
+				"en": "Possible duplicates"
+			}
+		},
+		{
+			"key": "system_cases",
+			"name": {
+				"ro": "Cazuri ținute de sistem",
+				"en": "Cases held by the system"
+			}
+		},
+		{
+			"key": "conflicts",
+			"name": {
+				"ro": "Dezacorduri între surse",
+				"en": "Disagreements between sources"
+			}
+		},
+		{
+			"key": "stale",
+			"name": {
+				"ro": "Date de registru neactualizate",
+				"en": "Stale registry data"
+			}
+		},
+		{
+			"key": "documents",
+			"name": {
+				"ro": "Acte de identitate",
+				"en": "Identity documents"
+			}
+		},
+		{
+			"key": "proposals",
+			"name": {
+				"ro": "Propuneri de la agenți",
+				"en": "Proposals from agents"
+			}
+		},
+		{
+			"key": "requests",
+			"name": {
+				"ro": "Cereri ale persoanelor vizate",
+				"en": "Data subject requests"
+			}
+		},
+		{
+			"key": "restrictions",
+			"name": {
+				"ro": "Restricționări",
+				"en": "Restrictions"
+			}
+		},
+		{
+			"key": "statements",
+			"name": {
+				"ro": "Extrase",
+				"en": "Statements"
+			}
+		},
+		{
+			"key": "capture",
+			"name": {
+				"ro": "Introducere",
+				"en": "Capture"
+			}
+		},
+		{
+			"key": "identity",
+			"name": {
+				"ro": "Acte de identitate",
+				"en": "Identity documents"
+			}
+		},
+		{
+			"key": "import",
+			"name": {
+				"ro": "Import",
+				"en": "Import"
+			}
+		},
+		{
+			"key": "dossier_outcomes",
+			"name": {
+				"ro": "Rezultatele dosarelor",
+				"en": "Dossier outcomes"
+			}
+		},
+		{
+			"key": "disclosures",
+			"name": {
+				"ro": "Cine a citit datele personale",
+				"en": "Who read personal data"
+			}
+		},
+		{
+			"key": "sources",
+			"name": {
+				"ro": "Surse",
+				"en": "Sources"
+			}
+		},
+		{
+			"key": "usages",
+			"name": {
+				"ro": "Utilizări",
+				"en": "Usages"
+			}
+		},
+		{
+			"key": "registry",
+			"name": {
+				"ro": "Registru",
+				"en": "Registry"
+			}
+		},
+		{
+			"key": "relay",
+			"name": {
+				"ro": "Transmitere",
+				"en": "Relay"
+			}
+		},
+		{
+			"key": "retention",
+			"name": {
+				"ro": "Păstrarea datelor personale",
+				"en": "Retention of personal data"
+			}
+		},
+		{
+			"key": "personal",
+			"name": {
+				"ro": "Date personale",
+				"en": "Personal data"
+			}
+		},
+		{
+			"key": "contact",
+			"name": {
+				"ro": "Date de contact",
+				"en": "Contact data"
+			}
+		}
+	],
+	"roles": [
+		{
+			"key": "vega:reader",
+			"name": {
+				"ro": "Cititor registru",
+				"en": "Register reader"
+			},
+			"description": {
+				"ro": "Caută persoane și firme și vede profilul, structura, legăturile, proveniența și istoricul lor. Nu emite extrase și nu schimbă nimic.",
+				"en": "Finds people and companies and sees their profile, structure, connections, provenance and history. Issues no statement and changes nothing."
+			},
+			"scope_type": "org",
+			"relation": "role_vega_reader",
+			"grants": [
+				"vega_register#finder",
+				"vega_register#profile_reader",
+				"vega_register#structure_reader",
+				"vega_register#connections_reader",
+				"vega_register#explainer",
+				"vega_register#history_reader",
+				"vega_register#history_comparer",
+				"vega_register#changes_reader",
+				"vega_register#events_reader",
+				"vega_register#statement_reader",
+				"vega_register#usage_lister",
+				"vega_register#statement_lister",
+				"vega_register#case_lister",
+				"vega_register#case_reader",
+				"vega_register#conflict_lister",
+				"vega_register#stale_lister",
+				"vega_register#proposal_lister",
+				"vega_register#request_lister"
+			],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "vega:operator",
+			"name": {
+				"ro": "Operator registru",
+				"en": "Register operator"
+			},
+			"description": {
+				"ro": "Tot ce face cititorul, plus emiterea de extrase pentru documente și introducerea de persoane, firme și ce se știe despre ele.",
+				"en": "Everything a reader does, plus issuing statements for documents and entering people, companies and what is known about them."
+			},
+			"scope_type": "org",
+			"relation": "role_vega_operator",
+			"grants": [
+				"vega_register#finder",
+				"vega_register#profile_reader",
+				"vega_register#structure_reader",
+				"vega_register#connections_reader",
+				"vega_register#explainer",
+				"vega_register#history_reader",
+				"vega_register#history_comparer",
+				"vega_register#changes_reader",
+				"vega_register#events_reader",
+				"vega_register#statement_issuer",
+				"vega_register#statement_reader",
+				"vega_register#registry_refresher",
+				"vega_register#usage_lister",
+				"vega_register#source_lister",
+				"vega_register#statement_lister",
+				"vega_register#disclosure_lister",
+				"vega_register#retention_lister",
+				"vega_register#company_looker",
+				"vega_register#company_registrar",
+				"vega_register#person_registrar",
+				"vega_register#address_recorder",
+				"vega_register#contact_recorder",
+				"vega_register#administrator_appointer",
+				"vega_register#document_scanner",
+				"vega_register#document_person_registrar",
+				"vega_register#bank_account_recorder",
+				"vega_register#civil_status_recorder",
+				"vega_register#identity_recorder",
+				"vega_register#shareholding_recorder",
+				"vega_register#representative_recorder",
+				"vega_register#capture_session_holder",
+				"vega_register#personal_reader",
+				"vega_register#contact_reader",
+				"vega_register#case_lister",
+				"vega_register#case_reader",
+				"vega_register#case_merger",
+				"vega_register#case_separator",
+				"vega_register#conflict_lister",
+				"vega_register#stale_lister",
+				"vega_register#expiring_documents_lister",
+				"vega_register#proposal_lister",
+				"vega_register#proposal_confirmer",
+				"vega_register#proposal_decliner",
+				"vega_register#request_recorder",
+				"vega_register#request_lister",
+				"vega_register#request_closer",
+				"vega_register#restriction_lifter"
+			],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "vega:integration",
+			"name": {
+				"ro": "Integrare aplicație",
+				"en": "Application integration"
+			},
+			"description": {
+				"ro": "Pentru programele unei aplicații care lucrează cu registrul unei organizații: citește, emite extrase, importă registrul existent, aplică rezultatele dosarelor admise și trimite în paralel persoanele și firmele introduse în aplicație. Citește un act scanat doar în numele membrului care l-a fotografiat, și nu înregistrează niciodată dintr-o scanare.",
+				"en": "For an application's programs working with an organisation's register: reads, issues statements, imports the existing registry, applies admitted dossiers' outcomes and sends, in parallel, the people and companies entered in the application. It reads a scanned document only relaying the member who photographed it, and never registers from a scan."
+			},
+			"scope_type": "org",
+			"relation": "role_vega_integration",
+			"resource_scopes": ["vega_register"],
+			"grants": [
+				"vega_register#finder",
+				"vega_register#profile_reader",
+				"vega_register#structure_reader",
+				"vega_register#connections_reader",
+				"vega_register#explainer",
+				"vega_register#history_reader",
+				"vega_register#history_comparer",
+				"vega_register#changes_reader",
+				"vega_register#events_reader",
+				"vega_register#statement_issuer",
+				"vega_register#statement_reader",
+				"vega_register#typed_input_relayer",
+				"vega_register#usage_lister",
+				"vega_register#importer",
+				"vega_register#outcome_applier",
+				"vega_register#company_registrar",
+				"vega_register#person_registrar",
+				"vega_register#address_recorder",
+				"vega_register#contact_recorder",
+				"vega_register#administrator_appointer",
+				"vega_register#bank_account_recorder",
+				"vega_register#civil_status_recorder",
+				"vega_register#document_scanner",
+				"vega_register#identity_recorder",
+				"vega_register#shareholding_recorder",
+				"vega_register#representative_recorder",
+				"vega_register#personal_reader",
+				"vega_register#contact_reader"
+			],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "vega:platform_admin",
+			"name": {
+				"ro": "Administrator platformă registru",
+				"en": "Register platform administrator"
+			},
+			"description": {
+				"ro": "Decide cazurile ținute de sistem: cele între organizații, pe care nicio organizație nu le vede, și cele ale căror două subiecte le cunosc alte organizații. Unește doar după regula supraviețuitorului sau păstrează separat. Nu dă niciun drept în registrul vreunei organizații.",
+				"en": "Decides the cases held by the system: those across organisations, which no organisation sees, and those both of whose subjects other organisations know. Merges only by the survivor rule, or keeps apart. Gives no right in any organisation's register."
+			},
+			"scope_type": "platform",
+			"relation": "role_vega_platform_admin",
+			"grants": [
+				"vega_platform#system_case_lister",
+				"vega_platform#system_case_merger",
+				"vega_platform#system_case_separator"
+			],
+			"assignable": true,
+			"max_duration": null
+		}
+	]
+}

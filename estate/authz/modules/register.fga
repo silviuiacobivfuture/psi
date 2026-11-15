@@ -1,0 +1,164 @@
+module register
+# TRANSITIONAL TWIN: module `vega` under the name `register`, every identifier it owns
+# re-spelled (authz/tools/gen/rename.py). One model holds both while a store's tuples are
+# copied between the names (`autorizared rename-module`); removed with `transition`.
+
+# GENERATED FROM .seb-bundle/apps/vega-svc/authz.manifest.json — DO NOT EDIT.
+# Run `python3 authz/tools/generate.py` after changing the manifest.
+#
+# @rule AUTZ-1 — every type is prefixed. OpenFGA does NOT namespace types by
+# module: two modules defining the same type merge into one with merged
+# relations, and nothing reports it. `check-manifest.py` enforces the prefix,
+# because JSON Schema cannot compare one field to another.
+
+# An organisation's program: a machine account, by its PROGRAM id (stable
+# across rotations). A SUBJECT: what it holds is given on one resource of
+# its organisation, never in the organisation. Written by Polaris only
+# (docs/autorizare/07 "Programs"); applications read it through the SDK.
+type register_program
+  relations
+    define parent_org: [org]
+    define credential: [autorizare_client]
+    define retiring_credential: [autorizare_client with non_expired_grant]
+    define speaks_for: credential or retiring_credential
+
+type register_register
+  relations
+    define parent_org: [org]
+    define application_program: [register_program]
+    define role_register_integration: [user, group#member, register_program]
+    define finder: [user, group#member] or perm_register_subjects_find from parent_org or role_register_integration
+    define profile_reader: [user, group#member] or perm_register_subjects_read_profile from parent_org or role_register_integration
+    define structure_reader: [user, group#member] or perm_register_structure_read from parent_org or role_register_integration
+    define shareholding_recorder: [user, group#member] or perm_register_structure_record_shareholding from parent_org or role_register_integration
+    define representative_recorder: [user, group#member] or perm_register_structure_record_representative from parent_org or role_register_integration
+    define connections_reader: [user, group#member] or perm_register_connections_read from parent_org or role_register_integration
+    define explainer: [user, group#member] or perm_register_facts_explain from parent_org or role_register_integration
+    define history_reader: [user, group#member] or perm_register_history_read from parent_org or role_register_integration
+    define history_comparer: [user, group#member] or perm_register_history_compare from parent_org or role_register_integration
+    define changes_reader: [user, group#member] or perm_register_history_list_changes from parent_org or role_register_integration
+    define events_reader: [user, group#member] or perm_register_history_list_events from parent_org or role_register_integration
+    define case_lister: [user, group#member] or perm_register_cases_list from parent_org
+    define case_reader: [user, group#member] or perm_register_cases_read from parent_org
+    define case_merger: [user, group#member] or perm_register_cases_merge from parent_org
+    define case_separator: [user, group#member] or perm_register_cases_keep_apart from parent_org
+    define conflict_lister: [user, group#member] or perm_register_conflicts_list from parent_org
+    define stale_lister: [user, group#member] or perm_register_stale_list from parent_org
+    define expiring_documents_lister: [user, group#member] or perm_register_documents_list_expiring from parent_org
+    define proposal_lister: [user, group#member] or perm_register_proposals_list from parent_org
+    define proposal_confirmer: [user, group#member] or perm_register_proposals_confirm from parent_org
+    define proposal_decliner: [user, group#member] or perm_register_proposals_decline from parent_org
+    define request_recorder: [user, group#member] or perm_register_requests_record from parent_org
+    define request_lister: [user, group#member] or perm_register_requests_list from parent_org
+    define request_closer: [user, group#member] or perm_register_requests_close from parent_org
+    define restriction_lifter: [user, group#member] or perm_register_restrictions_lift from parent_org
+    define statement_issuer: [user, group#member] or perm_register_statements_issue from parent_org or role_register_integration
+    define statement_reader: [user, group#member] or perm_register_statements_read from parent_org or role_register_integration
+    define statement_lister: [user, group#member] or perm_register_statements_list from parent_org
+    define company_looker: [user, group#member] or perm_register_capture_look_up_company from parent_org
+    define company_registrar: [user, group#member] or perm_register_capture_register_company from parent_org or role_register_integration
+    define person_registrar: [user, group#member] or perm_register_capture_register_person from parent_org or role_register_integration
+    define address_recorder: [user, group#member] or perm_register_capture_record_address from parent_org or role_register_integration
+    define contact_recorder: [user, group#member] or perm_register_capture_record_contact from parent_org or role_register_integration
+    define administrator_appointer: [user, group#member] or perm_register_capture_appoint_administrator from parent_org or role_register_integration
+    define document_scanner: [user, group#member] or perm_register_capture_scan_identity_document from parent_org or role_register_integration
+    define document_person_registrar: [user, group#member] or perm_register_capture_register_from_document from parent_org
+    define bank_account_recorder: [user, group#member] or perm_register_capture_record_bank_account from parent_org or role_register_integration
+    define civil_status_recorder: [user, group#member] or perm_register_capture_record_civil_status from parent_org or role_register_integration
+    define capture_session_holder: [user, group#member] or perm_register_capture_session from parent_org
+    define identity_recorder: [user, group#member] or perm_register_identity_record from parent_org or role_register_integration
+    define importer: [user, group#member] or perm_register_import_run from parent_org or role_register_integration
+    define outcome_applier: [user, group#member] or perm_register_dossier_outcomes_apply from parent_org or role_register_integration
+    define disclosure_lister: [user, group#member] or perm_register_disclosures_list from parent_org
+    define source_lister: [user, group#member] or perm_register_sources_list from parent_org
+    define usage_lister: [user, group#member] or perm_register_usages_list from parent_org or role_register_integration
+    define registry_refresher: [user, group#member] or perm_register_registry_refresh from parent_org
+    define typed_input_relayer: [user, group#member] or perm_register_relay_typed_input from parent_org or role_register_integration
+    define retention_lister: [user, group#member] or perm_register_retention_list from parent_org
+    define personal_reader: [user, group#member] or perm_register_personal_read from parent_org or role_register_integration
+    define contact_reader: [user, group#member] or perm_register_contact_read from parent_org or role_register_integration
+    # app_register_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
+    define app_register_access: role_register_integration
+
+type register_platform
+  relations
+    define parent_platform: [platform]
+    define system_case_lister: [user, group#member] or perm_register_system_cases_list from parent_platform
+    define system_case_merger: [user, group#member] or perm_register_system_cases_merge from parent_platform
+    define system_case_separator: [user, group#member] or perm_register_system_cases_keep_apart from parent_platform
+
+# A permission set an organisation composes for itself (custom role).
+type register_permission_set
+  relations
+    define parent_org: [org]
+    define member: [user, group#member]
+
+# The module's built-in sets and permissions, as relations on the scope.
+extend type org
+  relations
+    define role_register_reader: [user, group#member]
+    define role_register_operator: [user, group#member]
+    define role_register_integration: [user, group#member]
+    define perm_register_subjects_find: [user, group#member, register_permission_set#member] or role_register_reader or role_register_operator or role_register_integration
+    define perm_register_subjects_read_profile: [user, group#member, register_permission_set#member] or role_register_reader or role_register_operator or role_register_integration
+    define perm_register_structure_read: [user, group#member, register_permission_set#member] or role_register_reader or role_register_operator or role_register_integration
+    define perm_register_structure_record_shareholding: [user, group#member, register_permission_set#member] or role_register_operator or role_register_integration
+    define perm_register_structure_record_representative: [user, group#member, register_permission_set#member] or role_register_operator or role_register_integration
+    define perm_register_connections_read: [user, group#member, register_permission_set#member] or role_register_reader or role_register_operator or role_register_integration
+    define perm_register_facts_explain: [user, group#member, register_permission_set#member] or role_register_reader or role_register_operator or role_register_integration
+    define perm_register_history_read: [user, group#member, register_permission_set#member] or role_register_reader or role_register_operator or role_register_integration
+    define perm_register_history_compare: [user, group#member, register_permission_set#member] or role_register_reader or role_register_operator or role_register_integration
+    define perm_register_history_list_changes: [user, group#member, register_permission_set#member] or role_register_reader or role_register_operator or role_register_integration
+    define perm_register_history_list_events: [user, group#member, register_permission_set#member] or role_register_reader or role_register_operator or role_register_integration
+    define perm_register_cases_list: [user, group#member, register_permission_set#member] or role_register_reader or role_register_operator
+    define perm_register_cases_read: [user, group#member, register_permission_set#member] or role_register_reader or role_register_operator
+    define perm_register_cases_merge: [user, group#member, register_permission_set#member] or role_register_operator
+    define perm_register_cases_keep_apart: [user, group#member, register_permission_set#member] or role_register_operator
+    define perm_register_conflicts_list: [user, group#member, register_permission_set#member] or role_register_reader or role_register_operator
+    define perm_register_stale_list: [user, group#member, register_permission_set#member] or role_register_reader or role_register_operator
+    define perm_register_documents_list_expiring: [user, group#member, register_permission_set#member] or role_register_operator
+    define perm_register_proposals_list: [user, group#member, register_permission_set#member] or role_register_reader or role_register_operator
+    define perm_register_proposals_confirm: [user, group#member, register_permission_set#member] or role_register_operator
+    define perm_register_proposals_decline: [user, group#member, register_permission_set#member] or role_register_operator
+    define perm_register_requests_record: [user, group#member, register_permission_set#member] or role_register_operator
+    define perm_register_requests_list: [user, group#member, register_permission_set#member] or role_register_reader or role_register_operator
+    define perm_register_requests_close: [user, group#member, register_permission_set#member] or role_register_operator
+    define perm_register_restrictions_lift: [user, group#member, register_permission_set#member] or role_register_operator
+    define perm_register_statements_issue: [user, group#member, register_permission_set#member] or role_register_operator or role_register_integration
+    define perm_register_statements_read: [user, group#member, register_permission_set#member] or role_register_reader or role_register_operator or role_register_integration
+    define perm_register_statements_list: [user, group#member, register_permission_set#member] or role_register_reader or role_register_operator
+    define perm_register_capture_look_up_company: [user, group#member, register_permission_set#member] or role_register_operator
+    define perm_register_capture_register_company: [user, group#member, register_permission_set#member] or role_register_operator or role_register_integration
+    define perm_register_capture_register_person: [user, group#member, register_permission_set#member] or role_register_operator or role_register_integration
+    define perm_register_capture_record_address: [user, group#member, register_permission_set#member] or role_register_operator or role_register_integration
+    define perm_register_capture_record_contact: [user, group#member, register_permission_set#member] or role_register_operator or role_register_integration
+    define perm_register_capture_appoint_administrator: [user, group#member, register_permission_set#member] or role_register_operator or role_register_integration
+    define perm_register_capture_scan_identity_document: [user, group#member, register_permission_set#member] or role_register_operator or role_register_integration
+    define perm_register_capture_register_from_document: [user, group#member, register_permission_set#member] or role_register_operator
+    define perm_register_capture_record_bank_account: [user, group#member, register_permission_set#member] or role_register_operator or role_register_integration
+    define perm_register_capture_record_civil_status: [user, group#member, register_permission_set#member] or role_register_operator or role_register_integration
+    define perm_register_capture_session: [user, group#member, register_permission_set#member] or role_register_operator
+    define perm_register_identity_record: [user, group#member, register_permission_set#member] or role_register_operator or role_register_integration
+    define perm_register_import_run: [user, group#member, register_permission_set#member] or role_register_integration
+    define perm_register_dossier_outcomes_apply: [user, group#member, register_permission_set#member] or role_register_integration
+    define perm_register_disclosures_list: [user, group#member, register_permission_set#member] or role_register_operator
+    define perm_register_sources_list: [user, group#member, register_permission_set#member] or role_register_operator
+    define perm_register_usages_list: [user, group#member, register_permission_set#member] or role_register_reader or role_register_operator or role_register_integration
+    define perm_register_registry_refresh: [user, group#member, register_permission_set#member] or role_register_operator
+    define perm_register_relay_typed_input: [user, group#member, register_permission_set#member] or role_register_integration
+    define perm_register_retention_list: [user, group#member, register_permission_set#member] or role_register_operator
+    define perm_register_personal_read: [user, group#member, register_permission_set#member] or role_register_operator or role_register_integration
+    define perm_register_contact_read: [user, group#member, register_permission_set#member] or role_register_operator or role_register_integration
+    define program_register: [register_program]
+    # app_register_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
+    define app_register_access: perm_register_subjects_find or perm_register_subjects_read_profile or perm_register_structure_read or perm_register_structure_record_shareholding or perm_register_structure_record_representative or perm_register_connections_read or perm_register_facts_explain or perm_register_history_read or perm_register_history_compare or perm_register_history_list_changes or perm_register_history_list_events or perm_register_cases_list or perm_register_cases_read or perm_register_cases_merge or perm_register_cases_keep_apart or perm_register_conflicts_list or perm_register_stale_list or perm_register_documents_list_expiring or perm_register_proposals_list or perm_register_proposals_confirm or perm_register_proposals_decline or perm_register_requests_record or perm_register_requests_list or perm_register_requests_close or perm_register_restrictions_lift or perm_register_statements_issue or perm_register_statements_read or perm_register_statements_list or perm_register_capture_look_up_company or perm_register_capture_register_company or perm_register_capture_register_person or perm_register_capture_record_address or perm_register_capture_record_contact or perm_register_capture_appoint_administrator or perm_register_capture_scan_identity_document or perm_register_capture_register_from_document or perm_register_capture_record_bank_account or perm_register_capture_record_civil_status or perm_register_capture_session or perm_register_identity_record or perm_register_import_run or perm_register_dossier_outcomes_apply or perm_register_disclosures_list or perm_register_sources_list or perm_register_usages_list or perm_register_registry_refresh or perm_register_relay_typed_input or perm_register_retention_list or perm_register_personal_read or perm_register_contact_read
+
+# The module's built-in sets and permissions, as relations on the scope.
+extend type platform
+  relations
+    define role_register_platform_admin: [user, group#member]
+    define perm_register_system_cases_list: [user, group#member] or role_register_platform_admin or administrator
+    define perm_register_system_cases_merge: [user, group#member] or role_register_platform_admin or administrator
+    define perm_register_system_cases_keep_apart: [user, group#member] or role_register_platform_admin or administrator
+    # app_register_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
+    define app_register_access: perm_register_system_cases_list or perm_register_system_cases_merge or perm_register_system_cases_keep_apart

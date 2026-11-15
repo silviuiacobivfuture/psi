@@ -7,7 +7,7 @@ spec:
   template:
     metadata:
       annotations:
-        autorizare/permissions-bundle: "458a8314b83c3296"
+        autorizare/permissions-bundle: "e8541738896f0d8b"
     spec:
       initContainers:
         - name: assert-secrets
@@ -40,7 +40,9 @@ spec:
                     - {key: modules__hemisync.fga, path: modules/hemisync.fga}
                     - {key: modules__invoice.fga, path: modules/invoice.fga}
                     - {key: modules__psizone.fga, path: modules/psizone.fga}
+                    - {key: modules__register.fga, path: modules/register.fga}
                     - {key: modules__sched.fga, path: modules/sched.fga}
+                    - {key: modules__vega.fga, path: modules/vega.fga}
               - configMap:
                   name: autorizare-permissions-catalog
                   items:
@@ -67,6 +69,9 @@ spec:
                     - {key: catalog__psizone.roles.json, path: catalog/psizone.roles.json}
                     - {key: catalog__sched.manifest.json, path: catalog/sched.manifest.json}
                     - {key: catalog__sched.roles.json, path: catalog/sched.roles.json}
+                    - {key: catalog__vega.manifest.d__intents.json, path: catalog/vega.manifest.d/intents.json}
+                    - {key: catalog__vega.manifest.json, path: catalog/vega.manifest.json}
+                    - {key: catalog__vega.roles.json, path: catalog/vega.roles.json}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -76,7 +81,7 @@ spec:
   template:
     metadata:
       annotations:
-        autorizare/permissions-bundle: "458a8314b83c3296"
+        autorizare/permissions-bundle: "e8541738896f0d8b"
     spec:
       containers:
         - name: autorizare-hub
@@ -101,7 +106,9 @@ spec:
                     - {key: modules__hemisync.fga, path: modules/hemisync.fga}
                     - {key: modules__invoice.fga, path: modules/invoice.fga}
                     - {key: modules__psizone.fga, path: modules/psizone.fga}
+                    - {key: modules__register.fga, path: modules/register.fga}
                     - {key: modules__sched.fga, path: modules/sched.fga}
+                    - {key: modules__vega.fga, path: modules/vega.fga}
               - configMap:
                   name: autorizare-permissions-catalog
                   items:
@@ -128,3 +135,6 @@ spec:
                     - {key: catalog__psizone.roles.json, path: catalog/psizone.roles.json}
                     - {key: catalog__sched.manifest.json, path: catalog/sched.manifest.json}
                     - {key: catalog__sched.roles.json, path: catalog/sched.roles.json}
+                    - {key: catalog__vega.manifest.d__intents.json, path: catalog/vega.manifest.d/intents.json}
+                    - {key: catalog__vega.manifest.json, path: catalog/vega.manifest.json}
+                    - {key: catalog__vega.roles.json, path: catalog/vega.roles.json}

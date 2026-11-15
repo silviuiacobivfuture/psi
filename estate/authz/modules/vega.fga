@@ -1,0 +1,161 @@
+module vega
+
+# GENERATED FROM .seb-bundle/apps/vega-svc/authz.manifest.json — DO NOT EDIT.
+# Run `python3 authz/tools/generate.py` after changing the manifest.
+#
+# @rule AUTZ-1 — every type is prefixed. OpenFGA does NOT namespace types by
+# module: two modules defining the same type merge into one with merged
+# relations, and nothing reports it. `check-manifest.py` enforces the prefix,
+# because JSON Schema cannot compare one field to another.
+
+# An organisation's program: a machine account, by its PROGRAM id (stable
+# across rotations). A SUBJECT: what it holds is given on one resource of
+# its organisation, never in the organisation. Written by Polaris only
+# (docs/autorizare/07 "Programs"); applications read it through the SDK.
+type vega_program
+  relations
+    define parent_org: [org]
+    define credential: [autorizare_client]
+    define retiring_credential: [autorizare_client with non_expired_grant]
+    define speaks_for: credential or retiring_credential
+
+type vega_register
+  relations
+    define parent_org: [org]
+    define application_program: [vega_program]
+    define role_vega_integration: [user, group#member, vega_program]
+    define finder: [user, group#member] or perm_vega_subjects_find from parent_org or role_vega_integration
+    define profile_reader: [user, group#member] or perm_vega_subjects_read_profile from parent_org or role_vega_integration
+    define structure_reader: [user, group#member] or perm_vega_structure_read from parent_org or role_vega_integration
+    define shareholding_recorder: [user, group#member] or perm_vega_structure_record_shareholding from parent_org or role_vega_integration
+    define representative_recorder: [user, group#member] or perm_vega_structure_record_representative from parent_org or role_vega_integration
+    define connections_reader: [user, group#member] or perm_vega_connections_read from parent_org or role_vega_integration
+    define explainer: [user, group#member] or perm_vega_facts_explain from parent_org or role_vega_integration
+    define history_reader: [user, group#member] or perm_vega_history_read from parent_org or role_vega_integration
+    define history_comparer: [user, group#member] or perm_vega_history_compare from parent_org or role_vega_integration
+    define changes_reader: [user, group#member] or perm_vega_history_list_changes from parent_org or role_vega_integration
+    define events_reader: [user, group#member] or perm_vega_history_list_events from parent_org or role_vega_integration
+    define case_lister: [user, group#member] or perm_vega_cases_list from parent_org
+    define case_reader: [user, group#member] or perm_vega_cases_read from parent_org
+    define case_merger: [user, group#member] or perm_vega_cases_merge from parent_org
+    define case_separator: [user, group#member] or perm_vega_cases_keep_apart from parent_org
+    define conflict_lister: [user, group#member] or perm_vega_conflicts_list from parent_org
+    define stale_lister: [user, group#member] or perm_vega_stale_list from parent_org
+    define expiring_documents_lister: [user, group#member] or perm_vega_documents_list_expiring from parent_org
+    define proposal_lister: [user, group#member] or perm_vega_proposals_list from parent_org
+    define proposal_confirmer: [user, group#member] or perm_vega_proposals_confirm from parent_org
+    define proposal_decliner: [user, group#member] or perm_vega_proposals_decline from parent_org
+    define request_recorder: [user, group#member] or perm_vega_requests_record from parent_org
+    define request_lister: [user, group#member] or perm_vega_requests_list from parent_org
+    define request_closer: [user, group#member] or perm_vega_requests_close from parent_org
+    define restriction_lifter: [user, group#member] or perm_vega_restrictions_lift from parent_org
+    define statement_issuer: [user, group#member] or perm_vega_statements_issue from parent_org or role_vega_integration
+    define statement_reader: [user, group#member] or perm_vega_statements_read from parent_org or role_vega_integration
+    define statement_lister: [user, group#member] or perm_vega_statements_list from parent_org
+    define company_looker: [user, group#member] or perm_vega_capture_look_up_company from parent_org
+    define company_registrar: [user, group#member] or perm_vega_capture_register_company from parent_org or role_vega_integration
+    define person_registrar: [user, group#member] or perm_vega_capture_register_person from parent_org or role_vega_integration
+    define address_recorder: [user, group#member] or perm_vega_capture_record_address from parent_org or role_vega_integration
+    define contact_recorder: [user, group#member] or perm_vega_capture_record_contact from parent_org or role_vega_integration
+    define administrator_appointer: [user, group#member] or perm_vega_capture_appoint_administrator from parent_org or role_vega_integration
+    define document_scanner: [user, group#member] or perm_vega_capture_scan_identity_document from parent_org or role_vega_integration
+    define document_person_registrar: [user, group#member] or perm_vega_capture_register_person_from_document from parent_org
+    define bank_account_recorder: [user, group#member] or perm_vega_capture_record_bank_account from parent_org or role_vega_integration
+    define civil_status_recorder: [user, group#member] or perm_vega_capture_record_civil_status from parent_org or role_vega_integration
+    define capture_session_holder: [user, group#member] or perm_vega_capture_session from parent_org
+    define identity_recorder: [user, group#member] or perm_vega_identity_record from parent_org or role_vega_integration
+    define importer: [user, group#member] or perm_vega_import_run from parent_org or role_vega_integration
+    define outcome_applier: [user, group#member] or perm_vega_dossier_outcomes_apply from parent_org or role_vega_integration
+    define disclosure_lister: [user, group#member] or perm_vega_disclosures_list from parent_org
+    define source_lister: [user, group#member] or perm_vega_sources_list from parent_org
+    define usage_lister: [user, group#member] or perm_vega_usages_list from parent_org or role_vega_integration
+    define registry_refresher: [user, group#member] or perm_vega_registry_refresh from parent_org
+    define typed_input_relayer: [user, group#member] or perm_vega_relay_typed_input from parent_org or role_vega_integration
+    define retention_lister: [user, group#member] or perm_vega_retention_list from parent_org
+    define personal_reader: [user, group#member] or perm_vega_personal_read from parent_org or role_vega_integration
+    define contact_reader: [user, group#member] or perm_vega_contact_read from parent_org or role_vega_integration
+    # app_vega_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
+    define app_vega_access: role_vega_integration
+
+type vega_platform
+  relations
+    define parent_platform: [platform]
+    define system_case_lister: [user, group#member] or perm_vega_system_cases_list from parent_platform
+    define system_case_merger: [user, group#member] or perm_vega_system_cases_merge from parent_platform
+    define system_case_separator: [user, group#member] or perm_vega_system_cases_keep_apart from parent_platform
+
+# A permission set an organisation composes for itself (custom role).
+type vega_permission_set
+  relations
+    define parent_org: [org]
+    define member: [user, group#member]
+
+# The module's built-in sets and permissions, as relations on the scope.
+extend type org
+  relations
+    define role_vega_reader: [user, group#member]
+    define role_vega_operator: [user, group#member]
+    define role_vega_integration: [user, group#member]
+    define perm_vega_subjects_find: [user, group#member, vega_permission_set#member] or role_vega_reader or role_vega_operator or role_vega_integration
+    define perm_vega_subjects_read_profile: [user, group#member, vega_permission_set#member] or role_vega_reader or role_vega_operator or role_vega_integration
+    define perm_vega_structure_read: [user, group#member, vega_permission_set#member] or role_vega_reader or role_vega_operator or role_vega_integration
+    define perm_vega_structure_record_shareholding: [user, group#member, vega_permission_set#member] or role_vega_operator or role_vega_integration
+    define perm_vega_structure_record_representative: [user, group#member, vega_permission_set#member] or role_vega_operator or role_vega_integration
+    define perm_vega_connections_read: [user, group#member, vega_permission_set#member] or role_vega_reader or role_vega_operator or role_vega_integration
+    define perm_vega_facts_explain: [user, group#member, vega_permission_set#member] or role_vega_reader or role_vega_operator or role_vega_integration
+    define perm_vega_history_read: [user, group#member, vega_permission_set#member] or role_vega_reader or role_vega_operator or role_vega_integration
+    define perm_vega_history_compare: [user, group#member, vega_permission_set#member] or role_vega_reader or role_vega_operator or role_vega_integration
+    define perm_vega_history_list_changes: [user, group#member, vega_permission_set#member] or role_vega_reader or role_vega_operator or role_vega_integration
+    define perm_vega_history_list_events: [user, group#member, vega_permission_set#member] or role_vega_reader or role_vega_operator or role_vega_integration
+    define perm_vega_cases_list: [user, group#member, vega_permission_set#member] or role_vega_reader or role_vega_operator
+    define perm_vega_cases_read: [user, group#member, vega_permission_set#member] or role_vega_reader or role_vega_operator
+    define perm_vega_cases_merge: [user, group#member, vega_permission_set#member] or role_vega_operator
+    define perm_vega_cases_keep_apart: [user, group#member, vega_permission_set#member] or role_vega_operator
+    define perm_vega_conflicts_list: [user, group#member, vega_permission_set#member] or role_vega_reader or role_vega_operator
+    define perm_vega_stale_list: [user, group#member, vega_permission_set#member] or role_vega_reader or role_vega_operator
+    define perm_vega_documents_list_expiring: [user, group#member, vega_permission_set#member] or role_vega_operator
+    define perm_vega_proposals_list: [user, group#member, vega_permission_set#member] or role_vega_reader or role_vega_operator
+    define perm_vega_proposals_confirm: [user, group#member, vega_permission_set#member] or role_vega_operator
+    define perm_vega_proposals_decline: [user, group#member, vega_permission_set#member] or role_vega_operator
+    define perm_vega_requests_record: [user, group#member, vega_permission_set#member] or role_vega_operator
+    define perm_vega_requests_list: [user, group#member, vega_permission_set#member] or role_vega_reader or role_vega_operator
+    define perm_vega_requests_close: [user, group#member, vega_permission_set#member] or role_vega_operator
+    define perm_vega_restrictions_lift: [user, group#member, vega_permission_set#member] or role_vega_operator
+    define perm_vega_statements_issue: [user, group#member, vega_permission_set#member] or role_vega_operator or role_vega_integration
+    define perm_vega_statements_read: [user, group#member, vega_permission_set#member] or role_vega_reader or role_vega_operator or role_vega_integration
+    define perm_vega_statements_list: [user, group#member, vega_permission_set#member] or role_vega_reader or role_vega_operator
+    define perm_vega_capture_look_up_company: [user, group#member, vega_permission_set#member] or role_vega_operator
+    define perm_vega_capture_register_company: [user, group#member, vega_permission_set#member] or role_vega_operator or role_vega_integration
+    define perm_vega_capture_register_person: [user, group#member, vega_permission_set#member] or role_vega_operator or role_vega_integration
+    define perm_vega_capture_record_address: [user, group#member, vega_permission_set#member] or role_vega_operator or role_vega_integration
+    define perm_vega_capture_record_contact: [user, group#member, vega_permission_set#member] or role_vega_operator or role_vega_integration
+    define perm_vega_capture_appoint_administrator: [user, group#member, vega_permission_set#member] or role_vega_operator or role_vega_integration
+    define perm_vega_capture_scan_identity_document: [user, group#member, vega_permission_set#member] or role_vega_operator or role_vega_integration
+    define perm_vega_capture_register_person_from_document: [user, group#member, vega_permission_set#member] or role_vega_operator
+    define perm_vega_capture_record_bank_account: [user, group#member, vega_permission_set#member] or role_vega_operator or role_vega_integration
+    define perm_vega_capture_record_civil_status: [user, group#member, vega_permission_set#member] or role_vega_operator or role_vega_integration
+    define perm_vega_capture_session: [user, group#member, vega_permission_set#member] or role_vega_operator
+    define perm_vega_identity_record: [user, group#member, vega_permission_set#member] or role_vega_operator or role_vega_integration
+    define perm_vega_import_run: [user, group#member, vega_permission_set#member] or role_vega_integration
+    define perm_vega_dossier_outcomes_apply: [user, group#member, vega_permission_set#member] or role_vega_integration
+    define perm_vega_disclosures_list: [user, group#member, vega_permission_set#member] or role_vega_operator
+    define perm_vega_sources_list: [user, group#member, vega_permission_set#member] or role_vega_operator
+    define perm_vega_usages_list: [user, group#member, vega_permission_set#member] or role_vega_reader or role_vega_operator or role_vega_integration
+    define perm_vega_registry_refresh: [user, group#member, vega_permission_set#member] or role_vega_operator
+    define perm_vega_relay_typed_input: [user, group#member, vega_permission_set#member] or role_vega_integration
+    define perm_vega_retention_list: [user, group#member, vega_permission_set#member] or role_vega_operator
+    define perm_vega_personal_read: [user, group#member, vega_permission_set#member] or role_vega_operator or role_vega_integration
+    define perm_vega_contact_read: [user, group#member, vega_permission_set#member] or role_vega_operator or role_vega_integration
+    define program_vega: [vega_program]
+    # app_vega_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
+    define app_vega_access: perm_vega_subjects_find or perm_vega_subjects_read_profile or perm_vega_structure_read or perm_vega_structure_record_shareholding or perm_vega_structure_record_representative or perm_vega_connections_read or perm_vega_facts_explain or perm_vega_history_read or perm_vega_history_compare or perm_vega_history_list_changes or perm_vega_history_list_events or perm_vega_cases_list or perm_vega_cases_read or perm_vega_cases_merge or perm_vega_cases_keep_apart or perm_vega_conflicts_list or perm_vega_stale_list or perm_vega_documents_list_expiring or perm_vega_proposals_list or perm_vega_proposals_confirm or perm_vega_proposals_decline or perm_vega_requests_record or perm_vega_requests_list or perm_vega_requests_close or perm_vega_restrictions_lift or perm_vega_statements_issue or perm_vega_statements_read or perm_vega_statements_list or perm_vega_capture_look_up_company or perm_vega_capture_register_company or perm_vega_capture_register_person or perm_vega_capture_record_address or perm_vega_capture_record_contact or perm_vega_capture_appoint_administrator or perm_vega_capture_scan_identity_document or perm_vega_capture_register_person_from_document or perm_vega_capture_record_bank_account or perm_vega_capture_record_civil_status or perm_vega_capture_session or perm_vega_identity_record or perm_vega_import_run or perm_vega_dossier_outcomes_apply or perm_vega_disclosures_list or perm_vega_sources_list or perm_vega_usages_list or perm_vega_registry_refresh or perm_vega_relay_typed_input or perm_vega_retention_list or perm_vega_personal_read or perm_vega_contact_read
+
+# The module's built-in sets and permissions, as relations on the scope.
+extend type platform
+  relations
+    define role_vega_platform_admin: [user, group#member]
+    define perm_vega_system_cases_list: [user, group#member] or role_vega_platform_admin or administrator
+    define perm_vega_system_cases_merge: [user, group#member] or role_vega_platform_admin or administrator
+    define perm_vega_system_cases_keep_apart: [user, group#member] or role_vega_platform_admin or administrator
+    # app_vega_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
+    define app_vega_access: perm_vega_system_cases_list or perm_vega_system_cases_merge or perm_vega_system_cases_keep_apart

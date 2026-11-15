@@ -82,6 +82,15 @@ tuples:
   - user: user:c_platform_perm_psizone_guide_memory_view
     relation: perm_psizone_guide_memory_view
     object: platform:psi
+  - user: user:c_platform_perm_vega_system_cases_keep_apart
+    relation: perm_vega_system_cases_keep_apart
+    object: platform:psi
+  - user: user:c_platform_perm_vega_system_cases_list
+    relation: perm_vega_system_cases_list
+    object: platform:psi
+  - user: user:c_platform_perm_vega_system_cases_merge
+    relation: perm_vega_system_cases_merge
+    object: platform:psi
   - user: user:c_platform_program_manager
     relation: program_manager
     object: platform:psi
@@ -150,6 +159,9 @@ tuples:
     object: platform:psi
   - user: user:c_platform_role_sched_app_admin
     relation: role_sched_app_admin
+    object: platform:psi
+  - user: user:c_platform_role_vega_platform_admin
+    relation: role_vega_platform_admin
     object: platform:psi
   - user: platform:psi
     relation: parent_platform
@@ -261,6 +273,18 @@ tests:
         object: hemisync_session_request:closure
         assertions:
           viewer: false
+      - user: user:c_platform_perm_vega_system_cases_keep_apart
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_vega_system_cases_list
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_vega_system_cases_merge
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_program_manager
         object: hemisync_session_request:closure
         assertions:
@@ -350,6 +374,10 @@ tests:
         assertions:
           viewer: false
       - user: user:c_platform_role_sched_app_admin
+        object: hemisync_session_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_vega_platform_admin
         object: hemisync_session_request:closure
         assertions:
           viewer: false
@@ -455,6 +483,18 @@ tests:
         object: hemisync_session_request:closure
         assertions:
           editor: false
+      - user: user:c_platform_perm_vega_system_cases_keep_apart
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_vega_system_cases_list
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_vega_system_cases_merge
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
       - user: user:c_platform_program_manager
         object: hemisync_session_request:closure
         assertions:
@@ -544,6 +584,10 @@ tests:
         assertions:
           editor: false
       - user: user:c_platform_role_sched_app_admin
+        object: hemisync_session_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_vega_platform_admin
         object: hemisync_session_request:closure
         assertions:
           editor: false
@@ -649,6 +693,18 @@ tests:
         object: hemisync_exercise:closure
         assertions:
           listener: false
+      - user: user:c_platform_perm_vega_system_cases_keep_apart
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_perm_vega_system_cases_list
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_perm_vega_system_cases_merge
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
       - user: user:c_platform_program_manager
         object: hemisync_exercise:closure
         assertions:
@@ -738,6 +794,10 @@ tests:
         assertions:
           listener: false
       - user: user:c_platform_role_sched_app_admin
+        object: hemisync_exercise:closure
+        assertions:
+          listener: false
+      - user: user:c_platform_role_vega_platform_admin
         object: hemisync_exercise:closure
         assertions:
           listener: false

@@ -82,6 +82,15 @@ tuples:
   - user: user:c_platform_perm_psizone_guide_memory_view
     relation: perm_psizone_guide_memory_view
     object: platform:psi
+  - user: user:c_platform_perm_vega_system_cases_keep_apart
+    relation: perm_vega_system_cases_keep_apart
+    object: platform:psi
+  - user: user:c_platform_perm_vega_system_cases_list
+    relation: perm_vega_system_cases_list
+    object: platform:psi
+  - user: user:c_platform_perm_vega_system_cases_merge
+    relation: perm_vega_system_cases_merge
+    object: platform:psi
   - user: user:c_platform_program_manager
     relation: program_manager
     object: platform:psi
@@ -150,6 +159,9 @@ tuples:
     object: platform:psi
   - user: user:c_platform_role_sched_app_admin
     relation: role_sched_app_admin
+    object: platform:psi
+  - user: user:c_platform_role_vega_platform_admin
+    relation: role_vega_platform_admin
     object: platform:psi
   - user: platform:psi
     relation: parent_platform
@@ -264,6 +276,18 @@ tests:
         object: psizone_account:closure
         assertions:
           viewer: false
+      - user: user:c_platform_perm_vega_system_cases_keep_apart
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_vega_system_cases_list
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_vega_system_cases_merge
+        object: psizone_account:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_program_manager
         object: psizone_account:closure
         assertions:
@@ -353,6 +377,10 @@ tests:
         assertions:
           viewer: false
       - user: user:c_platform_role_sched_app_admin
+        object: psizone_account:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_vega_platform_admin
         object: psizone_account:closure
         assertions:
           viewer: false
@@ -458,6 +486,18 @@ tests:
         object: psizone_account:closure
         assertions:
           editor: false
+      - user: user:c_platform_perm_vega_system_cases_keep_apart
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_vega_system_cases_list
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_vega_system_cases_merge
+        object: psizone_account:closure
+        assertions:
+          editor: false
       - user: user:c_platform_program_manager
         object: psizone_account:closure
         assertions:
@@ -547,6 +587,10 @@ tests:
         assertions:
           editor: false
       - user: user:c_platform_role_sched_app_admin
+        object: psizone_account:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_vega_platform_admin
         object: psizone_account:closure
         assertions:
           editor: false
@@ -652,6 +696,18 @@ tests:
         object: psizone_account:closure
         assertions:
           eraser: false
+      - user: user:c_platform_perm_vega_system_cases_keep_apart
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_perm_vega_system_cases_list
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_perm_vega_system_cases_merge
+        object: psizone_account:closure
+        assertions:
+          eraser: false
       - user: user:c_platform_program_manager
         object: psizone_account:closure
         assertions:
@@ -741,6 +797,10 @@ tests:
         assertions:
           eraser: false
       - user: user:c_platform_role_sched_app_admin
+        object: psizone_account:closure
+        assertions:
+          eraser: false
+      - user: user:c_platform_role_vega_platform_admin
         object: psizone_account:closure
         assertions:
           eraser: false
@@ -846,6 +906,18 @@ tests:
         object: psizone_booking_request:closure
         assertions:
           viewer: false
+      - user: user:c_platform_perm_vega_system_cases_keep_apart
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_vega_system_cases_list
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_vega_system_cases_merge
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_program_manager
         object: psizone_booking_request:closure
         assertions:
@@ -935,6 +1007,10 @@ tests:
         assertions:
           viewer: true
       - user: user:c_platform_role_sched_app_admin
+        object: psizone_booking_request:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_vega_platform_admin
         object: psizone_booking_request:closure
         assertions:
           viewer: false
@@ -1040,6 +1116,18 @@ tests:
         object: psizone_booking_request:closure
         assertions:
           editor: false
+      - user: user:c_platform_perm_vega_system_cases_keep_apart
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_vega_system_cases_list
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_vega_system_cases_merge
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
       - user: user:c_platform_program_manager
         object: psizone_booking_request:closure
         assertions:
@@ -1129,6 +1217,10 @@ tests:
         assertions:
           editor: true
       - user: user:c_platform_role_sched_app_admin
+        object: psizone_booking_request:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_vega_platform_admin
         object: psizone_booking_request:closure
         assertions:
           editor: false
@@ -1234,6 +1326,18 @@ tests:
         object: psizone_guide_thread:closure
         assertions:
           viewer: true
+      - user: user:c_platform_perm_vega_system_cases_keep_apart
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_vega_system_cases_list
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_vega_system_cases_merge
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_program_manager
         object: psizone_guide_thread:closure
         assertions:
@@ -1323,6 +1427,10 @@ tests:
         assertions:
           viewer: false
       - user: user:c_platform_role_sched_app_admin
+        object: psizone_guide_thread:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_vega_platform_admin
         object: psizone_guide_thread:closure
         assertions:
           viewer: false
@@ -1428,6 +1536,18 @@ tests:
         object: psizone_guide_thread:closure
         assertions:
           forgetter: false
+      - user: user:c_platform_perm_vega_system_cases_keep_apart
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_perm_vega_system_cases_list
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_perm_vega_system_cases_merge
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
       - user: user:c_platform_program_manager
         object: psizone_guide_thread:closure
         assertions:
@@ -1517,6 +1637,10 @@ tests:
         assertions:
           forgetter: false
       - user: user:c_platform_role_sched_app_admin
+        object: psizone_guide_thread:closure
+        assertions:
+          forgetter: false
+      - user: user:c_platform_role_vega_platform_admin
         object: psizone_guide_thread:closure
         assertions:
           forgetter: false

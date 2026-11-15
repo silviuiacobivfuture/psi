@@ -49,6 +49,156 @@ tuples:
   - user: user:c_org_perm_invoice_webhooks_manage
     relation: perm_invoice_webhooks_manage
     object: org:closure
+  - user: user:c_org_perm_vega_capture_appoint_administrator
+    relation: perm_vega_capture_appoint_administrator
+    object: org:closure
+  - user: user:c_org_perm_vega_capture_look_up_company
+    relation: perm_vega_capture_look_up_company
+    object: org:closure
+  - user: user:c_org_perm_vega_capture_record_address
+    relation: perm_vega_capture_record_address
+    object: org:closure
+  - user: user:c_org_perm_vega_capture_record_bank_account
+    relation: perm_vega_capture_record_bank_account
+    object: org:closure
+  - user: user:c_org_perm_vega_capture_record_civil_status
+    relation: perm_vega_capture_record_civil_status
+    object: org:closure
+  - user: user:c_org_perm_vega_capture_record_contact
+    relation: perm_vega_capture_record_contact
+    object: org:closure
+  - user: user:c_org_perm_vega_capture_register_company
+    relation: perm_vega_capture_register_company
+    object: org:closure
+  - user: user:c_org_perm_vega_capture_register_person
+    relation: perm_vega_capture_register_person
+    object: org:closure
+  - user: user:c_org_perm_vega_capture_register_person_from_document
+    relation: perm_vega_capture_register_person_from_document
+    object: org:closure
+  - user: user:c_org_perm_vega_capture_scan_identity_document
+    relation: perm_vega_capture_scan_identity_document
+    object: org:closure
+  - user: user:c_org_perm_vega_capture_session
+    relation: perm_vega_capture_session
+    object: org:closure
+  - user: user:c_org_perm_vega_cases_keep_apart
+    relation: perm_vega_cases_keep_apart
+    object: org:closure
+  - user: user:c_org_perm_vega_cases_list
+    relation: perm_vega_cases_list
+    object: org:closure
+  - user: user:c_org_perm_vega_cases_merge
+    relation: perm_vega_cases_merge
+    object: org:closure
+  - user: user:c_org_perm_vega_cases_read
+    relation: perm_vega_cases_read
+    object: org:closure
+  - user: user:c_org_perm_vega_conflicts_list
+    relation: perm_vega_conflicts_list
+    object: org:closure
+  - user: user:c_org_perm_vega_connections_read
+    relation: perm_vega_connections_read
+    object: org:closure
+  - user: user:c_org_perm_vega_contact_read
+    relation: perm_vega_contact_read
+    object: org:closure
+  - user: user:c_org_perm_vega_disclosures_list
+    relation: perm_vega_disclosures_list
+    object: org:closure
+  - user: user:c_org_perm_vega_documents_list_expiring
+    relation: perm_vega_documents_list_expiring
+    object: org:closure
+  - user: user:c_org_perm_vega_dossier_outcomes_apply
+    relation: perm_vega_dossier_outcomes_apply
+    object: org:closure
+  - user: user:c_org_perm_vega_facts_explain
+    relation: perm_vega_facts_explain
+    object: org:closure
+  - user: user:c_org_perm_vega_history_compare
+    relation: perm_vega_history_compare
+    object: org:closure
+  - user: user:c_org_perm_vega_history_list_changes
+    relation: perm_vega_history_list_changes
+    object: org:closure
+  - user: user:c_org_perm_vega_history_list_events
+    relation: perm_vega_history_list_events
+    object: org:closure
+  - user: user:c_org_perm_vega_history_read
+    relation: perm_vega_history_read
+    object: org:closure
+  - user: user:c_org_perm_vega_identity_record
+    relation: perm_vega_identity_record
+    object: org:closure
+  - user: user:c_org_perm_vega_import_run
+    relation: perm_vega_import_run
+    object: org:closure
+  - user: user:c_org_perm_vega_personal_read
+    relation: perm_vega_personal_read
+    object: org:closure
+  - user: user:c_org_perm_vega_proposals_confirm
+    relation: perm_vega_proposals_confirm
+    object: org:closure
+  - user: user:c_org_perm_vega_proposals_decline
+    relation: perm_vega_proposals_decline
+    object: org:closure
+  - user: user:c_org_perm_vega_proposals_list
+    relation: perm_vega_proposals_list
+    object: org:closure
+  - user: user:c_org_perm_vega_registry_refresh
+    relation: perm_vega_registry_refresh
+    object: org:closure
+  - user: user:c_org_perm_vega_relay_typed_input
+    relation: perm_vega_relay_typed_input
+    object: org:closure
+  - user: user:c_org_perm_vega_requests_close
+    relation: perm_vega_requests_close
+    object: org:closure
+  - user: user:c_org_perm_vega_requests_list
+    relation: perm_vega_requests_list
+    object: org:closure
+  - user: user:c_org_perm_vega_requests_record
+    relation: perm_vega_requests_record
+    object: org:closure
+  - user: user:c_org_perm_vega_restrictions_lift
+    relation: perm_vega_restrictions_lift
+    object: org:closure
+  - user: user:c_org_perm_vega_retention_list
+    relation: perm_vega_retention_list
+    object: org:closure
+  - user: user:c_org_perm_vega_sources_list
+    relation: perm_vega_sources_list
+    object: org:closure
+  - user: user:c_org_perm_vega_stale_list
+    relation: perm_vega_stale_list
+    object: org:closure
+  - user: user:c_org_perm_vega_statements_issue
+    relation: perm_vega_statements_issue
+    object: org:closure
+  - user: user:c_org_perm_vega_statements_list
+    relation: perm_vega_statements_list
+    object: org:closure
+  - user: user:c_org_perm_vega_statements_read
+    relation: perm_vega_statements_read
+    object: org:closure
+  - user: user:c_org_perm_vega_structure_read
+    relation: perm_vega_structure_read
+    object: org:closure
+  - user: user:c_org_perm_vega_structure_record_representative
+    relation: perm_vega_structure_record_representative
+    object: org:closure
+  - user: user:c_org_perm_vega_structure_record_shareholding
+    relation: perm_vega_structure_record_shareholding
+    object: org:closure
+  - user: user:c_org_perm_vega_subjects_find
+    relation: perm_vega_subjects_find
+    object: org:closure
+  - user: user:c_org_perm_vega_subjects_read_profile
+    relation: perm_vega_subjects_read_profile
+    object: org:closure
+  - user: user:c_org_perm_vega_usages_list
+    relation: perm_vega_usages_list
+    object: org:closure
   - user: user:c_org_role_flow_admin
     relation: role_flow_admin
     object: org:closure
@@ -84,6 +234,15 @@ tuples:
     object: org:closure
   - user: user:c_org_role_sched_integration
     relation: role_sched_integration
+    object: org:closure
+  - user: user:c_org_role_vega_integration
+    relation: role_vega_integration
+    object: org:closure
+  - user: user:c_org_role_vega_operator
+    relation: role_vega_operator
+    object: org:closure
+  - user: user:c_org_role_vega_reader
+    relation: role_vega_reader
     object: org:closure
   - user: user:c_platform_administrator
     relation: administrator
@@ -160,6 +319,15 @@ tuples:
   - user: user:c_platform_perm_psizone_guide_memory_view
     relation: perm_psizone_guide_memory_view
     object: platform:psi
+  - user: user:c_platform_perm_vega_system_cases_keep_apart
+    relation: perm_vega_system_cases_keep_apart
+    object: platform:psi
+  - user: user:c_platform_perm_vega_system_cases_list
+    relation: perm_vega_system_cases_list
+    object: platform:psi
+  - user: user:c_platform_perm_vega_system_cases_merge
+    relation: perm_vega_system_cases_merge
+    object: platform:psi
   - user: user:c_platform_program_manager
     relation: program_manager
     object: platform:psi
@@ -228,6 +396,9 @@ tuples:
     object: platform:psi
   - user: user:c_platform_role_sched_app_admin
     relation: role_sched_app_admin
+    object: platform:psi
+  - user: user:c_platform_role_vega_platform_admin
+    relation: role_vega_platform_admin
     object: platform:psi
   - user: platform:psi
     relation: parent_platform
@@ -345,6 +516,18 @@ tests:
         object: flow_flows:closure
         assertions:
           read: false
+      - user: user:c_platform_perm_vega_system_cases_keep_apart
+        object: flow_flows:closure
+        assertions:
+          read: false
+      - user: user:c_platform_perm_vega_system_cases_list
+        object: flow_flows:closure
+        assertions:
+          read: false
+      - user: user:c_platform_perm_vega_system_cases_merge
+        object: flow_flows:closure
+        assertions:
+          read: false
       - user: user:c_platform_program_manager
         object: flow_flows:closure
         assertions:
@@ -434,6 +617,10 @@ tests:
         assertions:
           read: false
       - user: user:c_platform_role_sched_app_admin
+        object: flow_flows:closure
+        assertions:
+          read: false
+      - user: user:c_platform_role_vega_platform_admin
         object: flow_flows:closure
         assertions:
           read: false
@@ -539,6 +726,18 @@ tests:
         object: flow_flows:closure
         assertions:
           write: false
+      - user: user:c_platform_perm_vega_system_cases_keep_apart
+        object: flow_flows:closure
+        assertions:
+          write: false
+      - user: user:c_platform_perm_vega_system_cases_list
+        object: flow_flows:closure
+        assertions:
+          write: false
+      - user: user:c_platform_perm_vega_system_cases_merge
+        object: flow_flows:closure
+        assertions:
+          write: false
       - user: user:c_platform_program_manager
         object: flow_flows:closure
         assertions:
@@ -628,6 +827,10 @@ tests:
         assertions:
           write: false
       - user: user:c_platform_role_sched_app_admin
+        object: flow_flows:closure
+        assertions:
+          write: false
+      - user: user:c_platform_role_vega_platform_admin
         object: flow_flows:closure
         assertions:
           write: false
@@ -733,6 +936,18 @@ tests:
         object: flow_flows:closure
         assertions:
           publish: false
+      - user: user:c_platform_perm_vega_system_cases_keep_apart
+        object: flow_flows:closure
+        assertions:
+          publish: false
+      - user: user:c_platform_perm_vega_system_cases_list
+        object: flow_flows:closure
+        assertions:
+          publish: false
+      - user: user:c_platform_perm_vega_system_cases_merge
+        object: flow_flows:closure
+        assertions:
+          publish: false
       - user: user:c_platform_program_manager
         object: flow_flows:closure
         assertions:
@@ -822,6 +1037,10 @@ tests:
         assertions:
           publish: false
       - user: user:c_platform_role_sched_app_admin
+        object: flow_flows:closure
+        assertions:
+          publish: false
+      - user: user:c_platform_role_vega_platform_admin
         object: flow_flows:closure
         assertions:
           publish: false
@@ -927,6 +1146,18 @@ tests:
         object: flow_tests:closure
         assertions:
           run: false
+      - user: user:c_platform_perm_vega_system_cases_keep_apart
+        object: flow_tests:closure
+        assertions:
+          run: false
+      - user: user:c_platform_perm_vega_system_cases_list
+        object: flow_tests:closure
+        assertions:
+          run: false
+      - user: user:c_platform_perm_vega_system_cases_merge
+        object: flow_tests:closure
+        assertions:
+          run: false
       - user: user:c_platform_program_manager
         object: flow_tests:closure
         assertions:
@@ -1016,6 +1247,10 @@ tests:
         assertions:
           run: false
       - user: user:c_platform_role_sched_app_admin
+        object: flow_tests:closure
+        assertions:
+          run: false
+      - user: user:c_platform_role_vega_platform_admin
         object: flow_tests:closure
         assertions:
           run: false
@@ -1121,6 +1356,18 @@ tests:
         object: flow_admin:closure
         assertions:
           manage_keys: false
+      - user: user:c_platform_perm_vega_system_cases_keep_apart
+        object: flow_admin:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_platform_perm_vega_system_cases_list
+        object: flow_admin:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_platform_perm_vega_system_cases_merge
+        object: flow_admin:closure
+        assertions:
+          manage_keys: false
       - user: user:c_platform_program_manager
         object: flow_admin:closure
         assertions:
@@ -1210,6 +1457,10 @@ tests:
         assertions:
           manage_keys: false
       - user: user:c_platform_role_sched_app_admin
+        object: flow_admin:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_platform_role_vega_platform_admin
         object: flow_admin:closure
         assertions:
           manage_keys: false
@@ -1315,6 +1566,18 @@ tests:
         object: flow_admin:closure
         assertions:
           manage_extension: false
+      - user: user:c_platform_perm_vega_system_cases_keep_apart
+        object: flow_admin:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_platform_perm_vega_system_cases_list
+        object: flow_admin:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_platform_perm_vega_system_cases_merge
+        object: flow_admin:closure
+        assertions:
+          manage_extension: false
       - user: user:c_platform_program_manager
         object: flow_admin:closure
         assertions:
@@ -1404,6 +1667,10 @@ tests:
         assertions:
           manage_extension: false
       - user: user:c_platform_role_sched_app_admin
+        object: flow_admin:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_platform_role_vega_platform_admin
         object: flow_admin:closure
         assertions:
           manage_extension: false
@@ -1509,6 +1776,18 @@ tests:
         object: flow_admin:closure
         assertions:
           manage_workspaces: false
+      - user: user:c_platform_perm_vega_system_cases_keep_apart
+        object: flow_admin:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_platform_perm_vega_system_cases_list
+        object: flow_admin:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_platform_perm_vega_system_cases_merge
+        object: flow_admin:closure
+        assertions:
+          manage_workspaces: false
       - user: user:c_platform_program_manager
         object: flow_admin:closure
         assertions:
@@ -1598,6 +1877,10 @@ tests:
         assertions:
           manage_workspaces: false
       - user: user:c_platform_role_sched_app_admin
+        object: flow_admin:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_platform_role_vega_platform_admin
         object: flow_admin:closure
         assertions:
           manage_workspaces: false
@@ -1703,6 +1986,18 @@ tests:
         object: flow_admin:closure
         assertions:
           read_audit: false
+      - user: user:c_platform_perm_vega_system_cases_keep_apart
+        object: flow_admin:closure
+        assertions:
+          read_audit: false
+      - user: user:c_platform_perm_vega_system_cases_list
+        object: flow_admin:closure
+        assertions:
+          read_audit: false
+      - user: user:c_platform_perm_vega_system_cases_merge
+        object: flow_admin:closure
+        assertions:
+          read_audit: false
       - user: user:c_platform_program_manager
         object: flow_admin:closure
         assertions:
@@ -1795,6 +2090,10 @@ tests:
         object: flow_admin:closure
         assertions:
           read_audit: false
+      - user: user:c_platform_role_vega_platform_admin
+        object: flow_admin:closure
+        assertions:
+          read_audit: false
   - name: flow_org#read is conferred by exactly ['administrator', 'role_flow_admin', 'role_flow_editor', 'role_flow_viewer']
     check:
       - user: user:c_org_administrator
@@ -1853,6 +2152,206 @@ tests:
         object: flow_org:closure
         assertions:
           read: false
+      - user: user:c_org_perm_vega_capture_appoint_administrator
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_capture_look_up_company
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_capture_record_address
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_capture_record_bank_account
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_capture_record_civil_status
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_capture_record_contact
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_capture_register_company
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_capture_register_person
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_capture_register_person_from_document
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_capture_scan_identity_document
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_capture_session
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_cases_keep_apart
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_cases_list
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_cases_merge
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_cases_read
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_conflicts_list
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_connections_read
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_contact_read
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_disclosures_list
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_documents_list_expiring
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_dossier_outcomes_apply
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_facts_explain
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_history_compare
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_history_list_changes
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_history_list_events
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_history_read
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_identity_record
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_import_run
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_personal_read
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_proposals_confirm
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_proposals_decline
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_proposals_list
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_registry_refresh
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_relay_typed_input
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_requests_close
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_requests_list
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_requests_record
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_restrictions_lift
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_retention_list
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_sources_list
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_stale_list
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_statements_issue
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_statements_list
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_statements_read
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_structure_read
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_structure_record_representative
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_structure_record_shareholding
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_subjects_find
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_subjects_read_profile
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          read: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -1898,6 +2397,18 @@ tests:
         assertions:
           read: false
       - user: user:c_org_role_sched_integration
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_role_vega_integration
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_role_vega_operator
+        object: flow_org:closure
+        assertions:
+          read: false
+      - user: user:c_org_role_vega_reader
         object: flow_org:closure
         assertions:
           read: false
@@ -1959,6 +2470,206 @@ tests:
         object: flow_org:closure
         assertions:
           write: false
+      - user: user:c_org_perm_vega_capture_appoint_administrator
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_capture_look_up_company
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_capture_record_address
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_capture_record_bank_account
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_capture_record_civil_status
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_capture_record_contact
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_capture_register_company
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_capture_register_person
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_capture_register_person_from_document
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_capture_scan_identity_document
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_capture_session
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_cases_keep_apart
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_cases_list
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_cases_merge
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_cases_read
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_conflicts_list
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_connections_read
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_contact_read
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_disclosures_list
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_documents_list_expiring
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_dossier_outcomes_apply
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_facts_explain
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_history_compare
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_history_list_changes
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_history_list_events
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_history_read
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_identity_record
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_import_run
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_personal_read
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_proposals_confirm
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_proposals_decline
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_proposals_list
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_registry_refresh
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_relay_typed_input
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_requests_close
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_requests_list
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_requests_record
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_restrictions_lift
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_retention_list
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_sources_list
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_stale_list
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_statements_issue
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_statements_list
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_statements_read
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_structure_read
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_structure_record_representative
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_structure_record_shareholding
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_subjects_find
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_subjects_read_profile
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          write: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -2004,6 +2715,18 @@ tests:
         assertions:
           write: false
       - user: user:c_org_role_sched_integration
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_role_vega_integration
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_role_vega_operator
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_role_vega_reader
         object: flow_org:closure
         assertions:
           write: false
@@ -2065,6 +2788,206 @@ tests:
         object: flow_org:closure
         assertions:
           publish: false
+      - user: user:c_org_perm_vega_capture_appoint_administrator
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_capture_look_up_company
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_capture_record_address
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_capture_record_bank_account
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_capture_record_civil_status
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_capture_record_contact
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_capture_register_company
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_capture_register_person
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_capture_register_person_from_document
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_capture_scan_identity_document
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_capture_session
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_cases_keep_apart
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_cases_list
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_cases_merge
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_cases_read
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_conflicts_list
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_connections_read
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_contact_read
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_disclosures_list
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_documents_list_expiring
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_dossier_outcomes_apply
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_facts_explain
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_history_compare
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_history_list_changes
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_history_list_events
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_history_read
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_identity_record
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_import_run
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_personal_read
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_proposals_confirm
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_proposals_decline
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_proposals_list
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_registry_refresh
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_relay_typed_input
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_requests_close
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_requests_list
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_requests_record
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_restrictions_lift
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_retention_list
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_sources_list
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_stale_list
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_statements_issue
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_statements_list
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_statements_read
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_structure_read
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_structure_record_representative
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_structure_record_shareholding
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_subjects_find
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_subjects_read_profile
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          publish: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -2110,6 +3033,18 @@ tests:
         assertions:
           publish: false
       - user: user:c_org_role_sched_integration
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_role_vega_integration
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_role_vega_operator
+        object: flow_org:closure
+        assertions:
+          publish: false
+      - user: user:c_org_role_vega_reader
         object: flow_org:closure
         assertions:
           publish: false
@@ -2171,6 +3106,206 @@ tests:
         object: flow_org:closure
         assertions:
           run: false
+      - user: user:c_org_perm_vega_capture_appoint_administrator
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_capture_look_up_company
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_capture_record_address
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_capture_record_bank_account
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_capture_record_civil_status
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_capture_record_contact
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_capture_register_company
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_capture_register_person
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_capture_register_person_from_document
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_capture_scan_identity_document
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_capture_session
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_cases_keep_apart
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_cases_list
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_cases_merge
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_cases_read
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_conflicts_list
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_connections_read
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_contact_read
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_disclosures_list
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_documents_list_expiring
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_dossier_outcomes_apply
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_facts_explain
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_history_compare
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_history_list_changes
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_history_list_events
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_history_read
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_identity_record
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_import_run
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_personal_read
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_proposals_confirm
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_proposals_decline
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_proposals_list
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_registry_refresh
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_relay_typed_input
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_requests_close
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_requests_list
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_requests_record
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_restrictions_lift
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_retention_list
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_sources_list
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_stale_list
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_statements_issue
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_statements_list
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_statements_read
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_structure_read
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_structure_record_representative
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_structure_record_shareholding
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_subjects_find
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_subjects_read_profile
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          run: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -2216,6 +3351,18 @@ tests:
         assertions:
           run: false
       - user: user:c_org_role_sched_integration
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_role_vega_integration
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_role_vega_operator
+        object: flow_org:closure
+        assertions:
+          run: false
+      - user: user:c_org_role_vega_reader
         object: flow_org:closure
         assertions:
           run: false
@@ -2277,6 +3424,206 @@ tests:
         object: flow_org:closure
         assertions:
           manage_keys: false
+      - user: user:c_org_perm_vega_capture_appoint_administrator
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_capture_look_up_company
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_capture_record_address
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_capture_record_bank_account
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_capture_record_civil_status
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_capture_record_contact
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_capture_register_company
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_capture_register_person
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_capture_register_person_from_document
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_capture_scan_identity_document
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_capture_session
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_cases_keep_apart
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_cases_list
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_cases_merge
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_cases_read
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_conflicts_list
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_connections_read
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_contact_read
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_disclosures_list
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_documents_list_expiring
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_dossier_outcomes_apply
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_facts_explain
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_history_compare
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_history_list_changes
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_history_list_events
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_history_read
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_identity_record
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_import_run
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_personal_read
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_proposals_confirm
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_proposals_decline
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_proposals_list
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_registry_refresh
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_relay_typed_input
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_requests_close
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_requests_list
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_requests_record
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_restrictions_lift
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_retention_list
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_sources_list
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_stale_list
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_statements_issue
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_statements_list
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_statements_read
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_structure_read
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_structure_record_representative
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_structure_record_shareholding
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_subjects_find
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_subjects_read_profile
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -2322,6 +3669,18 @@ tests:
         assertions:
           manage_keys: false
       - user: user:c_org_role_sched_integration
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_role_vega_integration
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_role_vega_operator
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_role_vega_reader
         object: flow_org:closure
         assertions:
           manage_keys: false
@@ -2383,6 +3742,206 @@ tests:
         object: flow_org:closure
         assertions:
           manage_extension: false
+      - user: user:c_org_perm_vega_capture_appoint_administrator
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_capture_look_up_company
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_capture_record_address
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_capture_record_bank_account
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_capture_record_civil_status
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_capture_record_contact
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_capture_register_company
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_capture_register_person
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_capture_register_person_from_document
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_capture_scan_identity_document
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_capture_session
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_cases_keep_apart
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_cases_list
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_cases_merge
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_cases_read
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_conflicts_list
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_connections_read
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_contact_read
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_disclosures_list
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_documents_list_expiring
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_dossier_outcomes_apply
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_facts_explain
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_history_compare
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_history_list_changes
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_history_list_events
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_history_read
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_identity_record
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_import_run
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_personal_read
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_proposals_confirm
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_proposals_decline
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_proposals_list
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_registry_refresh
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_relay_typed_input
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_requests_close
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_requests_list
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_requests_record
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_restrictions_lift
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_retention_list
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_sources_list
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_stale_list
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_statements_issue
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_statements_list
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_statements_read
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_structure_read
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_structure_record_representative
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_structure_record_shareholding
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_subjects_find
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_subjects_read_profile
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -2428,6 +3987,18 @@ tests:
         assertions:
           manage_extension: false
       - user: user:c_org_role_sched_integration
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_role_vega_integration
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_role_vega_operator
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_role_vega_reader
         object: flow_org:closure
         assertions:
           manage_extension: false
@@ -2489,6 +4060,206 @@ tests:
         object: flow_org:closure
         assertions:
           manage_workspaces: false
+      - user: user:c_org_perm_vega_capture_appoint_administrator
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_capture_look_up_company
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_capture_record_address
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_capture_record_bank_account
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_capture_record_civil_status
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_capture_record_contact
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_capture_register_company
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_capture_register_person
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_capture_register_person_from_document
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_capture_scan_identity_document
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_capture_session
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_cases_keep_apart
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_cases_list
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_cases_merge
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_cases_read
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_conflicts_list
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_connections_read
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_contact_read
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_disclosures_list
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_documents_list_expiring
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_dossier_outcomes_apply
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_facts_explain
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_history_compare
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_history_list_changes
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_history_list_events
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_history_read
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_identity_record
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_import_run
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_personal_read
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_proposals_confirm
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_proposals_decline
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_proposals_list
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_registry_refresh
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_relay_typed_input
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_requests_close
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_requests_list
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_requests_record
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_restrictions_lift
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_retention_list
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_sources_list
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_stale_list
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_statements_issue
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_statements_list
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_statements_read
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_structure_read
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_structure_record_representative
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_structure_record_shareholding
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_subjects_find
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_subjects_read_profile
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -2534,6 +4305,18 @@ tests:
         assertions:
           manage_workspaces: false
       - user: user:c_org_role_sched_integration
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_role_vega_integration
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_role_vega_operator
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_role_vega_reader
         object: flow_org:closure
         assertions:
           manage_workspaces: false
@@ -2595,6 +4378,206 @@ tests:
         object: flow_org:closure
         assertions:
           read_audit: false
+      - user: user:c_org_perm_vega_capture_appoint_administrator
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_capture_look_up_company
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_capture_record_address
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_capture_record_bank_account
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_capture_record_civil_status
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_capture_record_contact
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_capture_register_company
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_capture_register_person
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_capture_register_person_from_document
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_capture_scan_identity_document
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_capture_session
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_cases_keep_apart
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_cases_list
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_cases_merge
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_cases_read
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_conflicts_list
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_connections_read
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_contact_read
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_disclosures_list
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_documents_list_expiring
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_dossier_outcomes_apply
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_facts_explain
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_history_compare
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_history_list_changes
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_history_list_events
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_history_read
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_identity_record
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_import_run
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_personal_read
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_proposals_confirm
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_proposals_decline
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_proposals_list
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_registry_refresh
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_relay_typed_input
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_requests_close
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_requests_list
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_requests_record
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_restrictions_lift
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_retention_list
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_sources_list
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_stale_list
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_statements_issue
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_statements_list
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_statements_read
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_structure_read
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_structure_record_representative
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_structure_record_shareholding
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_subjects_find
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_subjects_read_profile
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          read_audit: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -2640,6 +4623,18 @@ tests:
         assertions:
           read_audit: false
       - user: user:c_org_role_sched_integration
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_role_vega_integration
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_role_vega_operator
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_role_vega_reader
         object: flow_org:closure
         assertions:
           read_audit: false
@@ -2701,6 +4696,206 @@ tests:
         object: flow_org:closure
         assertions:
           program_flows_read: false
+      - user: user:c_org_perm_vega_capture_appoint_administrator
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_capture_look_up_company
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_capture_record_address
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_capture_record_bank_account
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_capture_record_civil_status
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_capture_record_contact
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_capture_register_company
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_capture_register_person
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_capture_register_person_from_document
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_capture_scan_identity_document
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_capture_session
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_cases_keep_apart
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_cases_list
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_cases_merge
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_cases_read
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_conflicts_list
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_connections_read
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_contact_read
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_disclosures_list
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_documents_list_expiring
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_dossier_outcomes_apply
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_facts_explain
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_history_compare
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_history_list_changes
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_history_list_events
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_history_read
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_identity_record
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_import_run
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_personal_read
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_proposals_confirm
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_proposals_decline
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_proposals_list
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_registry_refresh
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_relay_typed_input
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_requests_close
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_requests_list
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_requests_record
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_restrictions_lift
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_retention_list
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_sources_list
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_stale_list
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_statements_issue
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_statements_list
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_statements_read
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_structure_read
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_structure_record_representative
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_structure_record_shareholding
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_subjects_find
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_subjects_read_profile
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -2746,6 +4941,18 @@ tests:
         assertions:
           program_flows_read: false
       - user: user:c_org_role_sched_integration
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_role_vega_integration
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_role_vega_operator
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
+      - user: user:c_org_role_vega_reader
         object: flow_org:closure
         assertions:
           program_flows_read: false
@@ -2807,6 +5014,206 @@ tests:
         object: flow_org:closure
         assertions:
           program_flows_write: false
+      - user: user:c_org_perm_vega_capture_appoint_administrator
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_capture_look_up_company
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_capture_record_address
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_capture_record_bank_account
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_capture_record_civil_status
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_capture_record_contact
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_capture_register_company
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_capture_register_person
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_capture_register_person_from_document
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_capture_scan_identity_document
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_capture_session
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_cases_keep_apart
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_cases_list
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_cases_merge
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_cases_read
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_conflicts_list
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_connections_read
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_contact_read
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_disclosures_list
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_documents_list_expiring
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_dossier_outcomes_apply
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_facts_explain
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_history_compare
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_history_list_changes
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_history_list_events
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_history_read
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_identity_record
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_import_run
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_personal_read
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_proposals_confirm
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_proposals_decline
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_proposals_list
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_registry_refresh
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_relay_typed_input
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_requests_close
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_requests_list
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_requests_record
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_restrictions_lift
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_retention_list
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_sources_list
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_stale_list
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_statements_issue
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_statements_list
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_statements_read
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_structure_read
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_structure_record_representative
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_structure_record_shareholding
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_subjects_find
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_subjects_read_profile
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -2852,6 +5259,18 @@ tests:
         assertions:
           program_flows_write: false
       - user: user:c_org_role_sched_integration
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_role_vega_integration
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_role_vega_operator
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_role_vega_reader
         object: flow_org:closure
         assertions:
           program_flows_write: false
@@ -2913,6 +5332,206 @@ tests:
         object: flow_org:closure
         assertions:
           program_flows_publish: false
+      - user: user:c_org_perm_vega_capture_appoint_administrator
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_capture_look_up_company
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_capture_record_address
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_capture_record_bank_account
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_capture_record_civil_status
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_capture_record_contact
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_capture_register_company
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_capture_register_person
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_capture_register_person_from_document
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_capture_scan_identity_document
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_capture_session
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_cases_keep_apart
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_cases_list
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_cases_merge
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_cases_read
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_conflicts_list
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_connections_read
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_contact_read
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_disclosures_list
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_documents_list_expiring
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_dossier_outcomes_apply
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_facts_explain
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_history_compare
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_history_list_changes
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_history_list_events
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_history_read
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_identity_record
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_import_run
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_personal_read
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_proposals_confirm
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_proposals_decline
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_proposals_list
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_registry_refresh
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_relay_typed_input
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_requests_close
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_requests_list
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_requests_record
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_restrictions_lift
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_retention_list
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_sources_list
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_stale_list
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_statements_issue
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_statements_list
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_statements_read
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_structure_read
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_structure_record_representative
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_structure_record_shareholding
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_subjects_find
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_subjects_read_profile
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -2958,6 +5577,18 @@ tests:
         assertions:
           program_flows_publish: false
       - user: user:c_org_role_sched_integration
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_role_vega_integration
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_role_vega_operator
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
+      - user: user:c_org_role_vega_reader
         object: flow_org:closure
         assertions:
           program_flows_publish: false
@@ -3019,6 +5650,206 @@ tests:
         object: flow_org:closure
         assertions:
           program_tests_run: false
+      - user: user:c_org_perm_vega_capture_appoint_administrator
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_capture_look_up_company
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_capture_record_address
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_capture_record_bank_account
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_capture_record_civil_status
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_capture_record_contact
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_capture_register_company
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_capture_register_person
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_capture_register_person_from_document
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_capture_scan_identity_document
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_capture_session
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_cases_keep_apart
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_cases_list
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_cases_merge
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_cases_read
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_conflicts_list
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_connections_read
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_contact_read
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_disclosures_list
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_documents_list_expiring
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_dossier_outcomes_apply
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_facts_explain
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_history_compare
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_history_list_changes
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_history_list_events
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_history_read
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_identity_record
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_import_run
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_personal_read
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_proposals_confirm
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_proposals_decline
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_proposals_list
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_registry_refresh
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_relay_typed_input
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_requests_close
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_requests_list
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_requests_record
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_restrictions_lift
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_retention_list
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_sources_list
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_stale_list
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_statements_issue
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_statements_list
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_statements_read
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_structure_read
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_structure_record_representative
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_structure_record_shareholding
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_subjects_find
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_subjects_read_profile
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -3064,6 +5895,18 @@ tests:
         assertions:
           program_tests_run: false
       - user: user:c_org_role_sched_integration
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_role_vega_integration
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_role_vega_operator
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_role_vega_reader
         object: flow_org:closure
         assertions:
           program_tests_run: false
@@ -3125,6 +5968,206 @@ tests:
         object: flow_org:closure
         assertions:
           program_runs_launch: false
+      - user: user:c_org_perm_vega_capture_appoint_administrator
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_capture_look_up_company
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_capture_record_address
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_capture_record_bank_account
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_capture_record_civil_status
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_capture_record_contact
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_capture_register_company
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_capture_register_person
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_capture_register_person_from_document
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_capture_scan_identity_document
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_capture_session
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_cases_keep_apart
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_cases_list
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_cases_merge
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_cases_read
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_conflicts_list
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_connections_read
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_contact_read
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_disclosures_list
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_documents_list_expiring
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_dossier_outcomes_apply
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_facts_explain
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_history_compare
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_history_list_changes
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_history_list_events
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_history_read
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_identity_record
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_import_run
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_personal_read
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_proposals_confirm
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_proposals_decline
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_proposals_list
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_registry_refresh
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_relay_typed_input
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_requests_close
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_requests_list
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_requests_record
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_restrictions_lift
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_retention_list
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_sources_list
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_stale_list
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_statements_issue
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_statements_list
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_statements_read
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_structure_read
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_structure_record_representative
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_structure_record_shareholding
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_subjects_find
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_subjects_read_profile
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -3170,6 +6213,18 @@ tests:
         assertions:
           program_runs_launch: false
       - user: user:c_org_role_sched_integration
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_role_vega_integration
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_role_vega_operator
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
+      - user: user:c_org_role_vega_reader
         object: flow_org:closure
         assertions:
           program_runs_launch: false
@@ -3231,6 +6286,206 @@ tests:
         object: flow_org:closure
         assertions:
           program_runs_read: false
+      - user: user:c_org_perm_vega_capture_appoint_administrator
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_capture_look_up_company
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_capture_record_address
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_capture_record_bank_account
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_capture_record_civil_status
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_capture_record_contact
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_capture_register_company
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_capture_register_person
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_capture_register_person_from_document
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_capture_scan_identity_document
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_capture_session
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_cases_keep_apart
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_cases_list
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_cases_merge
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_cases_read
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_conflicts_list
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_connections_read
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_contact_read
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_disclosures_list
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_documents_list_expiring
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_dossier_outcomes_apply
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_facts_explain
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_history_compare
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_history_list_changes
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_history_list_events
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_history_read
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_identity_record
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_import_run
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_personal_read
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_proposals_confirm
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_proposals_decline
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_proposals_list
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_registry_refresh
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_relay_typed_input
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_requests_close
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_requests_list
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_requests_record
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_restrictions_lift
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_retention_list
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_sources_list
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_stale_list
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_statements_issue
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_statements_list
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_statements_read
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_structure_read
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_structure_record_representative
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_structure_record_shareholding
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_subjects_find
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_subjects_read_profile
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -3276,6 +6531,18 @@ tests:
         assertions:
           program_runs_read: false
       - user: user:c_org_role_sched_integration
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_role_vega_integration
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_role_vega_operator
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_role_vega_reader
         object: flow_org:closure
         assertions:
           program_runs_read: false
@@ -3337,6 +6604,206 @@ tests:
         object: flow_org:closure
         assertions:
           program_runs_cancel: false
+      - user: user:c_org_perm_vega_capture_appoint_administrator
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_capture_look_up_company
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_capture_record_address
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_capture_record_bank_account
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_capture_record_civil_status
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_capture_record_contact
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_capture_register_company
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_capture_register_person
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_capture_register_person_from_document
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_capture_scan_identity_document
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_capture_session
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_cases_keep_apart
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_cases_list
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_cases_merge
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_cases_read
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_conflicts_list
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_connections_read
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_contact_read
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_disclosures_list
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_documents_list_expiring
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_dossier_outcomes_apply
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_facts_explain
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_history_compare
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_history_list_changes
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_history_list_events
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_history_read
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_identity_record
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_import_run
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_personal_read
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_proposals_confirm
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_proposals_decline
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_proposals_list
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_registry_refresh
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_relay_typed_input
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_requests_close
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_requests_list
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_requests_record
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_restrictions_lift
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_retention_list
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_sources_list
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_stale_list
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_statements_issue
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_statements_list
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_statements_read
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_structure_read
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_structure_record_representative
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_structure_record_shareholding
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_subjects_find
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_subjects_read_profile
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -3382,6 +6849,18 @@ tests:
         assertions:
           program_runs_cancel: false
       - user: user:c_org_role_sched_integration
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_role_vega_integration
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_role_vega_operator
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
+      - user: user:c_org_role_vega_reader
         object: flow_org:closure
         assertions:
           program_runs_cancel: false
@@ -3443,6 +6922,206 @@ tests:
         object: flow_org:closure
         assertions:
           program_files_resolve: false
+      - user: user:c_org_perm_vega_capture_appoint_administrator
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_capture_look_up_company
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_capture_record_address
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_capture_record_bank_account
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_capture_record_civil_status
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_capture_record_contact
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_capture_register_company
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_capture_register_person
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_capture_register_person_from_document
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_capture_scan_identity_document
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_capture_session
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_cases_keep_apart
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_cases_list
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_cases_merge
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_cases_read
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_conflicts_list
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_connections_read
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_contact_read
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_disclosures_list
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_documents_list_expiring
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_dossier_outcomes_apply
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_facts_explain
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_history_compare
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_history_list_changes
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_history_list_events
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_history_read
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_identity_record
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_import_run
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_personal_read
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_proposals_confirm
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_proposals_decline
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_proposals_list
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_registry_refresh
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_relay_typed_input
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_requests_close
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_requests_list
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_requests_record
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_restrictions_lift
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_retention_list
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_sources_list
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_stale_list
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_statements_issue
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_statements_list
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_statements_read
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_structure_read
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_structure_record_representative
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_structure_record_shareholding
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_subjects_find
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_subjects_read_profile
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -3488,6 +7167,18 @@ tests:
         assertions:
           program_files_resolve: false
       - user: user:c_org_role_sched_integration
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_role_vega_integration
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_role_vega_operator
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_role_vega_reader
         object: flow_org:closure
         assertions:
           program_files_resolve: false
@@ -3549,6 +7240,206 @@ tests:
         object: flow_org:closure
         assertions:
           program_files_write: false
+      - user: user:c_org_perm_vega_capture_appoint_administrator
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_capture_look_up_company
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_capture_record_address
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_capture_record_bank_account
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_capture_record_civil_status
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_capture_record_contact
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_capture_register_company
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_capture_register_person
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_capture_register_person_from_document
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_capture_scan_identity_document
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_capture_session
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_cases_keep_apart
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_cases_list
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_cases_merge
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_cases_read
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_conflicts_list
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_connections_read
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_contact_read
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_disclosures_list
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_documents_list_expiring
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_dossier_outcomes_apply
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_facts_explain
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_history_compare
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_history_list_changes
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_history_list_events
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_history_read
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_identity_record
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_import_run
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_personal_read
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_proposals_confirm
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_proposals_decline
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_proposals_list
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_registry_refresh
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_relay_typed_input
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_requests_close
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_requests_list
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_requests_record
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_restrictions_lift
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_retention_list
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_sources_list
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_stale_list
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_statements_issue
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_statements_list
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_statements_read
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_structure_read
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_structure_record_representative
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_structure_record_shareholding
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_subjects_find
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_subjects_read_profile
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -3594,6 +7485,18 @@ tests:
         assertions:
           program_files_write: false
       - user: user:c_org_role_sched_integration
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_role_vega_integration
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_role_vega_operator
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
+      - user: user:c_org_role_vega_reader
         object: flow_org:closure
         assertions:
           program_files_write: false
@@ -3655,6 +7558,206 @@ tests:
         object: flow_org:closure
         assertions:
           program_manifest_write: false
+      - user: user:c_org_perm_vega_capture_appoint_administrator
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_capture_look_up_company
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_capture_record_address
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_capture_record_bank_account
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_capture_record_civil_status
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_capture_record_contact
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_capture_register_company
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_capture_register_person
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_capture_register_person_from_document
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_capture_scan_identity_document
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_capture_session
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_cases_keep_apart
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_cases_list
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_cases_merge
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_cases_read
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_conflicts_list
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_connections_read
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_contact_read
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_disclosures_list
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_documents_list_expiring
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_dossier_outcomes_apply
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_facts_explain
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_history_compare
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_history_list_changes
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_history_list_events
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_history_read
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_identity_record
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_import_run
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_personal_read
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_proposals_confirm
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_proposals_decline
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_proposals_list
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_registry_refresh
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_relay_typed_input
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_requests_close
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_requests_list
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_requests_record
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_restrictions_lift
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_retention_list
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_sources_list
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_stale_list
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_statements_issue
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_statements_list
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_statements_read
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_structure_read
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_structure_record_representative
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_structure_record_shareholding
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_subjects_find
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_subjects_read_profile
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -3700,6 +7803,18 @@ tests:
         assertions:
           program_manifest_write: false
       - user: user:c_org_role_sched_integration
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_role_vega_integration
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_role_vega_operator
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_role_vega_reader
         object: flow_org:closure
         assertions:
           program_manifest_write: false
@@ -3805,6 +7920,18 @@ tests:
         object: flow_admin:closure
         assertions:
           changelog_manager: false
+      - user: user:c_platform_perm_vega_system_cases_keep_apart
+        object: flow_admin:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_perm_vega_system_cases_list
+        object: flow_admin:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_perm_vega_system_cases_merge
+        object: flow_admin:closure
+        assertions:
+          changelog_manager: false
       - user: user:c_platform_program_manager
         object: flow_admin:closure
         assertions:
@@ -3894,6 +8021,10 @@ tests:
         assertions:
           changelog_manager: false
       - user: user:c_platform_role_sched_app_admin
+        object: flow_admin:closure
+        assertions:
+          changelog_manager: false
+      - user: user:c_platform_role_vega_platform_admin
         object: flow_admin:closure
         assertions:
           changelog_manager: false

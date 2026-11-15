@@ -200,7 +200,7 @@
 				"ro": "Agent de fluxuri (program)"
 			},
 			"description": {
-				"ro": "Pentru programele organizației care scriu fluxuri prin serverul MCP al aplicației de fluxuri: citește, modifică și publică fluxurile spațiilor de lucru ale organizației și rulează teste. Nu lansează rulări, nu atinge fișiere și nu gestionează nimic. Se dă doar unui program, în Polaris."
+				"ro": "Pentru programele organizației care scriu fluxuri prin serverul MCP al aplicației de fluxuri: citește, modifică și publică fluxurile spațiilor de lucru ale organizației și rulează teste. Nu lansează rulări, nu atinge fișiere și nu gestionează nimic. Se dă doar unui program, în consolă."
 			},
 			"scope_type": "org",
 			"relation": "role_flow_agent",
@@ -220,7 +220,7 @@
 				"ro": "Aplicație care rulează fluxuri (program)"
 			},
 			"description": {
-				"ro": "Pentru aplicația care rulează fluxurile organizației prin interfața de serviciu a aplicației de fluxuri: lansează, urmărește și oprește rulări, încarcă și rezolvă fișierele lor, publică catalogul de variabile al aplicației. Nu citește, nu scrie și nu publică fluxuri. Se dă doar unui program, în Polaris."
+				"ro": "Pentru aplicația care rulează fluxurile organizației prin interfața de serviciu a aplicației de fluxuri: lansează, urmărește și oprește rulări, încarcă și rezolvă fișierele lor, publică catalogul de variabile al aplicației. Nu citește, nu scrie și nu publică fluxuri. Se dă doar unui program, în consolă."
 			},
 			"scope_type": "org",
 			"relation": "role_flow_serviciu",
@@ -242,7 +242,7 @@
 				"ro": "Aplicație care rulează fluxuri, fără fișiere (program)"
 			},
 			"description": {
-				"ro": "Pentru aplicația care rulează fluxurile organizației fără să le dea fișiere: lansează, urmărește și oprește rulări și publică catalogul de variabile al aplicației. Nu încarcă și nu rezolvă fișiere, nu citește, nu scrie și nu publică fluxuri. Se dă doar unui program, în Polaris."
+				"ro": "Pentru aplicația care rulează fluxurile organizației fără să le dea fișiere: lansează, urmărește și oprește rulări și publică catalogul de variabile al aplicației. Nu încarcă și nu rezolvă fișiere, nu citește, nu scrie și nu publică fluxuri. Se dă doar unui program, în consolă."
 			},
 			"scope_type": "org",
 			"relation": "role_flow_rulare",
