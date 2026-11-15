@@ -2,9 +2,9 @@ apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 # PSI's additions to SEB's ubl-validator piece (Mu, the invoicing application's UBL 2.1 / CIUS-RO
 # validator), passed to the renderer as the estate's layer.
-# Slot `image` (schema/slots/ubl-validator.yaml): the tag of the image psi built from SEB 0.1.141
+# Slot `image` (schema/slots/ubl-validator.yaml): the tag of the image psi built from SEB 0.1.145
 # (scripts/estate-images.sh, kind `invoicing`), sha256:102aa069… in registry.psizone.ro/psi, signed
-# with SEB's key (seb.commit 20ae14e98). The generated Application sets it (estate/seb-image-tags.mjs).
+# with SEB's key (seb.commit 2de9423b8). The generated Application sets it (estate/seb-image-tags.mjs).
 images:
   - name: WLREGISTRY/WLAPPS/ubl-validator
-    newTag: seb-20ae14e98
+    newTag: seb-2de9423b8

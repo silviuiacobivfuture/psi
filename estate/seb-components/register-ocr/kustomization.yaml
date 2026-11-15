@@ -2,7 +2,7 @@
 # (schema/slots/register-ocr.yaml).
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
-# Slot `image`: register-ocr as psi built it (scripts/estate-images.sh from SEB 0.1.141), sha256:3a4c7184…, signed.
+# Slot `image`: register-ocr as psi built it (scripts/estate-images.sh from SEB 0.1.145), sha256:3a4c7184…, signed.
 images:
   - name: WLREGISTRY/WLAPPS/register-ocr
-    newTag: seb-20ae14e98
+    newTag: seb-2de9423b8

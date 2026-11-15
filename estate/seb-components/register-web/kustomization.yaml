@@ -2,11 +2,11 @@
 # (schema/slots/register-web.yaml).
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
-# Slot `image`: register-web as psi built it (scripts/estate-images.sh from SEB 0.1.141, sha256:cf711309…, baked with
+# Slot `image`: register-web as psi built it (scripts/estate-images.sh from SEB 0.1.145, sha256:cf711309…, baked with
 # psi's apex and hub label sso), signed.
 images:
   - name: WLREGISTRY/WLAPPS/register-web
-    newTag: seb-20ae14e98
+    newTag: seb-2de9423b8
 # Slot `estate-brand`: psi's brand (declaration, theme, Polaris's icons), the same ConfigMap the console
 # reads (brand/kustomization.yaml). Slot `icons`: Sigma's own icons, copied over the brand's where the
 # interface serves /estate/ (brand/sigma/kustomization.yaml, psi-register-web-icons).

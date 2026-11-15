@@ -96,3 +96,8 @@ BULWARK_HOST_PREFIX: inbox
 INVOICING_HOST_PREFIX: mu
 FLOWS_HOST_PREFIX: rho
 REGISTER_HOST_PREFIX: sigma
+# The lockdown's clean week (SEB docs/lockdown.md): both start at psi's first full doctor run that was
+# green on the Kyverno reports layer after the changelog violation was fixed (bundle 0.1.141-psi.2) and its
+# rollback drill ended (14:05:18Z): that run finished 2026-11-15 14:19Z. Moved forward when a violation is fixed.
+LOCKDOWN_SIGNATURES_SINCE: 2026-11-15T14:19:00Z
+LOCKDOWN_OBJECT_CHANGES_SINCE: 2026-11-15T14:19:00Z
