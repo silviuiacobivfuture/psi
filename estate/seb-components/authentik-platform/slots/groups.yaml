@@ -1,0 +1,9 @@
+# psi's own groups in SEB's groups blueprint (slot `groups`, schema/slots/authentik-platform.yaml).
+# autorizare-tenant-recomex is ANOTHER estate's console tenant group: psi's blueprints carried it until
+# f1158a2e ("no other estate's names or people"), and a blueprint never deletes what it stops declaring,
+# so the group stayed in psi's Authentik with the operator in it. Polaris's console-access reads it as
+# entitling the operator to a tenant psi does not have (2026-11-15). Declared absent here.
+- model: authentik_core.group
+  state: absent
+  identifiers:
+    name: autorizare-tenant-recomex
