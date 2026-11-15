@@ -31,6 +31,7 @@ data:
         provider: !Find [authentik_providers_proxy.proxyprovider, [name, convex-psi-flows-dash]]
         policy_engine_mode: any
         meta_launch_url: https://convex-psi-flows-dash.psizone.ro
+        meta_icon: /static/dist/assets/psi/app-convex.svg
         meta_description: Convex data browser — psi-flows, tenant psi
     - model: authentik_policies.policybinding
       identifiers:
