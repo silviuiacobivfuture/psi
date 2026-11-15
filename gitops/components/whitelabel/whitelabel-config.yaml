@@ -104,6 +104,8 @@ data:
   KENER_NAME: Kener
   SEMAPHORE_HOST_PREFIX: ops
   SEMAPHORE_NAME: Semaphore
+  SESSION_LIFETIME: never
+  AUTHENTIK_SESSION_DURATION: days=36500
   HUB_HOST: sso.psizone.ro
   BUSINESS_APP_PREFIX: psi
   INVOICING_SVC: psi-invoice-svc

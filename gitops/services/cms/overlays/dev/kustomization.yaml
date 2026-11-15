@@ -6,4 +6,13 @@ resources:
   - ../../base
 images:
   - name: registry.psizone.ro/psi/cms
-    newTag: "7403f23"
+    newTag: "b777900"
+# How long a sign-in lasts: the estate's SESSION_LIFETIME, as the hub, the console and the
+# shared applications follow it (apps/cms/src/auth/session-lifetime.ts reads it).
+components:
+  - ../../../../components/whitelabel
+replacements:
+  - source: { kind: ConfigMap, name: whitelabel, fieldPath: data.SESSION_LIFETIME }
+    targets:
+      - select: { kind: Deployment, name: cms }
+        fieldPaths: ["spec.template.spec.containers.[name=cms].env.[name=SESSION_LIFETIME].value"]

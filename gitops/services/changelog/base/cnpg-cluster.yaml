@@ -35,7 +35,7 @@ spec:
   # Fast clean stop after 10 s, not CNPG's 180 s smart-shutdown default: the
   # pooled clients never leave, so a smart shutdown always runs the full window
   # and refuses every connection meanwhile. Rationale and the 2026-10-29
-  # measurement: gitops/platform/authentik/cnpg-cluster.yaml. Guard:
+  # measurement: SEB's pieces/authentik-platform/cnpg-cluster.yaml. Guard:
   # infrastructure/hetzner/scripts/tests/cnpg-fast-stop.test.sh.
   smartShutdownTimeout: 10
   imageName: ghcr.io/cloudnative-pg/postgresql:17.5

@@ -52,7 +52,7 @@ export interface GroupBindings {
  * apps/cms/src/authz/interim.ts is). It reads the bindings Polaris will hold — a directory group
  * bound to a manifest role — from configuration, and the person's groups from Authentik's own
  * answer (userinfo or a verified token), never from a request header. The groups are the
- * directory's (gitops/platform/authentik/blueprints-agent-studio.yaml); no role lives here.
+ * directory's (estate/seb-components/authentik-platform/clients/blueprints-agent-studio.yaml); no role lives here.
  */
 export function groupAuthorizer(bindings: GroupBindings): StudioAuthorizer {
 	const view = new Set([...bindings.view, ...bindings.operate]);

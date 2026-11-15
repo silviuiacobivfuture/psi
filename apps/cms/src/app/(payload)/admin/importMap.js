@@ -8,6 +8,7 @@ import { SourceFilters as SourceFilters_66c3aff52d89760a60befa3972a68778 } from 
 import { SourcePanel as SourcePanel_222f96162cfedcb5584da8474449d2b2 } from "../../../components/knowledge/SourcePanel";
 import { StatusCell as StatusCell_235307064b00e67359d23f707f1961ca } from "../../../components/knowledge/StatusCell";
 import { ReviewPanel as ReviewPanel_176db3e0d68114a4f1814b2462895ab6 } from "../../../components/ReviewPanel";
+import { SessionKeeper as SessionKeeper_97617d0d29f7ce254d52952549197e42 } from "../../../components/SessionKeeper";
 import { SignInWithDirectory as SignInWithDirectory_985c3fe440d71baf76c9873edae5bf27 } from "../../../components/SignInWithDirectory";
 import { AnalyticsView as AnalyticsView_79c4a2cabf7e57f2feac890ba89bb722 } from "../../../views/AnalyticsView";
 import { AccountsView as AccountsView_8a2184ce56cbf0e187bdb7015dac611e } from "../../../views/platform/AccountsView";
@@ -30,6 +31,7 @@ export const importMap = {
 	"/components/SignInWithDirectory#SignInWithDirectory":
 		SignInWithDirectory_985c3fe440d71baf76c9873edae5bf27,
 	"/components/AdminNav#AdminNav": AdminNav_7bb4d8e8c04650469891d301029b44dd,
+	"/components/SessionKeeper#SessionKeeper": SessionKeeper_97617d0d29f7ce254d52952549197e42,
 	"/views/ReviewQueueView#ReviewQueueView": ReviewQueueView_11490c505551989a6e7782637665ad17,
 	"/views/AnalyticsView#AnalyticsView": AnalyticsView_79c4a2cabf7e57f2feac890ba89bb722,
 	"/views/platform/OverviewView#OverviewView": OverviewView_c0b6da0ccf97a3edf58449276231ad02,

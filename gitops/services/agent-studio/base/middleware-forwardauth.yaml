@@ -1,4 +1,4 @@
-# Studio's forward-auth: the estate's gate (gitops/platform/authentik/middleware-forwardauth.yaml,
+# Studio's forward-auth: the estate's gate (SEB's pieces/authentik-platform/middleware-forwardauth.yaml,
 # the embedded outpost's Traefik endpoint), with ONE header more — X-authentik-jwt, the token the
 # outpost minted for this person on THIS application (authentik 2026.5.3
 # internal/outpost/proxyv2/application/mode_common.go). The pod confirms it with Authentik and

@@ -1,10 +1,10 @@
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 # psi's own sign-in clients on its directory, ONE copy: composed by ../kustomization.yaml (psi's
-# layer for the SEB piece authentik-platform, slots estate-blueprints and estate-clients) and, until
-# the git copy is removed, by gitops/platform/authentik/kustomization.yaml. Every object is in the
-# `authentik` namespace. The chart mounts the three blueprints and reads the three clients' secrets
+# layer for the SEB piece authentik-platform, slots estate-blueprints and estate-clients). Every
+# object is in the `authentik` namespace. The chart mounts the three blueprints and reads the three clients' secrets
 # as env (estate/seb-components/authentik/: estate-blueprints.yaml, env-secrets.yaml).
+# blueprints-agent-studio.yaml sits here NOT listed: agent-studio's sign-in is not wired yet (its header).
 resources:
   # psi's cms (OIDC provider, application, editors) and its client's secret.
   - blueprints-cms.yaml

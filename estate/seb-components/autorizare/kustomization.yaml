@@ -39,7 +39,7 @@ patches:
         value: "/estate/hub/clients.json"
       # PSI SETTING: TOTP OPTIONAL — TOTP disabled by owner 2026-11-12, temporary. Authentik asks
       # for a code only from people who added an authenticator themselves
-      # (gitops/platform/authentik/blueprints-mfa.yaml, "PSI SETTING: TOTP OPTIONAL"), so a
+      # (estate/seb-components/authentik-platform/slots/mfa-validate.yaml, "PSI SETTING"), so a
       # password-only sign-in is a normal one and the hub must not refuse it for lacking "mfa".
       # Turn back on with "true" here (and in the hub's annotation below) AND `configure` there.
       - op: replace

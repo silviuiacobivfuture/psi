@@ -67,6 +67,8 @@ data:
           name: Programări
           provider: !Find [authentik_providers_oauth2.oauth2provider, [name, clinic]]
           meta_launch_url: https://programari-dev.psizone.ro/calendar
+          # Its tile's icon, served by the directory itself (look/app-clinic.svg).
+          meta_icon: /static/dist/assets/psi/app-clinic.svg
       # Without a binding an application lets ANY authenticated user through. Two bindings,
       # engine mode `any`: the editors' group, and `authentik Admins` (Authentik's own
       # superuser group, present in every directory) as break-glass — a binding must never

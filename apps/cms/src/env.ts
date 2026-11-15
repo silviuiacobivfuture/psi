@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { sessionSeconds } from "./auth/session-lifetime";
 
 const Origin = z
 	.string()
@@ -22,7 +23,10 @@ const TenantOverrides = z
 			const m = /^\s*([a-z]+)=([a-z0-9][a-z0-9-]{1,40})\s*$/.exec(part);
 			const brand = TenantBrand.safeParse(m?.[1]);
 			if (m === null || !brand.success || m[2] === undefined) {
-				ctx.addIssue({ code: z.ZodIssueCode.custom, message: "brand=tenant,brand=tenant" });
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "brand=tenant,brand=tenant",
+				});
 				return z.NEVER;
 			}
 			out[brand.data] = m[2];
@@ -73,6 +77,21 @@ const Env = z
 			.refine((u) => u.endsWith("/"), "trailing slash, as the directory publishes it"),
 		OIDC_CLIENT_ID: z.string().min(1),
 		OIDC_CLIENT_SECRET: z.string().min(1),
+		/**
+		 * How long a sign-in lasts after its last use: the estate's SESSION_LIFETIME ("never",
+		 * <n>h, <n>d; absent = never), from the whitelabel ConfigMap (the cms overlay).
+		 */
+		SESSION_LIFETIME: z
+			.string()
+			.optional()
+			.refine((v) => {
+				try {
+					sessionSeconds(v);
+					return true;
+				} catch {
+					return false;
+				}
+			}, "never, <n>h or <n>d"),
 		/** The break-glass local administrator, created once on an empty database. */
 		BREAKGLASS_EMAIL: z.string().email(),
 		BREAKGLASS_PASSWORD: z.string().min(16),
@@ -135,13 +154,21 @@ const Env = z
 		const unset = S3_KEYS.filter((k) => s3[k] === undefined);
 		if (unset.length !== 0 && unset.length !== S3_KEYS.length) {
 			for (const k of unset) {
-				ctx.addIssue({ code: z.ZodIssueCode.custom, path: [k], message: "S3_*: all or none" });
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: [k],
+					message: "S3_*: all or none",
+				});
 			}
 		}
 		if (e.AUTHZ_ADAPTER === "openfga") {
 			for (const k of ["OPENFGA_API_URL", "OPENFGA_STORE_ID", "OPENFGA_API_TOKEN"] as const) {
 				if (e[k] === undefined) {
-					ctx.addIssue({ code: z.ZodIssueCode.custom, path: [k], message: "needed by openfga" });
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						path: [k],
+						message: "needed by openfga",
+					});
 				}
 			}
 		}

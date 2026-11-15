@@ -91,6 +91,10 @@ spec:
           env:
             - { name: SERVER_URL, value: "https://cms.psizone.ro" }
             - { name: OIDC_ISSUER, value: "https://auth.psizone.ro/application/o/cms/" }
+            # How long a sign-in lasts after its last use: the estate's SESSION_LIFETIME, put here by
+            # the overlay from the whitelabel ConfigMap (estate/identity.yaml). The token left here
+            # unreplaced is refused by src/env.ts, naming the key: never a silent default.
+            - { name: SESSION_LIFETIME, value: WLSESSIONLIFETIME }
             # Who holds which CMS role until psi's OpenFGA answers the CMS (src/authz/interim.ts).
             # Not a secret — a reviewed binding: the estate's admins (Authentik group platform-admins)
             # are CMS admins on every brand; each admin also by email until the cms provider sends groups. Add editors here: group:app-cms-editor=cms:editor[@brand].

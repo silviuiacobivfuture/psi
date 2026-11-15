@@ -97,3 +97,14 @@
       upn: lucian.trifan@psizone.ro
       mail_address: lucian.trifan@post.psizone.ro
       mail_account: lucian.trifan
+# The console journeys' robot `playwright` (SEB's entry: created only, email playwright@<BASE_DOMAIN>).
+# psi's account was created before psi's identity filled that address, as playwright@recomex.eu,
+# and a created-only entry never corrects it: the journeys secret (secret/apps/autorizare/e2e,
+# seeded with playwright@psizone.ro) then names no account. Its address made psi's, here; nothing
+# else of the account is touched (password and TOTP stay repair.sh's, from that secret).
+- model: authentik_core.user
+  state: present
+  identifiers:
+    username: playwright
+  attrs:
+    email: playwright@psizone.ro
