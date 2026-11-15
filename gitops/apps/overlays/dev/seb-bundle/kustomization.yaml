@@ -48,3 +48,4 @@ resources:
   - seb-plane.yaml
   - seb-autorizare.yaml
   - seb-ubl-validator.yaml
+  - seb-flows.yaml

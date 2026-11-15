@@ -1,0 +1,18 @@
+# psi's layer for the SEB piece `flows`: Rho, the shared flows application (schema/slots/flows.yaml).
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# Slot `image`: the flows image psi built (scripts/estate-images.sh from SEB 0.1.117, kind next-convex,
+# with Rho's key, name and icons; its Convex functions deployed to convex-psi-flows in the same step),
+# sha256:eb3160c8… in registry.psizone.ro/psi, signed.
+images:
+  - name: WLREGISTRY/WLAPPS/flows
+    newTag: seb-0c77041e5
+# Slot `homepage-name`: the product's name on psi's homepage tile. Slot `browser-runner` is left at
+# SEB's never-resolving default: psi runs no browser-automation API, so a flow RUN fails loudly on its
+# first call rather than sending the runner key anywhere; authoring, versions and keys work.
+patches:
+  - target: { kind: Ingress }
+    patch: |-
+      - op: replace
+        path: /metadata/annotations/gethomepage.dev~1name
+        value: Rho

@@ -29,4 +29,4 @@ patches:
 # The generated Application sets it (estate/seb-image-tags.mjs).
 images:
   - name: WLREGISTRY/WLAPPS/autorizare-svc
-    newTag: seb-48caea352
+    newTag: seb-0c77041e5
