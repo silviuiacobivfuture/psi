@@ -1,0 +1,5 @@
+# psi (2026-11-16): request 512Mi -> 448Mi (530-681 Mi idle measured before num_prespawn_children=1;
+# re-measure after it and lower further); limits unchanged.
+resources:
+  requests: { cpu: 200m, memory: 448Mi }
+  limits: { cpu: "2", memory: 2Gi }

@@ -1,0 +1,4 @@
+# psi (2026-11-16): SEB's four flags, plus ONE pre-spawned document process instead of coolwsd's
+# default: psi's office is used by a handful of people, and every idle kit held memory on a node
+# at 98%. A second document opened at once spawns its process on demand (a second's wait).
+extra_params: --o:ssl.enable=false --o:ssl.termination=true --o:security.capabilities=false --o:mount_jail_tree=false --o:num_prespawn_children=1

@@ -1,0 +1,4 @@
+# psi (2026-11-16): 5Gi, was SEB's 9Gi. psi's apps.yml builds its application images in this
+# sidecar (/docker gets 4.5 GiB of it); idle it holds 75 Mi anonymous, 350 Mi with page cache.
+# Together with the runner's 4Gi a CI job is bounded at 9Gi of the node, not 21Gi.
+limits: { memory: 5Gi }

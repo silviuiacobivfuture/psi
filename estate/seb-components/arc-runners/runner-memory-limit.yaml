@@ -1,0 +1,5 @@
+# psi (2026-11-16): 4Gi, was SEB's 12Gi. The runner shares psi's ONE server with every service;
+# an unbounded job pushed the node to 103% of its allocatable memory and MemoryPressure. Measured
+# during estate-gates (vitest): 2.1 Gi anonymous, 2.3-2.8 Gi working set. A job that outgrows this
+# fails its own step; raise it here, with the measurement.
+memory: 4Gi
