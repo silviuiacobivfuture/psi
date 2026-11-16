@@ -6,3 +6,11 @@ kind: Component
 images:
   - name: WLREGISTRY/WLAPPS/register-ocr
     newTag: seb-2de9423b8
+# psi 2026-11-16: request 384Mi -> 96Mi. Idle at 4-8 Mi (kubectl top, 15-16 Nov); it works only
+# while a scanned document is read, and that burst grows into the 768Mi limit, unchanged. The
+# node sat at 98% of its memory requested.
+patches:
+  - target: { kind: Deployment, name: psi-register-ocr }
+    patch: |-
+      - { op: test, path: /spec/template/spec/containers/0/name, value: psi-register-ocr }
+      - { op: replace, path: /spec/template/spec/containers/0/resources/requests/memory, value: 96Mi }
