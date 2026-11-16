@@ -1,5 +1,6 @@
-# psi (2026-11-16): 4Gi, was SEB's 12Gi. The runner shares psi's ONE server with every service;
-# an unbounded job pushed the node to 103% of its allocatable memory and MemoryPressure. Measured
-# during estate-gates (vitest): 2.1 Gi anonymous, 2.3-2.8 Gi working set. A job that outgrows this
-# fails its own step; raise it here, with the measurement.
-memory: 4Gi
+# psi (2026-11-16): 6Gi, was SEB's 12Gi. The runner shares psi's ONE server with every service;
+# an unbounded job pushed the node to 103% of its allocatable memory and MemoryPressure.
+# 4Gi was tried first and was too low: estate-gates' runner was SIGKILLed (exit 137) mid-job at
+# 00:41Z on 16 Nov, after 2.1 Gi anonymous / 2.7 Gi working set sampled a minute apart, so its
+# peak is above 4Gi and unmeasured. Lower this only with a peak measured DURING estate-gates.
+memory: 6Gi
