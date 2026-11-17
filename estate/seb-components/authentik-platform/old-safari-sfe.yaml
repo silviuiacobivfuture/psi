@@ -1,0 +1,55 @@
+# Safari before 18 signs in through Authentik's simplified sign-in page (psi, 2026-11-17).
+#
+# A colleague's Safari crashed on psi's sign-in ("A problem repeatedly occurred"). Authentik
+# 2026.5's sign-in page does not survive older Safari (upstream goauthentik/authentik#23500,
+# Safari 17.5 on 2026.5.3, closed unfixed); Safari before 16.4 cannot even read its scripts.
+# Upstream supports the latest two Safari majors only (#19814), and a Mac that stops at macOS
+# Monterey stops at Safari 17.6.
+#
+# Authentik ships a second sign-in page for old browsers, the simplified flow executor, chosen
+# by `?sfe` on the flow's URL (authentik/flows/views/interface.py). It handles psi's sign-in
+# (identification, password, redirects, refusals) but not psi's look, and stages it does not
+# know (prompts: recovery, enrolment) answer "Unsupported stage". So it is given only to the
+# browsers that cannot use the full page.
+#
+# THE ONE CHANGE: a request for a flow page (/if/flow/...) WITHOUT `sfe`, from Safari before 18
+# (macOS, by its `Version/` token) or from any browser on iOS/iPadOS before 18 (all Safari
+# underneath), is redirected once to the same URL with `sfe=1` first. Every other request, every
+# other browser and every other path on auth.psizone.ro reaches Authentik unchanged. After the
+# redirect the route no longer matches, so there is no loop. Chrome, Edge and Firefox on the same
+# old Mac never carry `Version/` and are untouched.
+#
+# The same route is SEB's pieces/authentik-platform/old-safari-sfe.yaml from the SEB release
+# after 0.1.148 (SEB dev, 2026-11-17). psi carries it here, out of slot (estate/seb-exceptions.yaml
+# psi-old-safari-sfe), until it takes that release: then the bundle build refuses the duplicate
+# objects by name and this file and its exception are deleted.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: old-safari-sfe
+  namespace: authentik
+spec:
+  redirectRegex:
+    regex: '^(https://[^/?#]+/if/flow/[^?#]*)(?:\?([^#]*))?$'
+    replacement: '${1}?sfe=1&${2}'
+    permanent: false
+---
+# Priority above authentik-public's Ingress (Traefik ranks that by rule length).
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: authentik-old-safari-sfe
+  namespace: authentik
+spec:
+  entryPoints: [websecure]
+  routes:
+    - kind: Rule
+      priority: 300
+      match: 'Host(`auth.psizone.ro`) && PathPrefix(`/if/flow/`) && !QueryRegexp(`sfe`, `.*`) && HeaderRegexp(`User-Agent`, `Version/(1[0-7]|[1-9])\.[0-9.]+( Mobile/[0-9A-Za-z]+)? Safari/|\((iPhone|iPad|iPod);.* OS (1[0-7]|[1-9])_`)'
+      middlewares:
+        - name: old-safari-sfe
+      services:
+        - name: authentik-server
+          port: 80
+  tls:
+    secretName: authentik-public-tls

@@ -6,8 +6,12 @@ kind: Component
 #                     authentik-assets painter, see that file's $comment) psi's sign-in stylesheet (106faaff): Psizone Night and Gold tokens, Fraunces and
 #                     Manrope, pill buttons, psi's ambient field in place of the starfield. Served as
 #                     <ESTATE_SLUG>.css; the theme blueprint reads it.
-#   fundal-light.svg  the ambient field's light ground, which psi.css draws (fundal.svg, the dark
-#                     one, is the painter's and identical).
+#   fundal-light.svg  the ambient field's light ground, which psi.css draws.
+#   fundal.svg        the dark ground, in place of the painter's (2026-11-17): both are drawn with
+#                     radial gradients, NOT an SVG blur filter, which older Safari could not carry
+#                     behind the sign-in (about 250 MB more per page). Generated from
+#                     brand/signin-theme.json by SEB's groundSvg as of SEB dev 2026-11-17; the painter
+#                     of the SEB release after 0.1.148 draws the same, and this copy goes then.
 #   app-cms.svg       the tile icon of psi's CMS (clients/blueprints-cms.yaml meta_icon): the CMS's
 #                     own mark, the gradient orb apps/cms/src/components/brand/PsiMark.tsx draws.
 #   app-clinic.svg    the tile icon of psi's clinic console, dev and production (clients/
@@ -22,5 +26,6 @@ configMapGenerator:
     files:
       - psi.css=psi.generated.css
       - fundal-light.svg
+      - fundal.svg
       - app-cms.svg
       - app-clinic.svg
