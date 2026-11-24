@@ -32,29 +32,38 @@
     email: nicholas.turcu@icloud.com
     type: internal
     is_active: true
-# Lucian Sergiu Trifan (owner, 2026-11-12): "make him full rights admin for now" … "ill
-# remove some of his rights after a while". Every grant is a line of his in
-# blueprints-groups.yaml, the same set as adi_rar's; removing a right removes that line.
+# Lucian Sergiu Trifan is removed entirely (owner, 2026-11-24): his account is declared absent
+# (a blueprint never deletes what it stops declaring) and he is in no roster. Once the account is
+# gone from the live Authentik, this entry can be removed.
+- model: authentik_core.user
+  state: absent
+  identifiers:
+    username: lucian.trifan
+# Iuliana (owner, 2026-11-24): the fifth member, full rights like the others, but NO mail access:
+# no mailbox, and in neither app-mail-user nor app-mail-admin. Her `email` is the recovery address
+# (the company's, psizone.srl@icloud.com); she signs in as iuliana@psizone.ro (upn, below).
 - model: authentik_core.user
   state: created
   identifiers:
-    username: lucian.trifan
+    username: iuliana
   attrs:
-    name: Lucian Sergiu Trifan
-    email: trifan.lucian.sergiu@gmail.com
+    name: Iuliana
+    email: psizone.srl@icloud.com
     type: internal
     is_active: true
 # SIGN-IN NAME AND MAILBOX (owner, 2026-11-12), one entry per person, attributes only
 # (the people above are `state: created` and never rewritten; `attributes` is written
 # whole, so every key a person carries is listed here):
-#   upn           the address they type at the sign-in page, name@psizone.ro. Both
+#   upn           the address they type at the sign-in page, <first name>@psizone.ro (owner,
+#                 2026-11-24: all addresses on a first-name basis). Both
 #                 identification stages search [email, username, upn]
 #                 (blueprints-recovery.yaml), so it signs in AND starts "forgot
 #                 password". It is NOT their e-mail: `email` stays the external address
 #                 every application knows them by and the one recovery mail goes to.
 #   mail_address  the mailbox they own on the estate's mail server, whole
-#                 (name@post.psizone.ro; name@psizone.ro should psizone.ro's mail move
-#                 off Zoho). The `mail` scope hands it to Stalwart (blueprints-providers.yaml).
+#                 (<first name>@psizone.ro: the estate's MAILBOX_DOMAIN is the apex since
+#                 2026-11-24, Zoho unused). The `mail` scope hands it to Stalwart
+#                 (blueprints-providers.yaml).
 #   mail_account  the same mailbox's local part, read by the mail scope until it reads
 #                 mail_address; drop it once nothing does.
 - model: authentik_core.user
@@ -62,43 +71,41 @@
     username: WLOPERATOR
   attrs:
     attributes:
-      upn: silviu.iacob@psizone.ro
-      mail_address: silviu.iacob@post.psizone.ro
-      mail_account: silviu.iacob
+      upn: silviu@psizone.ro
+      mail_address: silviu@psizone.ro
+      mail_account: silviu
 - model: authentik_core.user
   identifiers:
     username: turcu_daniela
   attrs:
     attributes:
-      upn: dana.turcu@psizone.ro
-      mail_address: dana.turcu@post.psizone.ro
-      mail_account: dana.turcu
+      upn: daniela@psizone.ro
+      mail_address: daniela@psizone.ro
+      mail_account: daniela
 - model: authentik_core.user
   identifiers:
     username: adi_rar
   attrs:
     attributes:
-      upn: adi.turcu@psizone.ro
-      mail_address: adi.turcu@post.psizone.ro
-      mail_account: adi.turcu
+      upn: adi@psizone.ro
+      mail_address: adi@psizone.ro
+      mail_account: adi
 - model: authentik_core.user
   identifiers:
     username: nicholas.turcu
   attrs:
     attributes:
-      upn: nicholas.turcu@psizone.ro
-      mail_address: nicholas.turcu@post.psizone.ro
-      mail_account: nicholas.turcu
+      upn: nicholas@psizone.ro
+      mail_address: nicholas@psizone.ro
+      mail_account: nicholas
 - model: authentik_core.user
   identifiers:
-    username: lucian.trifan
+    username: iuliana
   attrs:
     attributes:
-      upn: lucian.trifan@psizone.ro
-      mail_address: lucian.trifan@post.psizone.ro
-      mail_account: lucian.trifan
+      upn: iuliana@psizone.ro
 # The console journeys' robot `playwright` (SEB's entry: created only, email playwright@<BASE_DOMAIN>).
-# psi's account was created before psi's identity filled that address, as playwright@recomex.eu,
+# psi's account was created before psi's identity filled that address, under another estate's domain,
 # and a created-only entry never corrects it: the journeys secret (secret/apps/autorizare/e2e,
 # seeded with playwright@psizone.ro) then names no account. Its address made psi's, here; nothing
 # else of the account is touched (password and TOTP stay repair.sh's, from that secret).

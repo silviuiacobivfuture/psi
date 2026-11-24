@@ -46,6 +46,8 @@ data:
   GIT_REPO: psi
   CI_RUNNER_CONFIG_URL: "https://github.com/silviuiacobivfuture/psi"
   MESH: none
+  LOCKDOWN_SIGNATURES_SINCE: "2026-11-15T14:19:00Z"
+  LOCKDOWN_OBJECT_CHANGES_SINCE: "2026-11-15T14:19:00Z"
   ENVIRONMENTS: dev
   # platform-apps
   PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,nextcloud,test-reports,pdfcraft,affine,stalwart,invoicing,flows,register
@@ -66,6 +68,7 @@ data:
   FLOWS_HOST_PREFIX: rho
   REGISTER_HOST_PREFIX: sigma
   BULWARK_HOST_PREFIX: inbox
+  MAILBOX_DOMAIN: psizone.ro
   NOVU_BRIDGE_URL: "http://notify-bridge.notify-bridge.svc.cluster.local:8080/api/novu"
   # identity
   OPERATOR_USERNAME: silviu
@@ -102,7 +105,6 @@ data:
   KUTT_HOST_PREFIX: go
   KUTT_NAME: Kutt
   MAIL_ADMIN_HOST_PREFIX: mail-admin
-  MAILBOX_DOMAIN: post.psizone.ro
   KENER_HOST_PREFIX: status
   KENER_NAME: Kener
   SEMAPHORE_HOST_PREFIX: ops
@@ -122,6 +124,8 @@ data:
   CASES_CONVEX_HOST: convex-psi-cases.psizone.ro
   REF_SIGNATURE_PULL_PATH: secret/platform/harbor/verify
   SIGNATURE_PULL_STORE_KEY: platform/harbor/verify
+  LOCKDOWN_SIGNATURES: Audit
+  LOCKDOWN_OBJECT_CHANGES: Audit
   FLOWS_APP: psi-flows
   FLOWS_HOST: rho.psizone.ro
   REGISTER_APP: psi-register

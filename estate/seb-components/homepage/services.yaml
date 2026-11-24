@@ -128,7 +128,7 @@
     - E-mail:
         icon: mdi-email-outline
         href: https://inbox.psizone.ro/
-        description: Căsuța ta nume@post.psizone.ro, în browser · Bulwark
+        description: Căsuța ta prenume@psizone.ro, în browser · Bulwark
         namespace: stalwart
         app: bulwark
         podSelector: app.kubernetes.io/name=bulwark

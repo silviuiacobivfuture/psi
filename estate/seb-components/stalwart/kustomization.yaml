@@ -3,23 +3,23 @@ kind: Component
 # psi's additions to SEB's stalwart piece.
 #
 # MAILBOXES (owner, 2026-11-12: "i want emails for silviu.iacob, dana.turcu, adi.turcu, and the
-# other person"). Each is <line>@<MAILBOX_DOMAIN> (post.psizone.ro), made by the server's plan
-# before its owner first signs in, so it receives mail from the start. The owner signs in through
-# Authentik and lands on it by the `mail_address` attribute of their Authentik account (psi's
-# people blueprint); their Authentik e-mail stays their own external address:
-#   silviu.iacob    Authentik silviu          (silviu.iacob@ivfuture.ro)
-#   dana.turcu      Authentik turcu_daniela   (turcu_daniela@icloud.com)
-#   adi.turcu       Authentik adi_rar         (adi_rar@yahoo.com)
-#   nicholas.turcu  Authentik nicholas.turcu  (nicholas.turcu@icloud.com)
-#   lucian.trifan   Authentik lucian.trifan   (trifan.lucian.sergiu@gmail.com; owner, 2026-11-12)
+# other person"; renamed 2026-11-24 to first names at the apex: "silviu@psizone.ro,
+# daniela@psizone.ro, etc."). Each is <line>@<MAILBOX_DOMAIN> (psizone.ro), made by the server's
+# plan before its owner first signs in, so it receives mail from the start. The owner signs in
+# through Authentik and lands on it by the `mail_address` attribute of their Authentik account
+# (psi's people blueprint); their Authentik e-mail stays their own external address:
+#   silviu    Authentik silviu          (silviu.iacob@ivfuture.ro)
+#   daniela   Authentik turcu_daniela   (turcu_daniela@icloud.com)
+#   adi       Authentik adi_rar         (adi_rar@yahoo.com)
+#   nicholas  Authentik nicholas.turcu  (nicholas.turcu@icloud.com)
+# Iuliana (the fifth member) has no mailbox by the owner's decision (2026-11-24).
 patches:
   - target: { kind: ConfigMap, name: stalwart-mailboxes }
     patch: |-
       - op: replace
         path: /data/mailboxes
         value: |
-          silviu.iacob
-          dana.turcu
-          adi.turcu
-          nicholas.turcu
-          lucian.trifan
+          silviu
+          daniela
+          adi
+          nicholas
