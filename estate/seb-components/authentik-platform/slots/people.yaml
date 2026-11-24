@@ -39,8 +39,8 @@
   state: absent
   identifiers:
     username: lucian.trifan
-# Iuliana (owner, 2026-11-24): the fifth member, full rights like the others, but NO mail access:
-# no mailbox, and in neither app-mail-user nor app-mail-admin. Her `email` is the recovery address
+# Iuliana (owner, 2026-11-24): the fifth member, full rights like the others, with her own
+# iuliana@psizone.ro inbox (every one of the five has one). Her `email` is the recovery address
 # (the company's, psizone.srl@icloud.com); she signs in as iuliana@psizone.ro (upn, below).
 - model: authentik_core.user
   state: created
@@ -104,6 +104,8 @@
   attrs:
     attributes:
       upn: iuliana@psizone.ro
+      mail_address: iuliana@psizone.ro
+      mail_account: iuliana
 # The console journeys' robot `playwright` (SEB's entry: created only, email playwright@<BASE_DOMAIN>).
 # psi's account was created before psi's identity filled that address, under another estate's domain,
 # and a created-only entry never corrects it: the journeys secret (secret/apps/autorizare/e2e,

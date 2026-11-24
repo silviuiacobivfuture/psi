@@ -12,7 +12,7 @@ kind: Component
 #   daniela   Authentik turcu_daniela   (turcu_daniela@icloud.com)
 #   adi       Authentik adi_rar         (adi_rar@yahoo.com)
 #   nicholas  Authentik nicholas.turcu  (nicholas.turcu@icloud.com)
-# Iuliana (the fifth member) has no mailbox by the owner's decision (2026-11-24).
+#   iuliana   Authentik iuliana         (psizone.srl@icloud.com; owner, 2026-11-24: all five have an inbox)
 patches:
   - target: { kind: ConfigMap, name: stalwart-mailboxes }
     patch: |-
@@ -23,3 +23,4 @@ patches:
           daniela
           adi
           nicholas
+          iuliana
