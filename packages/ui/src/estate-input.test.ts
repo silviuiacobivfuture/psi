@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ESTATE_LOCAL, estateInput, estateLinks } from "./estate";
 
 const ALL = {
-	PSIZONE_URL: "https://landing.psizone.ro",
+	PSIZONE_URL: "https://psizone.ro",
 	EQSYNC_URL: "https://eqsync.psizone.ro",
 	HEMISYNC_URL: "https://hemisync.psizone.ro",
 	BLOG_URL: "https://blog.psizone.ro",

@@ -169,7 +169,7 @@ spec:
             - Site-urile noastre:
                 - Psizone:
                     icon: mdi-web
-                    href: https://landing.psizone.ro
+                    href: https://psizone.ro
                     description: Site-ul centrului Psizone
                     namespace: psizone-web
                     app: psizone-web

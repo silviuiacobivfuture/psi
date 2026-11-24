@@ -7,8 +7,11 @@ metadata:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
 spec:
   ingressClassName: traefik
-  tls: [{ hosts: [landing.psizone.ro], secretName: psizone-web-tls }]
+  tls: [{ hosts: [psizone.ro, www.psizone.ro], secretName: psizone-web-tls }]
   rules:
-    - host: landing.psizone.ro
+    - host: psizone.ro
+      http:
+        paths: [{ path: /, pathType: Prefix, backend: { service: { name: psizone-web, port: { name: http } } } }]
+    - host: www.psizone.ro
       http:
         paths: [{ path: /, pathType: Prefix, backend: { service: { name: psizone-web, port: { name: http } } } }]

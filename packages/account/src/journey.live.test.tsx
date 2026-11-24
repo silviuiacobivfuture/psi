@@ -403,7 +403,7 @@ describe("the signed-in journey (live OpenFGA)", () => {
 	});
 
 	it("sends export and erasure to the data home where the site keeps no reservations", async () => {
-		const home = "https://landing.psizone.ro/cont/date";
+		const home = "https://psizone.ro/cont/date";
 		const { app, stores } = await setup(FGA_URL, {
 			dataHome: home,
 			noReservations: true,

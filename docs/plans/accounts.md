@@ -19,7 +19,7 @@ Status: plan and first slice, 2026-11-12. Package `packages/account` (`@psi/acco
 ## 2. Sign-in: one estate account through Authentik
 
 ```
-visitor ─► landing.psizone.ro/auth/sign-in ─302─► auth.psizone.ro/application/o/psizone-web/ (code + PKCE S256, state, nonce)
+visitor ─► psizone.ro/auth/sign-in ─302─► auth.psizone.ro/application/o/psizone-web/ (code + PKCE S256, state, nonce)
         ◄─302── /auth/callback?code  ─► token exchange (confidential client) ─► ID token verified (openid-client)
         server-side session row (Postgres) ◄─ opaque id in __Host-psi-psizone-session (httpOnly, Secure, Lax)
 ```

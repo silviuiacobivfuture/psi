@@ -57,7 +57,7 @@ spec:
             - { name: CHROMA_URL, value: "http://chroma.chroma.svc:8000" }
             - { name: CMS_URL, value: "https://cms.psizone.ro" }
             - { name: NODE_ENV, value: production }
-            - { name: PSIZONE_URL, value: "https://landing.psizone.ro" }
+            - { name: PSIZONE_URL, value: "https://psizone.ro" }
             - { name: HEMISYNC_URL, value: "https://hemisync.psizone.ro" }
             - { name: BLOG_URL, value: "https://blog.psizone.ro" }
           readinessProbe: { httpGet: { path: /, port: http }, periodSeconds: 10 }
