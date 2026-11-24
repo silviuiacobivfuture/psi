@@ -110,6 +110,25 @@
       upn: iuliana@psizone.ro
       mail_address: iuliana@psizone.ro
       mail_account: iuliana
+# Adrian (the clinic's practitioner; owner, 2026-11-24: no account on the estate without an
+# @psizone.ro identity, and every one keeps a recovery address). His existing account, created
+# 2026-11-14 as `ady_rar`, is renamed `adrian`; its `email` stays his recovery address and its
+# clinic groups stay (they are the clinic's, not a roster's). Sign-in only: no mailbox, no roster.
+- model: authentik_core.user
+  state: created
+  identifiers:
+    username: adrian
+  attrs:
+    name: Adrian
+    email: ady_rar@yahoo.com
+    type: internal
+    is_active: true
+- model: authentik_core.user
+  identifiers:
+    username: adrian
+  attrs:
+    attributes:
+      upn: adrian@psizone.ro
 # The console journeys' robot `playwright` (SEB's entry: created only, email playwright@<BASE_DOMAIN>).
 # psi's account was created before psi's identity filled that address, under another estate's domain,
 # and a created-only entry never corrects it: the journeys secret (secret/apps/autorizare/e2e,
