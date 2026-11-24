@@ -42,12 +42,15 @@
 # Iuliana (owner, 2026-11-24): the fifth member, full rights like the others, with her own
 # iuliana@psizone.ro inbox (every one of the five has one). Her `email` is the recovery address
 # (the company's, psizone.srl@icloud.com); she signs in as iuliana@psizone.ro (upn, below).
+# This is her EXISTING account (the clinic's reception, created 2026-11-13 under her recovery
+# address as its username), renamed to `iuliana` on 2026-11-24: its clinic groups and its
+# `psi_role_hint` stay; created-only, so a person already there is never recreated.
 - model: authentik_core.user
   state: created
   identifiers:
     username: iuliana
   attrs:
-    name: Iuliana
+    name: Iuliana Maxim
     email: psizone.srl@icloud.com
     type: internal
     is_active: true
@@ -103,6 +106,7 @@
     username: iuliana
   attrs:
     attributes:
+      psi_role_hint: reception
       upn: iuliana@psizone.ro
       mail_address: iuliana@psizone.ro
       mail_account: iuliana
