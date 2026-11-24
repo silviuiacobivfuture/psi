@@ -134,7 +134,7 @@
         podSelector: app.kubernetes.io/name=bulwark
     - Parole de aplicație (e-mail):
         icon: mdi-cellphone-key
-        href: https://post.psizone.ro/account
+        href: https://mail-admin.psizone.ro/account
         description: Pagina serverului de e-mail · parola pentru telefon și administrare · Stalwart
         namespace: stalwart
         app: stalwart

@@ -62,10 +62,10 @@ REPORTPORTAL_HOST_PREFIX: reports
 TEST_REPORTS_HOST_PREFIX: tests
 PDFCRAFT_HOST_PREFIX: pdf
 AFFINE_HOST_PREFIX: docs
-MAIL_HOST_PREFIX: post
-# The people's mailboxes are <first name>@psizone.ro (owner, 2026-11-24: "instead of post.psizone.ro it
-# will be psizone.ro", Zoho unused). post.psizone.ro stays the mail SERVER's host (MX target, SMTP/IMAP
-# name, certificate); only the address's domain moves to the apex.
+MAIL_HOST_PREFIX: mx
+# The people's mailboxes are <first name>@psizone.ro (owner, 2026-11-24: nothing under post.*, Zoho
+# unused). The mail SERVER's host is mx.psizone.ro (MX target, SMTP/IMAP name, certificate); the
+# address's domain is the apex.
 MAILBOX_DOMAIN: psizone.ro
 FRONT_HOST_PREFIX: portal
 
