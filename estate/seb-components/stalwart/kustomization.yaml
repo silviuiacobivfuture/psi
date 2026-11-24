@@ -24,3 +24,12 @@ patches:
           adi
           nicholas
           iuliana
+      # GROUP ADDRESSES (owner, 2026-11-24: every account has a recovery address and nobody is
+      # locked out): a mailing list, so mail to <group>@psizone.ro lands in each member's own inbox.
+      # ops@ is OPS_EMAIL (the break-glass and service accounts' address: akadmin, the CMS
+      # break-glass, n8n, Novu); certificates@ is ACME_EMAIL. Who reads them changes here.
+      - op: replace
+        path: /data/groups
+        value: |
+          ops silviu daniela adi nicholas iuliana
+          certificates silviu daniela adi nicholas iuliana
