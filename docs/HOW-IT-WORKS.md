@@ -34,4 +34,10 @@ bundle supplies the platform pieces and libraries.
 - Platform bug or missing feature → fix it in SEB, release, upgrade psi. Not here.
 - psi-only behaviour → here.
 - Existing DNS records in psizone.ro (apex, www, clinic, files, jelly, radarr, sonarr, mail, MX,
-  mail TXT) are yours and are never touched by the estate.
+  mail TXT) are yours and are never touched by the estate. One exception, by the owner's hand
+  (2026-11-24: Zoho dropped, mail moved to the estate's own server): the apex MX is now
+  `10 mx.psizone.ro` (the three Zoho MX records are gone) and the apex SPF is
+  `v=spf1 mx ip4:188.213.22.140 ip4:94.177.98.76 include:amazonses.com ~all`. Both are set in
+  Cloudflare, not by tofu (the apex is foreign), so a zone restore must keep them. The mail
+  host `mx.psizone.ro` itself is the estate's (the wildcard answers for it; tofu declares it).
+  The old values were kept in `.credentials/dns-rollback-zoho.json` (outside git).
