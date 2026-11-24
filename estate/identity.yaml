@@ -50,7 +50,7 @@ PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,nextcloud,test-r
 AUTHENTIK_HOST_PREFIX: auth
 AUTORIZARE_HOST_PREFIX: access
 HARBOR_HOST_PREFIX: registry
-PLANE_HOST_PREFIX: work
+PLANE_HOST_PREFIX: plane
 NOVU_HOST_PREFIX: notify
 # psi's own Novu bridge (apps/notify-bridge: the workflows of @psi/notify, holding the estate key apps/novu/estate)
 # in place of SEB's: Novu syncs and calls it, and its in-cluster address is what Novu's SSRF allow list admits.
