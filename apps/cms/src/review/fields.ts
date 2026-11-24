@@ -1,3 +1,4 @@
+import { live } from "@psi/content";
 import type { Field } from "payload";
 import { serverOnly, signedInOnly } from "../authz/access";
 import { BRANDS } from "../authz/types";
@@ -7,12 +8,18 @@ import { REVIEW_STATES, STAGES } from "./spec";
 /** Written by the server only, and hidden from anonymous readers of the published API. */
 const internal = { ...serverOnly, read: signedInOnly };
 
-/** The brand every entry belongs to; access is decided per brand. Articles take the three. */
+/**
+ * The brand every entry belongs to; access is decided per brand. Articles take the three.
+ * A new document starts on the first LIVE brand: a draft is saved while it is typed (autosave,
+ * every 1.5 s), before anyone has chosen one, and a row stored with no brand matches no person's
+ * `brand in (…)` update filter, so it refused every later save and vanished from the lists.
+ */
 export function brandField(brands: ReadonlyArray<string> = BRANDS): Field {
 	return {
 		name: "brand",
 		type: "select",
 		required: true,
+		defaultValue: live(brands)[0],
 		index: true,
 		label: L.brand,
 		options: brands.map((b) => ({ label: b, value: b })),
