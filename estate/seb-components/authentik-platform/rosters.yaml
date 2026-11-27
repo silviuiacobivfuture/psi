@@ -5,168 +5,188 @@
 # rosters as the operator. Removing a right removes that person's line under the group.
 platform-admins:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 "authentik Admins":
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 dept-platform:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 onboard-admin:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-nextcloud-user:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-argocd-admin:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-argocd-view:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-harbor-admin:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-harbor-push:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-harbor-pull:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-openbao-admin:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-openbao-read:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-k8s-admin:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-k8s-view:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-dashboards-view:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-plane-user:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-plane-admin:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-pdfcraft-user:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-affine-user:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-mail-user:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - nicholas.turcu
   - iuliana
 app-novu-admin:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-plunk-admin:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-plunk-user:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-n8n-admin:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-signapp-admin:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-signapp-operator:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-signapp-hr:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-signapp-view:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-invoice-admin:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 app-autorizare-admin:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 autorizare-tenant-psi:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - iuliana
   - nicholas.turcu
 # Groups the operator holds through SEB's roster and the members did not (owner, 2026-11-24: every member has full rights).
 # All five members have an inbox, so Iuliana is in app-mail-user and app-mail-admin too.
 app-affine-admin:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - nicholas.turcu
   - iuliana
 app-mail-admin:
   - turcu_daniela
-  - adi_rar
+  - adrian
   - nicholas.turcu
   - iuliana
+app-headplane-admin:
+  - turcu_daniela
+  - adrian
+  - iuliana
+  - nicholas.turcu
+tailnet-users:
+  - turcu_daniela
+  - adrian
+  - iuliana
+  - nicholas.turcu
+app-flow-super-admin:
+  - turcu_daniela
+  - adrian
+  - iuliana
+  - nicholas.turcu
+app-plane-instance-admin:
+  - turcu_daniela
+  - adrian
+  - iuliana
+  - nicholas.turcu

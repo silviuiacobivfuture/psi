@@ -22,7 +22,9 @@
     name: Adi
     email: adi_rar@yahoo.com
     type: internal
-    is_active: true
+    # owner, 2026-11-27: Adrian has ONE account, `adrian`; this one (created 2026-11-11 from a
+    # mistyped address, never signed in) is disabled, in no roster, its mailbox moved to `adrian`.
+    is_active: false
 - model: authentik_core.user
   state: created
   identifiers:
@@ -87,12 +89,6 @@
       mail_account: daniela
 - model: authentik_core.user
   identifiers:
-    username: adi_rar
-  attrs:
-    attributes:
-      upn: adi@psizone.ro
-      mail_address: adi@psizone.ro
-      mail_account: adi
 - model: authentik_core.user
   identifiers:
     username: nicholas.turcu
@@ -129,6 +125,8 @@
   attrs:
     attributes:
       upn: adrian@psizone.ro
+      mail_address: adi@psizone.ro
+      mail_account: adi
 # The console journeys' robot `playwright` (SEB's entry: created only, email playwright@<BASE_DOMAIN>).
 # psi's account was created before psi's identity filled that address, under another estate's domain,
 # and a created-only entry never corrects it: the journeys secret (secret/apps/autorizare/e2e,

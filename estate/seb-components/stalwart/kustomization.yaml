@@ -10,7 +10,7 @@ kind: Component
 # (psi's people blueprint); their Authentik e-mail stays their own external address:
 #   silviu    Authentik silviu          (silviu.iacob@ivfuture.ro)
 #   daniela   Authentik turcu_daniela   (turcu_daniela@icloud.com)
-#   adi       Authentik adi_rar         (adi_rar@yahoo.com)
+#   adi       Authentik adrian          (ady_rar@yahoo.com; adi_rar disabled 2026-11-27)
 #   nicholas  Authentik nicholas.turcu  (nicholas.turcu@icloud.com)
 #   iuliana   Authentik iuliana         (psizone.srl@icloud.com; owner, 2026-11-24: all five have an inbox)
 patches:
