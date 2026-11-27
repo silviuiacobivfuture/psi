@@ -1,0 +1,6 @@
+# Optional while psi has no mail of its own for the directory (no SES / Plunk sender): set-password
+# links cannot be sent, so the first sign-in is the bootstrap admin. Make it required again (delete
+# this file and mail-check.yaml: SEB's default) once psi's mail runs.
+- secretRef:
+    name: authentik-email
+    optional: true

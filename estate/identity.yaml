@@ -46,11 +46,11 @@ MESH: none
 ENVIRONMENTS: dev
 
 # ── platform apps: the first estate's full platform set ─────────────────────
-PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,nextcloud,test-reports,pdfcraft,affine,stalwart
+PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,nextcloud,test-reports,pdfcraft,affine,stalwart,invoicing,flows,register
 AUTHENTIK_HOST_PREFIX: auth
 AUTORIZARE_HOST_PREFIX: access
 HARBOR_HOST_PREFIX: registry
-PLANE_HOST_PREFIX: work
+PLANE_HOST_PREFIX: plane
 NOVU_HOST_PREFIX: notify
 # psi's own Novu bridge (apps/notify-bridge: the workflows of @psi/notify, holding the estate key apps/novu/estate)
 # in place of SEB's: Novu syncs and calls it, and its in-cluster address is what Novu's SSRF allow list admits.
@@ -62,7 +62,11 @@ REPORTPORTAL_HOST_PREFIX: reports
 TEST_REPORTS_HOST_PREFIX: tests
 PDFCRAFT_HOST_PREFIX: pdf
 AFFINE_HOST_PREFIX: docs
-MAIL_HOST_PREFIX: post
+MAIL_HOST_PREFIX: mx
+# The people's mailboxes are <first name>@psizone.ro (owner, 2026-11-24: nothing under post.*, Zoho
+# unused). The mail SERVER's host is mx.psizone.ro (MX target, SMTP/IMAP name, certificate); the
+# address's domain is the apex.
+MAILBOX_DOMAIN: psizone.ro
 FRONT_HOST_PREFIX: portal
 
 # ── hub ─────────────────────────────────────────────────────────────────────
@@ -73,6 +77,11 @@ HUB_TILE_TITLE: PSI
 # model-pin alarm watches. psi's only one is the platform's sign-in tile policy; none of psi's
 # own applications pins a model yet.
 MODEL_PIN_HOLDERS: authentik-tiles
+# The organisations psi's organisation robots stand in (lib-journeys-tenant.sh): each made by a robot
+# through the hub, never a real one. e2e-o-firma, e2e-admin-org and e2e-inregistrare in the first,
+# e2e-coleg (the two-person suites' colleague) in the second.
+E2E_ORG_SLUG: e2e-hub-robot
+E2E_COLLEAGUE_ORG_SLUG: e2e-coleg-robot
 
 # ── secret references (paths and field names only) ──────────────────────────
 REF_DNS_TOKEN_PATH: secret/platform/dns/token
@@ -85,3 +94,14 @@ REF_GIT_TOKEN_FIELD: token
 REF_OBJECT_STORAGE_PATH: secret/platform/object-storage/{env}
 REF_APP_ENV_PATH: secret/apps/{app}/env
 BULWARK_HOST_PREFIX: inbox
+# The shared business applications under psi's names (plan row 7.6, Greek letters): Mu is invoicing
+# (interface mu., API api.mu.), Rho is flows — not `flows.`, which is n8n's —, Sigma is the register
+# (interface sigma., API api.sigma.; its hub client and estate key are `sigma` too).
+INVOICING_HOST_PREFIX: mu
+FLOWS_HOST_PREFIX: rho
+REGISTER_HOST_PREFIX: sigma
+# The lockdown's clean week (SEB docs/lockdown.md): both start at psi's first full doctor run that was
+# green on the Kyverno reports layer after the changelog violation was fixed (bundle 0.1.141-psi.2) and its
+# rollback drill ended (14:05:18Z): that run finished 2026-11-15 14:19Z. Moved forward when a violation is fixed.
+LOCKDOWN_SIGNATURES_SINCE: 2026-11-15T14:19:00Z
+LOCKDOWN_OBJECT_CHANGES_SINCE: 2026-11-15T14:19:00Z

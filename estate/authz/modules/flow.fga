@@ -1,0 +1,110 @@
+module flow
+
+# GENERATED FROM .seb-bundle/apps/flows/authz.manifest.json — DO NOT EDIT.
+# Run `python3 authz/tools/generate.py` after changing the manifest.
+#
+# @rule AUTZ-1 — every type is prefixed. OpenFGA does NOT namespace types by
+# module: two modules defining the same type merge into one with merged
+# relations, and nothing reports it. `check-manifest.py` enforces the prefix,
+# because JSON Schema cannot compare one field to another.
+
+# An organisation's program: a machine account, by its PROGRAM id (stable
+# across rotations). A SUBJECT: what it holds is given on one resource of
+# its organisation, never in the organisation. Written by Polaris only
+# (docs/autorizare/07 "Programs"); applications read it through the SDK.
+type flow_program
+  relations
+    define parent_org: [org]
+    define credential: [autorizare_client]
+    define retiring_credential: [autorizare_client with non_expired_grant]
+    define speaks_for: credential or retiring_credential
+
+type flow_flows
+  relations
+    define parent_platform: [platform]
+    define read: [user, group#member] or administrator from parent_platform or role_flow_super_admin from parent_platform
+    define write: [user, group#member] or administrator from parent_platform or role_flow_super_admin from parent_platform
+    define publish: [user, group#member] or administrator from parent_platform or role_flow_super_admin from parent_platform
+
+type flow_tests
+  relations
+    define parent_platform: [platform]
+    define run: [user, group#member] or administrator from parent_platform or role_flow_super_admin from parent_platform
+
+type flow_admin
+  relations
+    define parent_platform: [platform]
+    define manage_keys: [user, group#member] or administrator from parent_platform or role_flow_super_admin from parent_platform
+    define manage_extension: [user, group#member] or administrator from parent_platform or role_flow_super_admin from parent_platform
+    define manage_workspaces: [user, group#member] or administrator from parent_platform or role_flow_super_admin from parent_platform
+    define read_audit: [user, group#member] or administrator from parent_platform or role_flow_super_admin from parent_platform
+    define changelog_manager: [user, group#member] or administrator from parent_platform or role_flow_super_admin from parent_platform
+
+type flow_org
+  relations
+    define role_flow_agent: [user, group#member, flow_program]
+    define role_flow_serviciu: [user, group#member, flow_program]
+    define role_flow_rulare: [user, group#member, flow_program]
+    define parent_org: [org]
+    define read: [user, group#member] or administrator from parent_org or role_flow_editor from parent_org or role_flow_admin from parent_org or role_flow_viewer from parent_org
+    define write: [user, group#member] or administrator from parent_org or role_flow_editor from parent_org or role_flow_admin from parent_org
+    define publish: [user, group#member] or administrator from parent_org or role_flow_editor from parent_org or role_flow_admin from parent_org
+    define run: [user, group#member] or administrator from parent_org or role_flow_editor from parent_org or role_flow_admin from parent_org
+    define manage_keys: [user, group#member] or administrator from parent_org or role_flow_admin from parent_org
+    define manage_extension: [user, group#member] or administrator from parent_org or role_flow_admin from parent_org
+    define manage_workspaces: [user, group#member] or administrator from parent_org or role_flow_admin from parent_org
+    define read_audit: [user, group#member] or administrator from parent_org or role_flow_admin from parent_org
+    define program_flows_read: [user, group#member] or role_flow_agent from parent_org or role_flow_agent
+    define program_flows_write: [user, group#member] or role_flow_agent from parent_org or role_flow_agent
+    define program_flows_publish: [user, group#member] or role_flow_agent from parent_org or role_flow_agent
+    define program_tests_run: [user, group#member] or role_flow_agent from parent_org or role_flow_agent
+    define program_runs_launch: [user, group#member] or role_flow_serviciu from parent_org or role_flow_rulare from parent_org or role_flow_serviciu or role_flow_rulare
+    define program_runs_read: [user, group#member] or role_flow_serviciu from parent_org or role_flow_rulare from parent_org or role_flow_serviciu or role_flow_rulare
+    define program_runs_cancel: [user, group#member] or role_flow_serviciu from parent_org or role_flow_rulare from parent_org or role_flow_serviciu or role_flow_rulare
+    define program_files_resolve: [user, group#member] or role_flow_serviciu from parent_org or role_flow_serviciu
+    define program_files_write: [user, group#member] or role_flow_serviciu from parent_org or role_flow_serviciu
+    define program_manifest_write: [user, group#member] or role_flow_serviciu from parent_org or role_flow_rulare from parent_org or role_flow_serviciu or role_flow_rulare
+    # app_flow_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
+    define app_flow_access: role_flow_agent or role_flow_serviciu or role_flow_rulare
+
+type flow_workspace
+  relations
+    define parent_platform: [platform]
+    define parent_org: [org]
+    define grantor: [user] or administrator from parent_platform or role_flow_super_admin from parent_platform or administrator from parent_org
+    define flows_read: [user, group#member, flow_api_key]
+    define flows_write: [user, group#member, flow_api_key]
+    define tests_run: [user, group#member, flow_api_key]
+    define flows_publish: [user, group#member, flow_api_key]
+    define runs_launch: [user, group#member, flow_api_key]
+    define runs_read: [user, group#member, flow_api_key]
+    define runs_cancel: [user, group#member, flow_api_key]
+    define files_resolve: [user, group#member, flow_api_key]
+    define files_write: [user, group#member, flow_api_key]
+    define manifest_write: [user, group#member, flow_api_key]
+    # app_flow_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
+    define app_flow_access: flows_read or flows_write or tests_run or flows_publish or runs_launch or runs_read or runs_cancel or files_resolve or files_write or manifest_write
+
+type flow_api_key
+  relations
+    define workspace: [flow_workspace]
+
+# The module's roles, as relations somebody can actually hold.
+extend type org
+  relations
+    define role_flow_admin: [user, group#member]
+    define role_flow_agent: [user, group#member]
+    define role_flow_editor: [user, group#member]
+    define role_flow_rulare: [user, group#member]
+    define role_flow_serviciu: [user, group#member]
+    define role_flow_viewer: [user, group#member]
+    define program_flow: [flow_program]
+    # app_flow_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
+    define app_flow_access: role_flow_admin or role_flow_agent or role_flow_editor or role_flow_rulare or role_flow_serviciu or role_flow_viewer or administrator
+
+# The module's roles, as relations somebody can actually hold.
+extend type platform
+  relations
+    define role_flow_super_admin: [user, group#member]
+    # app_flow_access: what a person holds in this module, for the directory's tile policy (gen/app_access.py). Confers nothing.
+    define app_flow_access: role_flow_super_admin or administrator

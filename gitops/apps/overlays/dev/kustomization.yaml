@@ -16,7 +16,6 @@ resources:
   # The RMX list (business applications). Its own kustomization; see rmx/.
   - ../../base
   - harbor-route.yaml
-  - changelog.yaml
   # The runner scale set is a SEB piece (pieces/arc-runners): the consumer generates its Application.
   - arc-runners-namespace.yaml
   - arc-runner-secret.yaml
@@ -24,8 +23,6 @@ resources:
   - previews.yaml
   # Argo CD's own configuration is a SEB piece: the consumer generates its Application
   # (pieces/argocd-config), which keeps the name argocd-config.
-  - authentik.yaml
-  - authentik-platform.yaml
   # The cluster's RBAC (OIDC group bindings, tailnet break-glass, the developer role) and the
   # logical DB dumps are SEB pieces: the consumer generates their Applications
   # (pieces/platform-rbac, which keeps the name platform-rbac; pieces/db-backup).

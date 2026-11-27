@@ -82,7 +82,7 @@ describe.skipIf(!backendReady)("the clinic's rows on the local Convex", () => {
 		expect(again).toEqual({ created: false, rolesAdded: 0, formsAdded: 0 });
 		const c = await counts();
 		expect(at(c, "roles")).toBe(7);
-		expect(at(c, "formDefinitions")).toBe(4);
+		expect(at(c, "formDefinitions")).toBe(5);
 		expect(at(c, "auditEvents")).toBe(2); // app.create and key.install
 	});
 

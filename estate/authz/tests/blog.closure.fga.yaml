@@ -55,6 +55,12 @@ tuples:
   - user: user:c_platform_perm_hemisync_sessions_view
     relation: perm_hemisync_sessions_view
     object: platform:psi
+  - user: user:c_platform_perm_invoice_platform_administer
+    relation: perm_invoice_platform_administer
+    object: platform:psi
+  - user: user:c_platform_perm_invoice_platform_changelog_manage
+    relation: perm_invoice_platform_changelog_manage
+    object: platform:psi
   - user: user:c_platform_perm_psizone_account_erase
     relation: perm_psizone_account_erase
     object: platform:psi
@@ -75,6 +81,15 @@ tuples:
     object: platform:psi
   - user: user:c_platform_perm_psizone_guide_memory_view
     relation: perm_psizone_guide_memory_view
+    object: platform:psi
+  - user: user:c_platform_perm_vega_system_cases_keep_apart
+    relation: perm_vega_system_cases_keep_apart
+    object: platform:psi
+  - user: user:c_platform_perm_vega_system_cases_list
+    relation: perm_vega_system_cases_list
+    object: platform:psi
+  - user: user:c_platform_perm_vega_system_cases_merge
+    relation: perm_vega_system_cases_merge
     object: platform:psi
   - user: user:c_platform_program_manager
     relation: program_manager
@@ -127,8 +142,14 @@ tuples:
   - user: user:c_platform_role_eqsync_programme_support
     relation: role_eqsync_programme_support
     object: platform:psi
+  - user: user:c_platform_role_flow_super_admin
+    relation: role_flow_super_admin
+    object: platform:psi
   - user: user:c_platform_role_hemisync_reception
     relation: role_hemisync_reception
+    object: platform:psi
+  - user: user:c_platform_role_invoice_platform_admin
+    relation: role_invoice_platform_admin
     object: platform:psi
   - user: user:c_platform_role_psizone_privacy_officer
     relation: role_psizone_privacy_officer
@@ -138,6 +159,9 @@ tuples:
     object: platform:psi
   - user: user:c_platform_role_sched_app_admin
     relation: role_sched_app_admin
+    object: platform:psi
+  - user: user:c_platform_role_vega_platform_admin
+    relation: role_vega_platform_admin
     object: platform:psi
   - user: platform:psi
     relation: parent_platform
@@ -210,6 +234,14 @@ tests:
         object: blog_saved_article:closure
         assertions:
           viewer: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: blog_saved_article:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: blog_saved_article:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_perm_psizone_account_erase
         object: blog_saved_article:closure
         assertions:
@@ -235,6 +267,18 @@ tests:
         assertions:
           viewer: false
       - user: user:c_platform_perm_psizone_guide_memory_view
+        object: blog_saved_article:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_vega_system_cases_keep_apart
+        object: blog_saved_article:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_vega_system_cases_list
+        object: blog_saved_article:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_perm_vega_system_cases_merge
         object: blog_saved_article:closure
         assertions:
           viewer: false
@@ -306,7 +350,15 @@ tests:
         object: blog_saved_article:closure
         assertions:
           viewer: false
+      - user: user:c_platform_role_flow_super_admin
+        object: blog_saved_article:closure
+        assertions:
+          viewer: false
       - user: user:c_platform_role_hemisync_reception
+        object: blog_saved_article:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_invoice_platform_admin
         object: blog_saved_article:closure
         assertions:
           viewer: false
@@ -319,6 +371,10 @@ tests:
         assertions:
           viewer: false
       - user: user:c_platform_role_sched_app_admin
+        object: blog_saved_article:closure
+        assertions:
+          viewer: false
+      - user: user:c_platform_role_vega_platform_admin
         object: blog_saved_article:closure
         assertions:
           viewer: false
@@ -388,6 +444,14 @@ tests:
         object: blog_saved_article:closure
         assertions:
           editor: false
+      - user: user:c_platform_perm_invoice_platform_administer
+        object: blog_saved_article:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_invoice_platform_changelog_manage
+        object: blog_saved_article:closure
+        assertions:
+          editor: false
       - user: user:c_platform_perm_psizone_account_erase
         object: blog_saved_article:closure
         assertions:
@@ -413,6 +477,18 @@ tests:
         assertions:
           editor: false
       - user: user:c_platform_perm_psizone_guide_memory_view
+        object: blog_saved_article:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_vega_system_cases_keep_apart
+        object: blog_saved_article:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_vega_system_cases_list
+        object: blog_saved_article:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_perm_vega_system_cases_merge
         object: blog_saved_article:closure
         assertions:
           editor: false
@@ -484,7 +560,15 @@ tests:
         object: blog_saved_article:closure
         assertions:
           editor: false
+      - user: user:c_platform_role_flow_super_admin
+        object: blog_saved_article:closure
+        assertions:
+          editor: false
       - user: user:c_platform_role_hemisync_reception
+        object: blog_saved_article:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_invoice_platform_admin
         object: blog_saved_article:closure
         assertions:
           editor: false
@@ -497,6 +581,10 @@ tests:
         assertions:
           editor: false
       - user: user:c_platform_role_sched_app_admin
+        object: blog_saved_article:closure
+        assertions:
+          editor: false
+      - user: user:c_platform_role_vega_platform_admin
         object: blog_saved_article:closure
         assertions:
           editor: false

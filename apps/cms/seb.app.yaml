@@ -85,7 +85,7 @@ externalSecrets:
   - name: authentik-cms-oidc
     namespace: authentik
     target: authentik-cms-oidc
-    manifest: gitops/platform/authentik/cms-oidc-externalsecret.yaml
+    manifest: estate/seb-components/authentik-platform/clients/cms-oidc-externalsecret.yaml
 secrets:
   - path: apps/cms/db
     owner: cms
@@ -136,7 +136,7 @@ oidc:
 groups:
   - name: app-cms-editor
     state: present
-    declaredIn: gitops/platform/authentik/blueprints-cms.yaml
+    declaredIn: estate/seb-components/authentik-platform/clients/blueprints-cms.yaml
     role: editor
 ci:
   workflows:

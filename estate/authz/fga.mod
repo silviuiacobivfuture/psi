@@ -1,4 +1,7 @@
-# psi's authorization model: psi's own modules only, one per psi application, generated from
+# psi's authorization model: psi's own modules, one per psi application, and the shared invoicing
+# application's (Mu: .seb-bundle/apps/invoice-svc) and the shared flows application's (Rho:
+# .seb-bundle/apps/flows) and the shared register's (Sigma: .seb-bundle/apps/vega-svc, module vega and its
+# transitional twin register, the module's rename in progress), each generated from
 # apps/<app>/authz.manifest.json. The platform's two (core, autorizare) are NOT listed or copied here:
 # they are the installed bundle's (.seb-bundle/authz, the config's platform_dir) and are prepended
 # wherever the model is composed (SEB authz/tools/gen/estate.py, estate mode).
@@ -14,3 +17,7 @@ contents:
   - modules/cms.fga
   - modules/sched.fga
   - modules/agent.fga
+  - modules/invoice.fga
+  - modules/flow.fga
+  - modules/vega.fga
+  - modules/register.fga

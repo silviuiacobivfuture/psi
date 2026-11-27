@@ -3,20 +3,27 @@
 	--hour-h: 76px;
 	--gutter: 52px;
 	position: relative;
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 0;
+	min-height: 0;
+	min-width: 0;
 	background: var(--surface-1);
-	border: 1px solid var(--line-strong);
-	border-radius: var(--radius-md);
-	overflow: hidden;
 }
+/* The one scroll: the grid fills the space under the toolbar, edge to edge, and scrolls inside it (both ways on a
+   phone's wide columns) while the headers and the time gutter stay put. */
 .cal__scroll {
+	flex: 1 1 0;
+	min-height: 0;
 	overflow: auto;
-	max-height: calc(100dvh - 232px);
 	overscroll-behavior: contain;
 }
 .cal__grid {
 	display: grid;
 	grid-template-columns: var(--gutter) repeat(var(--cols), minmax(136px, 1fr));
 	min-width: min-content;
+	/* Room to scroll the last hour clear of the assistant's icon. */
+	padding-bottom: 88px;
 }
 .cal__corner,
 .cal__colhead {
@@ -322,11 +329,10 @@
 .cal-month {
 	display: grid;
 	grid-template-columns: repeat(7, minmax(0, 1fr));
+	grid-template-rows: auto repeat(6, minmax(72px, 1fr));
+	flex: 1 0 auto;
 	gap: 1px;
 	background: var(--line-strong);
-	border: 1px solid var(--line-strong);
-	border-radius: var(--radius-md);
-	overflow: hidden;
 }
 .cal-month__dow {
 	padding: 8px 4px;
@@ -355,11 +361,9 @@
 	background: var(--bg);
 	color: var(--ink-faint);
 }
-.cal-month__n {
+.cal-month__day[aria-current="date"] .cal-month__n {
 	background: var(--app);
 	color: var(--on-app);
-}
-.cal-month__day[aria-current="date"] .cal-month__n {
 	display: inline-grid;
 	place-items: center;
 	min-width: 26px;
@@ -435,13 +439,9 @@
 }
 
 @media (max-width: 767px) {
-	.cal__grid {
-		padding-bottom: 104px;
-	}
 	.cal {
 		--hour-h: 68px;
 		--gutter: 44px;
-		border-radius: var(--radius-sm);
 	}
 	.cal__grid {
 		grid-template-columns: var(--gutter) repeat(var(--cols), minmax(78vw, 1fr));
@@ -449,13 +449,9 @@
 	.cal--week .cal__grid {
 		grid-template-columns: var(--gutter) repeat(var(--cols), minmax(104px, 1fr));
 	}
-	.cal__scroll {
-		max-height: calc(100dvh - 300px);
-	}
 }
 @media print {
 	.cal__scroll {
-		max-height: none;
 		overflow: visible;
 	}
 	.cal__slot {

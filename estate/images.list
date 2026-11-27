@@ -9,3 +9,14 @@
 # A reference names registry.psizone.ro/mirror/<upstream repository>:<tag>@<digest>.
 # NEW IMAGE / NEW VERSION: add a line, run the script, then reference it.
 moved docker.io/chromadb/chroma 1.5.9 sha256:abcce7c335e2dab9f11ef629296f7309b09cb19ae4b34da32ac7e34ff5773140 # gitops/services/chroma (vector database)
+# The versions psi's own cluster runs where they differ from the platform list's (k3s v1.37.2's
+# system images, the Argo CD install's): never copied (class upstream), listed so doctor knows them.
+# Digests as the node pulled them (each pod's imageID, 2026-11-15).
+upstream docker.io/rancher/klipper-helm v0.13.3-build20261021 sha256:391ec9f4824d631c49b52c1e3d10e4a2ced37a784afd75852e34bb2a6c7309b1 # k3s v1.37.2 sets it
+upstream docker.io/rancher/local-path-provisioner v0.0.37 sha256:e757967a5ec338f6a9b371c5a9688bedaa8c3578ea3dd4db329ea0084be0a86f # k3s v1.37.2 sets it
+upstream docker.io/rancher/mirrored-coredns-coredns 1.14.7 sha256:7efd3c635b03efd68c4e8398fc45f0d993d0e9ab016f72c1cefb0fd6d01aa286 # k3s v1.37.2 sets it
+upstream docker.io/rancher/mirrored-library-traefik 3.7.15 sha256:0f6150202bc1fed72a7bd2107460eaa510e5b8a905f3fdb5b84f2c8619c33368 # k3s v1.37.2 sets it
+upstream docker.io/rancher/mirrored-metrics-server v0.9.0 sha256:d9862115e7c7881280d3d75ca26bda8ffc0fc213315979575bf23ce9826205c0 # k3s v1.37.2 sets it
+upstream ghcr.io/dexidp/dex v2.46.0 sha256:933fcd3f523338c847b88ef84a7145fb2fcb7b9917f08418612afeaaa2001777 # psi's Argo CD install
+upstream public.ecr.aws/docker/library/redis 8.10.1-alpine sha256:ef216d85ec44f4fdf7c0e6df2d1757a4734ed32fbb278cabd3181b5a27353b79 # psi's Argo CD install
+upstream quay.io/argoproj/argocd v3.6.1 sha256:296e3d74f449b2ce45265613fcb68c18ed7366488360c8ea32f5f2a93d2e5c54 # psi's Argo CD install

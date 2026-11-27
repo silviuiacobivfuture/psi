@@ -8,6 +8,21 @@
 			"slug": "scheduling-api",
 			"name": "Programări",
 			"module": "sched"
+		},
+		{
+			"slug": "invoice",
+			"name": "Mu",
+			"module": "invoice"
+		},
+		{
+			"slug": "flow",
+			"name": "Rho",
+			"module": "flow",
+			"credentials": [
+				{
+					"name": "mirror"
+				}
+			]
 		}
 	],
 	"grants": [],
@@ -23,6 +38,18 @@
 				"path": "apps/scheduling-api/autorizare",
 				"client_id_key": "client_id",
 				"client_secret_key": "client_secret"
+			}
+		},
+		{
+			"name": "invoice-svc",
+			"org": "o-01a1ce922e3d71f990932be31d8d07fb",
+			"module": "invoice",
+			"role": "invoice:integration",
+			"reason": "Serviciul de facturare își scrie și își retrage drepturile pe firme prin Polaris, ca program al aplicației sale.",
+			"secret": {
+				"path": "apps/psi-invoice-svc/autorizare",
+				"client_id_key": "AUTORIZARE_CLIENT_ID",
+				"client_secret_key": "AUTORIZARE_CLIENT_SECRET"
 			}
 		}
 	]

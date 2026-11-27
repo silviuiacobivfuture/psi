@@ -7,6 +7,8 @@ import { buildConfig, type Plugin } from "payload";
 import sharp from "sharp";
 import { analyticsIngest } from "./analytics/ingest";
 import { authentikSignIn } from "./auth/authentik";
+import { startDirectoryCheck } from "./auth/directory-check";
+import { sessionSeconds } from "./auth/session-lifetime";
 import { brandListFilter } from "./brand/filter";
 import { seedBreakGlass } from "./breakglass";
 import { AiSettingsVersions } from "./collections/ai-settings-versions";
@@ -18,7 +20,7 @@ import { Media } from "./collections/media";
 import { Offerings, offeringReview } from "./collections/offerings";
 import { People } from "./collections/people";
 import { ReviewEvents } from "./collections/review-events";
-import { Users } from "./collections/users";
+import { usersCollection } from "./collections/users";
 import { BRANDS as ARTICLE_BRANDS } from "./collections/vocabulary";
 import { type Env, parseEnv, s3Of } from "./env";
 import { AiSettingsGlobal } from "./globals/ai-settings";
@@ -47,19 +49,29 @@ function storage(e: Env): Plugin[] {
 	return [
 		s3Storage({
 			// One bucket per app per environment; this app's files under media/.
-			collections: { media: { prefix: "media" }, "knowledge-sources": { prefix: "knowledge" } },
+			collections: {
+				media: { prefix: "media" },
+				"knowledge-sources": { prefix: "knowledge" },
+			},
 			bucket: s3.bucket,
 			config: {
 				endpoint: s3.endpoint,
 				region: s3.region,
 				forcePathStyle: true,
-				credentials: { accessKeyId: s3.accessKeyId, secretAccessKey: s3.secretAccessKey },
+				credentials: {
+					accessKeyId: s3.accessKeyId,
+					secretAccessKey: s3.secretAccessKey,
+				},
 			},
 		}),
 	];
 }
 
 const REVIEWED = [articleReview, knowledgeReview, offeringReview];
+
+/** A sign-in lasts the estate's SESSION_LIFETIME after its last use (auth/session-lifetime.ts). */
+const sessionLifetime = sessionSeconds(env.SESSION_LIFETIME);
+const Users = usersCollection(sessionLifetime);
 
 export default buildConfig({
 	secret: env.PAYLOAD_SECRET,
@@ -71,6 +83,13 @@ export default buildConfig({
 		user: Users.slug,
 		meta: { titleSuffix: " · Psi" },
 		components: {
+			// Renews the sign-in while it is used, so it lasts SESSION_LIFETIME after the LAST use.
+			providers: [
+				{
+					path: "/components/SessionKeeper#SessionKeeper",
+					clientProps: { lifetimeSeconds: sessionLifetime },
+				},
+			],
 			afterLogin: ["/components/SignInWithDirectory#SignInWithDirectory"],
 			beforeNavLinks: ["/components/AdminNav#AdminNav"],
 			// psi's mark: the sign-in page (Logo) and the navigation's corner (Icon).
@@ -79,8 +98,14 @@ export default buildConfig({
 				Icon: "/components/brand/PsiMark#PsiIcon",
 			},
 			views: {
-				review: { Component: "/views/ReviewQueueView#ReviewQueueView", path: "/review" },
-				analytics: { Component: "/views/AnalyticsView#AnalyticsView", path: "/analytics" },
+				review: {
+					Component: "/views/ReviewQueueView#ReviewQueueView",
+					path: "/review",
+				},
+				analytics: {
+					Component: "/views/AnalyticsView#AnalyticsView",
+					path: "/analytics",
+				},
 				// The control plane: nav group "Platformă / Platform".
 				platform: {
 					Component: "/views/platform/OverviewView#OverviewView",
@@ -126,7 +151,13 @@ export default buildConfig({
 	localization: { locales: ["ro", "en"], defaultLocale: "ro", fallback: false },
 	collections: [
 		Users,
-		{ ...Articles, admin: { ...Articles.admin, baseListFilter: brandListFilter(ARTICLE_BRANDS) } },
+		{
+			...Articles,
+			admin: {
+				...Articles.admin,
+				baseListFilter: brandListFilter(ARTICLE_BRANDS),
+			},
+		},
 		KnowledgeEntries,
 		KnowledgeSources,
 		Offerings,
@@ -163,6 +194,12 @@ export default buildConfig({
 	plugins: [...storage(env), authentikSignIn(env)],
 	onInit: async (payload) => {
 		await seedBreakGlass(payload, env);
+		// A person the directory disables is signed out of every device within minutes.
+		startDirectoryCheck(payload, {
+			issuer: env.OIDC_ISSUER,
+			clientId: env.OIDC_CLIENT_ID,
+			clientSecret: env.OIDC_CLIENT_SECRET,
+		});
 		// The repository's articles as drafts, in the background after boot (deployments set it).
 		importOnBoot(payload, process.env.PSI_IMPORT_REPO_ARTICLES === "true");
 	},

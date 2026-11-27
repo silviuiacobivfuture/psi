@@ -39,12 +39,28 @@ patches:
         value: "/estate/hub/clients.json"
       # PSI SETTING: TOTP OPTIONAL — TOTP disabled by owner 2026-11-12, temporary. Authentik asks
       # for a code only from people who added an authenticator themselves
-      # (gitops/platform/authentik/blueprints-mfa.yaml, "PSI SETTING: TOTP OPTIONAL"), so a
+      # (estate/seb-components/authentik-platform/slots/mfa-validate.yaml, "PSI SETTING"), so a
       # password-only sign-in is a normal one and the hub must not refuse it for lacking "mfa".
       # Turn back on with "true" here (and in the hub's annotation below) AND `configure` there.
       - op: replace
         path: /data/HUB_REQUIRE_MFA
         value: "false"
+  # psi's robots' roles (`autorizared e2e-org`), mirroring RMX's set as least privilege: a read-only
+  # right in ONE company of the robot organisation (Meridian's invoice_company#role_invoice_viewer,
+  # exactly RMX's). RMX's colleague holds Altair's two sign roles; psi runs no Altair, so its
+  # colleague holds the one read-only organisation role of the same module instead
+  # (role_invoice_viewer): the least an organisation role grants here. Decided 2026-11-15 (main).
+  - target: { kind: ConfigMap, name: autorizare-config }
+    patch: |-
+      - op: add
+        path: /data/E2E_COMPANY_TYPE
+        value: "invoice_company"
+      - op: add
+        path: /data/E2E_COMPANY_RELATION
+        value: "role_invoice_viewer"
+      - op: add
+        path: /data/E2E_COLLEAGUE_ROLES
+        value: "role_invoice_viewer"
   - target: { kind: ConfigMap, name: autorizare-config }
     patch: |-
       - op: add
@@ -59,10 +75,12 @@ patches:
         value: "o-01a1ce922e3d71f990932be31d8d07fb"
       # The clinic's app object is a grant scope owned through a tuple (sched_role, sched_client …
       # hang from sched_app), so its changes are told to the platform tenant that operates the
-      # clinic, or Polaris refuses to start once psi's permissions bundle declares it.
+      # clinic, or Polaris refuses to start once psi's permissions bundle declares it. Rho's
+      # flow_workspace is the same shape (a workspace owned through flow_workspace#parent_org, never
+      # named in the scope string), told to the platform tenant that operates Rho.
       - op: add
         path: /data/WEBHOOK_PLATFORM_SCOPE_TYPES
-        value: "sched_app"
+        value: "sched_app,flow_workspace"
   - target: { kind: Deployment, name: autorizare-hub }
     patch: |-
       # The hub reads its ConfigMap at start only; this restarts it when the TOTP setting above changes.
@@ -102,8 +120,8 @@ patches:
         path: /spec/maxUnavailable
         value: 1
 # Slot `image` (schema/slots/autorizare.yaml): the tag of the autorizare-svc image psi built
-# (scripts/estate-images.sh from SEB 0.1.88, psi's authorization inputs), sha256:92765e6a… in
+# (scripts/estate-images.sh from SEB 0.1.145, psi's authorization inputs with Rho's flow module), sha256:190dd111… in
 # registry.psizone.ro/psi, signed. The generated Application sets it (estate/seb-image-tags.mjs).
 images:
   - name: WLREGISTRY/WLAPPS/autorizare-svc
-    newTag: seb-b776c20ea
+    newTag: seb-2de9423b8

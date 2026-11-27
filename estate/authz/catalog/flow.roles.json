@@ -1,0 +1,260 @@
+{
+	"$schema": "./catalog.schema.json",
+	"$generated": "from .seb-bundle/apps/flows/authz.manifest.json — do not edit; run authz/tools/generate.py",
+	"module": "flow",
+	"version": 3,
+	"scope_resolvers": {
+		"flow_flows": {
+			"scope_type": "platform",
+			"relation": "parent_platform"
+		},
+		"flow_tests": {
+			"scope_type": "platform",
+			"relation": "parent_platform"
+		},
+		"flow_admin": {
+			"scope_type": "platform",
+			"relation": "parent_platform"
+		},
+		"flow_org": {
+			"scope_type": "org",
+			"relation": "parent_org"
+		},
+		"flow_workspace": {
+			"scope_type": "flow_workspace",
+			"relation": "grantor",
+			"org_parent": "parent_org"
+		},
+		"flow_api_key": {
+			"scope_type": "flow_workspace",
+			"relation": "workspace"
+		},
+		"flow_program": {
+			"scope_type": "org",
+			"relation": "parent_org"
+		}
+	},
+	"programs": {
+		"subject": "flow_program",
+		"roles": ["flow:agent", "flow:serviciu", "flow:rulare"],
+		"resource": "flow_org",
+		"org_relation": "program_flow"
+	},
+	"group_bindings": [
+		{
+			"group": "app-flow-super-admin",
+			"role": "flow:super_admin",
+			"scope": {
+				"kind": "platform"
+			}
+		}
+	],
+	"mirror_relations": [
+		"flow_workspace#parent_org",
+		"org#administrator",
+		"org#role_flow_admin",
+		"org#role_flow_agent",
+		"org#role_flow_editor",
+		"org#role_flow_rulare",
+		"org#role_flow_serviciu",
+		"org#role_flow_viewer",
+		"platform#administrator",
+		"platform#role_flow_super_admin"
+	],
+	"features": [
+		{
+			"key": "flows",
+			"name": {
+				"ro": "Fluxuri"
+			}
+		},
+		{
+			"key": "tests",
+			"name": {
+				"ro": "Rulări de test"
+			}
+		},
+		{
+			"key": "keys",
+			"name": {
+				"ro": "Programe"
+			}
+		},
+		{
+			"key": "extension",
+			"name": {
+				"ro": "Extensia Flow Recorder"
+			}
+		},
+		{
+			"key": "workspaces",
+			"name": {
+				"ro": "Spații de lucru"
+			}
+		},
+		{
+			"key": "audit",
+			"name": {
+				"ro": "Jurnal"
+			}
+		},
+		{
+			"key": "org",
+			"name": {
+				"ro": "Drepturile unei persoane în spațiile de lucru ale organizației sale"
+			}
+		},
+		{
+			"key": "program",
+			"name": {
+				"ro": "Puterile unui program al organizației în spațiile ei de lucru"
+			}
+		},
+		{
+			"key": "platform",
+			"name": {
+				"ro": "Platformă"
+			}
+		}
+	],
+	"roles": [
+		{
+			"key": "flow:super_admin",
+			"name": {
+				"ro": "Administrator platformă fluxuri"
+			},
+			"description": {
+				"ro": "Administrează fluxurile, rulările de test, cheile API, extensia și spațiile de lucru ale platformei. Este singurul rol al aplicației: nu există roluri per spațiu de lucru."
+			},
+			"scope_type": "platform",
+			"relation": "role_flow_super_admin",
+			"super_admin": true,
+			"grants": [
+				"flow_flows#read",
+				"flow_flows#write",
+				"flow_flows#publish",
+				"flow_tests#run",
+				"flow_admin#manage_keys",
+				"flow_admin#manage_extension",
+				"flow_admin#manage_workspaces",
+				"flow_admin#read_audit",
+				"flow_admin#changelog_manager"
+			],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "flow:editor",
+			"name": {
+				"ro": "Editor fluxuri în organizație"
+			},
+			"description": {
+				"ro": "Citește, modifică și publică fluxurile spațiilor de lucru ale organizației și rulează teste. Nu gestionează chei, extensia sau spațiile de lucru."
+			},
+			"scope_type": "org",
+			"relation": "role_flow_editor",
+			"grants": ["flow_org#read", "flow_org#write", "flow_org#publish", "flow_org#run"],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "flow:admin",
+			"name": {
+				"ro": "Administrator de fluxuri în organizație"
+			},
+			"description": {
+				"ro": "Lucrează cu fluxurile spațiilor de lucru ale organizației, le administrează, ține cheile și extensia și citește jurnalul."
+			},
+			"scope_type": "org",
+			"relation": "role_flow_admin",
+			"grants": [
+				"flow_org#read",
+				"flow_org#write",
+				"flow_org#publish",
+				"flow_org#run",
+				"flow_org#manage_keys",
+				"flow_org#manage_extension",
+				"flow_org#manage_workspaces",
+				"flow_org#read_audit"
+			],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "flow:viewer",
+			"name": {
+				"ro": "Cititor fluxuri în organizație"
+			},
+			"description": {
+				"ro": "Citește fluxurile spațiilor de lucru ale organizației. Nu modifică nimic."
+			},
+			"scope_type": "org",
+			"relation": "role_flow_viewer",
+			"grants": ["flow_org#read"],
+			"assignable": true,
+			"max_duration": null
+		},
+		{
+			"key": "flow:agent",
+			"name": {
+				"ro": "Agent de fluxuri (program)"
+			},
+			"description": {
+				"ro": "Pentru programele organizației care scriu fluxuri prin serverul MCP al aplicației de fluxuri: citește, modifică și publică fluxurile spațiilor de lucru ale organizației și rulează teste. Nu lansează rulări, nu atinge fișiere și nu gestionează nimic. Se dă doar unui program, în consolă."
+			},
+			"scope_type": "org",
+			"relation": "role_flow_agent",
+			"resource_scopes": ["flow_org"],
+			"grants": [
+				"flow_org#program_flows_read",
+				"flow_org#program_flows_write",
+				"flow_org#program_flows_publish",
+				"flow_org#program_tests_run"
+			],
+			"assignable": false,
+			"max_duration": null
+		},
+		{
+			"key": "flow:serviciu",
+			"name": {
+				"ro": "Aplicație care rulează fluxuri (program)"
+			},
+			"description": {
+				"ro": "Pentru aplicația care rulează fluxurile organizației prin interfața de serviciu a aplicației de fluxuri: lansează, urmărește și oprește rulări, încarcă și rezolvă fișierele lor, publică catalogul de variabile al aplicației. Nu citește, nu scrie și nu publică fluxuri. Se dă doar unui program, în consolă."
+			},
+			"scope_type": "org",
+			"relation": "role_flow_serviciu",
+			"resource_scopes": ["flow_org"],
+			"grants": [
+				"flow_org#program_runs_launch",
+				"flow_org#program_runs_read",
+				"flow_org#program_runs_cancel",
+				"flow_org#program_files_resolve",
+				"flow_org#program_files_write",
+				"flow_org#program_manifest_write"
+			],
+			"assignable": false,
+			"max_duration": null
+		},
+		{
+			"key": "flow:rulare",
+			"name": {
+				"ro": "Aplicație care rulează fluxuri, fără fișiere (program)"
+			},
+			"description": {
+				"ro": "Pentru aplicația care rulează fluxurile organizației fără să le dea fișiere: lansează, urmărește și oprește rulări și publică catalogul de variabile al aplicației. Nu încarcă și nu rezolvă fișiere, nu citește, nu scrie și nu publică fluxuri. Se dă doar unui program, în consolă."
+			},
+			"scope_type": "org",
+			"relation": "role_flow_rulare",
+			"resource_scopes": ["flow_org"],
+			"grants": [
+				"flow_org#program_runs_launch",
+				"flow_org#program_runs_read",
+				"flow_org#program_runs_cancel",
+				"flow_org#program_manifest_write"
+			],
+			"assignable": false,
+			"max_duration": null
+		}
+	]
+}

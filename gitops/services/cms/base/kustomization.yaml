@@ -1,6 +1,6 @@
 # cms — psi's content management (Payload 3), apps/cms. Postgres in-cluster (cms-db), files in
 # the estate's object storage (bucket psi-cms-dev, prefix media/), editors signed in through
-# Authentik (the cms application in gitops/platform/authentik/blueprints-cms.yaml).
+# Authentik (the cms application in estate/seb-components/authentik-platform/clients/blueprints-cms.yaml).
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: cms

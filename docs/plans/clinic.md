@@ -81,7 +81,7 @@ Each app has BOTH sides, complete:
   notice board, services and prices, rooms and devices, opening hours, roles and members, audit,
   reports. Imperative: everything the team does today, and the settings to run it without us.
 - **Visitor side**: the booking widget and the guide's tools on that app's site (Psizone on
-  landing.psizone.ro and its AI guide; Hemi-Sync on hemisync.psizone.ro and its guide), the
+  psizone.ro and its AI guide; Hemi-Sync on hemisync.psizone.ro and its guide), the
   visitor's account page (their appointments, cancel, reschedule, confirm reminders).
 
 ### Granular permissions (OpenFGA, roles as data)

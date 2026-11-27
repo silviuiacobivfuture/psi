@@ -1,0 +1,98 @@
+# Authentik Blueprint ConfigMap — psi's cms (apps/cms, https://cms.psizone.ro): its OIDC
+# provider and application, the editors' group, and who may sign in.
+#
+# client_id / client_secret come from OpenBao secret/apps/cms/oidc through the
+# authentik-cms-oidc ExternalSecret (cms-oidc-externalsecret.yaml) and the chart's envFrom
+# (estate/seb-components/authentik/env-secrets.yaml); cms reads the SAME path (gitops/services/cms),
+# so the two cannot drift. Mounted by the chart through estate-blueprints.yaml there.
+#
+# cms signs in with the authorization code flow + PKCE and asks for openid, email, profile and
+# offline_access; it matches a person on their e-mail. Sign-out goes through
+# default-invalidation-flow (the one with the user-logout stage), as every provider here does.
+#
+# HOW LONG A CMS SIGN-IN LASTS (owner, 16 Nov: "never logged out, 10 devices, 4 months idle"): the
+# CMS's own session, for psi's SESSION_LIFETIME after its last use (apps/cms/src/auth/
+# session-lifetime.ts, from the whitelabel ConfigMap). The refresh token offline_access hands
+# back is never spent: the CMS keeps it and asks this directory every two minutes whether it is
+# still active (introspection), so a person disabled here is signed out of every CMS device
+# within minutes (apps/cms/src/auth/directory-check.ts). It therefore lives as long as psi's
+# sign-ins do: refresh_token_validity days=36500 is psi's SESSION_LIFETIME "never" in Authentik's
+# spelling (the derived AUTHENTIK_SESSION_DURATION, gitops/components/whitelabel), threshold
+# seconds=0 as SEB's providers have it. Change the two together.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-blueprints-cms
+  namespace: authentik
+data:
+  cms.yaml: |
+    version: 1
+    metadata:
+      name: psi-cms
+      labels:
+        blueprints.goauthentik.io/instantiate: "true"
+    context:
+      cms_client_id:     !Env [AUTHENTIK_OIDC__CMS__ID, ""]
+      cms_client_secret: !Env [AUTHENTIK_OIDC__CMS__SECRET, ""]
+    entries:
+      # The people who edit content. Membership is granted in the directory.
+      - model: authentik_core.group
+        identifiers:
+          name: app-cms-editor
+        attrs:
+          is_superuser: false
+      - model: authentik_providers_oauth2.oauth2provider
+        identifiers:
+          name: cms
+        attrs:
+          client_type: confidential
+          client_id: !Context cms_client_id
+          client_secret: !Context cms_client_secret
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+          grant_types:
+            - authorization_code
+            - refresh_token
+          refresh_token_validity: days=36500
+          refresh_token_threshold: seconds=0
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          authentication_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          sub_mode: hashed_user_id
+          property_mappings:
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-offline_access]]
+          redirect_uris:
+            - matching_mode: strict
+              url: https://cms.psizone.ro/api/users/oauth/callback
+      - model: authentik_core.application
+        identifiers:
+          slug: cms
+        attrs:
+          name: CMS
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, cms]]
+          meta_launch_url: https://cms.psizone.ro/admin
+          # Its tile's icon, served by the directory itself (look/app-cms.svg).
+          meta_icon: /static/dist/assets/psi/app-cms.svg
+      # Without a binding an application lets ANY authenticated user through. Two bindings,
+      # engine mode `any`: the editors' group, and `authentik Admins` (Authentik's own
+      # superuser group, present in every directory) as break-glass — a binding must never
+      # lock the operator out, and a group another blueprint creates (platform-admins) may
+      # not exist when this one is applied: a !Find that finds nothing fails the blueprint.
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, cms]]
+          group: !Find [authentik_core.group, [name, app-cms-editor]]
+        attrs:
+          negate: false
+          enabled: true
+          order: 0
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, cms]]
+          group: !Find [authentik_core.group, [name, authentik Admins]]
+        attrs:
+          negate: false
+          enabled: true
+          order: 1

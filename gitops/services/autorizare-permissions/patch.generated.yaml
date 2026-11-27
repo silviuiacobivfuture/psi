@@ -7,7 +7,7 @@ spec:
   template:
     metadata:
       annotations:
-        autorizare/permissions-bundle: "54baa782e2528c41"
+        autorizare/permissions-bundle: "e8541738896f0d8b"
     spec:
       initContainers:
         - name: assert-secrets
@@ -36,9 +36,13 @@ spec:
                     - {key: modules__blog.fga, path: modules/blog.fga}
                     - {key: modules__cms.fga, path: modules/cms.fga}
                     - {key: modules__eqsync.fga, path: modules/eqsync.fga}
+                    - {key: modules__flow.fga, path: modules/flow.fga}
                     - {key: modules__hemisync.fga, path: modules/hemisync.fga}
+                    - {key: modules__invoice.fga, path: modules/invoice.fga}
                     - {key: modules__psizone.fga, path: modules/psizone.fga}
+                    - {key: modules__register.fga, path: modules/register.fga}
                     - {key: modules__sched.fga, path: modules/sched.fga}
+                    - {key: modules__vega.fga, path: modules/vega.fga}
               - configMap:
                   name: autorizare-permissions-catalog
                   items:
@@ -50,12 +54,24 @@ spec:
                     - {key: catalog__cms.roles.json, path: catalog/cms.roles.json}
                     - {key: catalog__eqsync.manifest.json, path: catalog/eqsync.manifest.json}
                     - {key: catalog__eqsync.roles.json, path: catalog/eqsync.roles.json}
+                    - {key: catalog__flow.manifest.d__admin.json, path: catalog/flow.manifest.d/admin.json}
+                    - {key: catalog__flow.manifest.d__flows.json, path: catalog/flow.manifest.d/flows.json}
+                    - {key: catalog__flow.manifest.d__machine.json, path: catalog/flow.manifest.d/machine.json}
+                    - {key: catalog__flow.manifest.d__public.json, path: catalog/flow.manifest.d/public.json}
+                    - {key: catalog__flow.manifest.d__service.json, path: catalog/flow.manifest.d/service.json}
+                    - {key: catalog__flow.manifest.json, path: catalog/flow.manifest.json}
+                    - {key: catalog__flow.roles.json, path: catalog/flow.roles.json}
                     - {key: catalog__hemisync.manifest.json, path: catalog/hemisync.manifest.json}
                     - {key: catalog__hemisync.roles.json, path: catalog/hemisync.roles.json}
+                    - {key: catalog__invoice.manifest.json, path: catalog/invoice.manifest.json}
+                    - {key: catalog__invoice.roles.json, path: catalog/invoice.roles.json}
                     - {key: catalog__psizone.manifest.json, path: catalog/psizone.manifest.json}
                     - {key: catalog__psizone.roles.json, path: catalog/psizone.roles.json}
                     - {key: catalog__sched.manifest.json, path: catalog/sched.manifest.json}
                     - {key: catalog__sched.roles.json, path: catalog/sched.roles.json}
+                    - {key: catalog__vega.manifest.d__intents.json, path: catalog/vega.manifest.d/intents.json}
+                    - {key: catalog__vega.manifest.json, path: catalog/vega.manifest.json}
+                    - {key: catalog__vega.roles.json, path: catalog/vega.roles.json}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -65,7 +81,7 @@ spec:
   template:
     metadata:
       annotations:
-        autorizare/permissions-bundle: "54baa782e2528c41"
+        autorizare/permissions-bundle: "e8541738896f0d8b"
     spec:
       containers:
         - name: autorizare-hub
@@ -86,9 +102,13 @@ spec:
                     - {key: modules__blog.fga, path: modules/blog.fga}
                     - {key: modules__cms.fga, path: modules/cms.fga}
                     - {key: modules__eqsync.fga, path: modules/eqsync.fga}
+                    - {key: modules__flow.fga, path: modules/flow.fga}
                     - {key: modules__hemisync.fga, path: modules/hemisync.fga}
+                    - {key: modules__invoice.fga, path: modules/invoice.fga}
                     - {key: modules__psizone.fga, path: modules/psizone.fga}
+                    - {key: modules__register.fga, path: modules/register.fga}
                     - {key: modules__sched.fga, path: modules/sched.fga}
+                    - {key: modules__vega.fga, path: modules/vega.fga}
               - configMap:
                   name: autorizare-permissions-catalog
                   items:
@@ -100,9 +120,21 @@ spec:
                     - {key: catalog__cms.roles.json, path: catalog/cms.roles.json}
                     - {key: catalog__eqsync.manifest.json, path: catalog/eqsync.manifest.json}
                     - {key: catalog__eqsync.roles.json, path: catalog/eqsync.roles.json}
+                    - {key: catalog__flow.manifest.d__admin.json, path: catalog/flow.manifest.d/admin.json}
+                    - {key: catalog__flow.manifest.d__flows.json, path: catalog/flow.manifest.d/flows.json}
+                    - {key: catalog__flow.manifest.d__machine.json, path: catalog/flow.manifest.d/machine.json}
+                    - {key: catalog__flow.manifest.d__public.json, path: catalog/flow.manifest.d/public.json}
+                    - {key: catalog__flow.manifest.d__service.json, path: catalog/flow.manifest.d/service.json}
+                    - {key: catalog__flow.manifest.json, path: catalog/flow.manifest.json}
+                    - {key: catalog__flow.roles.json, path: catalog/flow.roles.json}
                     - {key: catalog__hemisync.manifest.json, path: catalog/hemisync.manifest.json}
                     - {key: catalog__hemisync.roles.json, path: catalog/hemisync.roles.json}
+                    - {key: catalog__invoice.manifest.json, path: catalog/invoice.manifest.json}
+                    - {key: catalog__invoice.roles.json, path: catalog/invoice.roles.json}
                     - {key: catalog__psizone.manifest.json, path: catalog/psizone.manifest.json}
                     - {key: catalog__psizone.roles.json, path: catalog/psizone.roles.json}
                     - {key: catalog__sched.manifest.json, path: catalog/sched.manifest.json}
                     - {key: catalog__sched.roles.json, path: catalog/sched.roles.json}
+                    - {key: catalog__vega.manifest.d__intents.json, path: catalog/vega.manifest.d/intents.json}
+                    - {key: catalog__vega.manifest.json, path: catalog/vega.manifest.json}
+                    - {key: catalog__vega.roles.json, path: catalog/vega.roles.json}

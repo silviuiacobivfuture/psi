@@ -1,0 +1,3 @@
+# Estate-built images kept on an older SEB build on purpose (estate/seb-image-release.mjs):
+# one per line, `<piece> <repository> <tag> <why>`. A hold names the exact tag it keeps, so a rebuild ends it.
+flows flows seb-b627bf80d 2026-11-15: SEB 0.1.141's flows build deploys Rho's Convex functions only with the Polaris mirror's AUTORIZARE_* keys in secret/apps/psi-flows/convex-env (estate-images.sh refused: MISSING CONVEX ENV AUTORIZARE_*); those values wait for the owner's apply. Rebuild flows from the locked release once they are set.

@@ -7,7 +7,7 @@ key: psizone-web
 name: psizone-web
 displayName: Psizone
 namespace: psizone-web
-note: "Psizone's public site (landing.psizone.ro): the clinic's pages, the guide, the callback and booking forms."
+note: "Psizone's public site (psizone.ro): the clinic's pages, the guide, the callback and booking forms."
 components:
   - name: psizone-web
     path: apps/psizone-web
@@ -20,7 +20,10 @@ components:
       context: .
     port: 3000
     hosts:
-      - prefix: landing
+      - prefix: '@'
+        exposure: public
+        ingress: psizone-web
+      - prefix: www
         exposure: public
         ingress: psizone-web
     overlayImages:

@@ -1,0 +1,6 @@
+# PSI SETTING (fe0e0b5f): TOTP is OPTIONAL. A person with no authenticator is let through, never
+# sent to enrol one; a person who added one in their account settings is asked for its code at every
+# sign-in, because this stage still validates any device it finds. TO TURN MANDATORY TOTP BACK ON:
+# delete this file and mfa-final.yaml (SEB's default is `configure` / `deny`), and HUB_REQUIRE_MFA
+# back to "true" in estate/seb-components/autorizare/kustomization.yaml.
+not_configured_action: skip

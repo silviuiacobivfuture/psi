@@ -69,10 +69,10 @@ function Toolbar({
 				: dayLong(locale, date);
 	return (
 		<div
-			class="adm-stack adm-noprint"
+			class="cal-toolbar adm-noprint"
 			data-signals="{datePick:false,calMenu:false,printOpen:false}"
 		>
-			<div class="cal-bar">
+			<div class="cal-bar cal-bar--nav">
 				<a
 					class="adm-iconbtn"
 					href={href(view, stepDate(view, date, -1), col)}
@@ -98,14 +98,22 @@ function Toolbar({
 					<Icon name="chevron-right" />
 				</a>
 			</div>
-			<div class="cal-bar">
+			<div class="cal-bar cal-bar--views">
 				<Segmented
 					label={m.view_label({}, o)}
 					current={view}
 					items={[
 						{ key: "day", label: m.view_day({}, o), href: href("day", date) },
-						{ key: "week", label: m.view_week({}, o), href: href("week", date, col) },
-						{ key: "month", label: m.view_month({}, o), href: href("month", date) },
+						{
+							key: "week",
+							label: m.view_week({}, o),
+							href: href("week", date, col),
+						},
+						{
+							key: "month",
+							label: m.view_month({}, o),
+							href: href("month", date),
+						},
 					]}
 				/>
 				{/* The month counts every calendar the person may see: it has no columns to filter. */}
@@ -123,6 +131,8 @@ function Toolbar({
 				<a class="adm-btn" href={href(view, today, col)}>
 					{m.today({}, o)}
 				</a>
+			</div>
+			<div class="cal-bar cal-bar--end">
 				{canCreate ? (
 					<button
 						type="button"
@@ -133,6 +143,17 @@ function Toolbar({
 						{m.ap_new_button({}, o)}
 					</button>
 				) : null}
+				<button
+					type="button"
+					class="adm-iconbtn cal-full"
+					data-full-toggle
+					aria-pressed="false"
+					aria-label={m.cal_fullscreen({}, o)}
+					title={m.cal_fullscreen({}, o)}
+				>
+					<Icon name="maximize" class="cal-full__on" />
+					<Icon name="minimize" class="cal-full__off" />
+				</button>
 				<div class="adm-menu" data-on:keydown="evt.key === 'Escape' && ($calMenu = false)">
 					<button
 						type="button"
@@ -239,7 +260,7 @@ export function CalendarBody({
 	const { data } = view;
 	return (
 		<div
-			class="adm-page adm-page--wide"
+			class="cal-page"
 			data-on:keydown__window={`(evt.key === 'n' || evt.key === 'N') && ${ctx.can.write("appointments_create") ? "true" : "false"} && !evt.ctrlKey && !evt.metaKey && !evt.altKey && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName ?? '') && !$editor && (evt.preventDefault(), @get('/calendar/editor?date=${date}&time=09:00'))`}
 		>
 			<Toolbar
@@ -251,48 +272,50 @@ export function CalendarBody({
 				columns={data?.columns ?? []}
 				canCreate={ctx.can.write("appointments_create")}
 			/>
-			{view.failed || data === null ? (
-				<Banner tone="error" icon="alert">
-					<strong>{m.error_title({}, o)}</strong>
-					<p style="margin:2px 0 8px">{m.error_text({}, o)}</p>
-					<a class="adm-btn" href={hrefBase(query.view, date, query.col)}>
-						{m.retry({}, o)}
-					</a>
-				</Banner>
-			) : (
-					query.view === "month"
-						? (view.days?.size ?? 0) === 0
-						: query.view === "week"
-							? // The week reads one calendar: an empty one still shows its grid and the others' chips.
-								data.columns.length === 0
-							: data.appointments.length === 0
-				) ? (
-				<EmptyState
-					icon="calendar"
-					title={m.calendar_empty_title({}, o)}
-					text={m.calendar_empty_text({}, o)}
-				>
-					{ctx.can.write("appointments_create") ? (
-						<a class="adm-btn adm-btn--primary" href={`/calendar?new=1&date=${date}`}>
-							<Icon name="plus" />
-							{m.new_appointment({}, o)}
+			<div class="cal-page__body">
+				{view.failed || data === null ? (
+					<Banner tone="error" icon="alert">
+						<strong>{m.error_title({}, o)}</strong>
+						<p style="margin:2px 0 8px">{m.error_text({}, o)}</p>
+						<a class="adm-btn" href={hrefBase(query.view, date, query.col)}>
+							{m.retry({}, o)}
 						</a>
-					) : null}
-				</EmptyState>
-			) : query.view === "day" ? (
-				<DayGrid data={data} date={date} locale={locale} today={today} nowMin={mins} />
-			) : query.view === "week" ? (
-				<WeekBody
-					data={data}
-					date={date}
-					locale={locale}
-					today={today}
-					nowMin={mins}
-					col={query.col}
-				/>
-			) : (
-				<MonthGrid days={view.days ?? new Map()} date={date} locale={locale} today={today} />
-			)}
+					</Banner>
+				) : (
+						query.view === "month"
+							? (view.days?.size ?? 0) === 0
+							: query.view === "week"
+								? // The week reads one calendar: an empty one still shows its grid and the others' chips.
+									data.columns.length === 0
+								: data.appointments.length === 0
+					) ? (
+					<EmptyState
+						icon="calendar"
+						title={m.calendar_empty_title({}, o)}
+						text={m.calendar_empty_text({}, o)}
+					>
+						{ctx.can.write("appointments_create") ? (
+							<a class="adm-btn adm-btn--primary" href={`/calendar?new=1&date=${date}`}>
+								<Icon name="plus" />
+								{m.new_appointment({}, o)}
+							</a>
+						) : null}
+					</EmptyState>
+				) : query.view === "day" ? (
+					<DayGrid data={data} date={date} locale={locale} today={today} nowMin={mins} />
+				) : query.view === "week" ? (
+					<WeekBody
+						data={data}
+						date={date}
+						locale={locale}
+						today={today}
+						nowMin={mins}
+						col={query.col}
+					/>
+				) : (
+					<MonthGrid days={view.days ?? new Map()} date={date} locale={locale} today={today} />
+				)}
+			</div>
 		</div>
 	);
 }
@@ -352,30 +375,41 @@ export async function renderCalendarLive(ctx: Ctx, query: CalendarQuery): Promis
 
 export async function renderCalendar(ctx: Ctx, query: CalendarQuery): Promise<JSX.Element> {
 	const date = query.date === "" ? todayIso() : query.date;
-	const view = await loadCalendar(ctx, query);
 	const o = at(ctx.locale);
 	const canCreate = ctx.can.write("appointments_create");
-	const editorState =
-		canCreate && query.new === "1"
-			? await openState(ctx, {
+	const opening = canCreate && query.new === "1";
+	// What the grid shows, the editor's state and the visit opened by the address do not depend on one another: they are
+	// read together, the page waiting for the slowest.
+	const [view, editorState, detail, fresh] = await Promise.all([
+		loadCalendar(ctx, query),
+		opening
+			? openState(ctx, {
 					date,
 					time: query.time ?? "09:00",
 					col: query.col ?? "",
 					id: "",
 					client: query.client ?? "",
 				})
-			: null;
-	const detail = query.appt === undefined ? null : await detailBody(ctx, query.appt);
-	const blank =
-		editorState ??
-		(canCreate ? await openState(ctx, { date, time: "09:00", col: "", id: "" }) : null);
-	const live = new URLSearchParams({ screen: "calendar", view: query.view, date });
+			: Promise.resolve(null),
+		query.appt === undefined ? Promise.resolve(null) : detailBody(ctx, query.appt),
+		canCreate && !opening
+			? openState(ctx, { date, time: "09:00", col: "", id: "" })
+			: Promise.resolve(null),
+	]);
+	const blank = editorState ?? fresh;
+	const live = new URLSearchParams({
+		screen: "calendar",
+		view: query.view,
+		date,
+	});
 	if (query.col !== undefined) live.set("col", query.col);
 	if (query.cat !== "team") live.set("cat", query.cat);
 	return Page({
 		ctx,
 		current: "calendar",
 		wide: true,
+		canvas: true,
+		fullscreen: true,
 		title: m.calendar_title({}, o),
 		children: (
 			<div id="cal-live" style="display:contents" data-init={`@get('/live?${live.toString()}')`}>
@@ -394,7 +428,11 @@ export async function renderCalendar(ctx: Ctx, query: CalendarQuery): Promise<JS
 					{editorState === null ? (
 						<div id="editor-body" />
 					) : (
-						<div dangerouslySetInnerHTML={{ __html: await editorBody(ctx, editorState) }} />
+						<div
+							dangerouslySetInnerHTML={{
+								__html: await editorBody(ctx, editorState),
+							}}
+						/>
 					)}
 				</Sheet>
 				<Sheet signal="detail" title={m.ap_sheet_title({}, o)} closeLabel={m.close({}, o)}>

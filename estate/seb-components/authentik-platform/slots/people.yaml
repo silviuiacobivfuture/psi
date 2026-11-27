@@ -1,0 +1,142 @@
+# psi's people on its Authentik (slot `people`, SEB schema/slots/authentik-platform.yaml): filled by
+# SEB's bundle builder (tools/bundle/piece-slots.mjs) at the `seb:estate people` span of the piece's
+# blueprints-people.yaml. Blueprint entries, a YAML list at column 0; the span's indentation is added
+# at render. Edit HERE: who of them is in which group is ../rosters.yaml.
+# ESTATE ADMINS (owner, 2026-11-11): full privileges, the same rosters as the
+# operator (blueprints-groups.yaml). Created only: the password and the TOTP
+# each sets through the invitation link are never overwritten.
+- model: authentik_core.user
+  state: created
+  identifiers:
+    username: turcu_daniela
+  attrs:
+    name: Daniela Turcu
+    email: turcu_daniela@icloud.com
+    type: internal
+    is_active: true
+- model: authentik_core.user
+  state: created
+  identifiers:
+    username: adi_rar
+  attrs:
+    name: Adi
+    email: adi_rar@yahoo.com
+    type: internal
+    is_active: true
+- model: authentik_core.user
+  state: created
+  identifiers:
+    username: nicholas.turcu
+  attrs:
+    name: Nicholas Turcu
+    email: nicholas.turcu@icloud.com
+    type: internal
+    is_active: true
+# Lucian Sergiu Trifan is removed entirely (owner, 2026-11-24): his account is declared absent
+# (a blueprint never deletes what it stops declaring) and he is in no roster. Once the account is
+# gone from the live Authentik, this entry can be removed.
+- model: authentik_core.user
+  state: absent
+  identifiers:
+    username: lucian.trifan
+# Iuliana (owner, 2026-11-24): the fifth member, full rights like the others, with her own
+# iuliana@psizone.ro inbox (every one of the five has one). Her `email` is the recovery address
+# (the company's, psizone.srl@icloud.com); she signs in as iuliana@psizone.ro (upn, below).
+# This is her EXISTING account (the clinic's reception, created 2026-11-13 under her recovery
+# address as its username), renamed to `iuliana` on 2026-11-24: its clinic groups and its
+# `psi_role_hint` stay; created-only, so a person already there is never recreated.
+- model: authentik_core.user
+  state: created
+  identifiers:
+    username: iuliana
+  attrs:
+    name: Iuliana Maxim
+    email: psizone.srl@icloud.com
+    type: internal
+    is_active: true
+# SIGN-IN NAME AND MAILBOX (owner, 2026-11-12), one entry per person, attributes only
+# (the people above are `state: created` and never rewritten; `attributes` is written
+# whole, so every key a person carries is listed here):
+#   upn           the address they type at the sign-in page, <first name>@psizone.ro (owner,
+#                 2026-11-24: all addresses on a first-name basis). Both
+#                 identification stages search [email, username, upn]
+#                 (blueprints-recovery.yaml), so it signs in AND starts "forgot
+#                 password". It is NOT their e-mail: `email` stays the external address
+#                 every application knows them by and the one recovery mail goes to.
+#   mail_address  the mailbox they own on the estate's mail server, whole
+#                 (<first name>@psizone.ro: the estate's MAILBOX_DOMAIN is the apex since
+#                 2026-11-24, Zoho unused). The `mail` scope hands it to Stalwart
+#                 (blueprints-providers.yaml).
+#   mail_account  the same mailbox's local part, read by the mail scope until it reads
+#                 mail_address; drop it once nothing does.
+- model: authentik_core.user
+  identifiers:
+    username: WLOPERATOR
+  attrs:
+    attributes:
+      upn: silviu@psizone.ro
+      mail_address: silviu@psizone.ro
+      mail_account: silviu
+- model: authentik_core.user
+  identifiers:
+    username: turcu_daniela
+  attrs:
+    attributes:
+      upn: daniela@psizone.ro
+      mail_address: daniela@psizone.ro
+      mail_account: daniela
+- model: authentik_core.user
+  identifiers:
+    username: adi_rar
+  attrs:
+    attributes:
+      upn: adi@psizone.ro
+      mail_address: adi@psizone.ro
+      mail_account: adi
+- model: authentik_core.user
+  identifiers:
+    username: nicholas.turcu
+  attrs:
+    attributes:
+      upn: nicholas@psizone.ro
+      mail_address: nicholas@psizone.ro
+      mail_account: nicholas
+- model: authentik_core.user
+  identifiers:
+    username: iuliana
+  attrs:
+    attributes:
+      psi_role_hint: reception
+      upn: iuliana@psizone.ro
+      mail_address: iuliana@psizone.ro
+      mail_account: iuliana
+# Adrian (the clinic's practitioner; owner, 2026-11-24: no account on the estate without an
+# @psizone.ro identity, and every one keeps a recovery address). His existing account, created
+# 2026-11-14 as `ady_rar`, is renamed `adrian`; its `email` stays his recovery address and its
+# clinic groups stay (they are the clinic's, not a roster's). Sign-in only: no mailbox, no roster.
+- model: authentik_core.user
+  state: created
+  identifiers:
+    username: adrian
+  attrs:
+    name: Adrian
+    email: ady_rar@yahoo.com
+    type: internal
+    is_active: true
+- model: authentik_core.user
+  identifiers:
+    username: adrian
+  attrs:
+    attributes:
+      upn: adrian@psizone.ro
+# The console journeys' robot `playwright` (SEB's entry: created only, email playwright@<BASE_DOMAIN>).
+# psi's account was created before psi's identity filled that address, under another estate's domain,
+# and a created-only entry never corrects it: the journeys secret (secret/apps/autorizare/e2e,
+# seeded with playwright@psizone.ro) then names no account. Its address made psi's, here; nothing
+# else of the account is touched (password and TOTP stay repair.sh's, from that secret).
+- model: authentik_core.user
+  state: present
+  identifiers:
+    username: playwright
+  attrs:
+    email: playwright@psizone.ro

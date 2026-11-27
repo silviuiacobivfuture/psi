@@ -9,7 +9,7 @@ import { localeValidator } from "./validators";
 
 /**
  * Brings an app (a tenant) into being, or completes it: the tenant row with its name, kind and
- * settings, the seed roles and the four seeded form templates. Idempotent and non-destructive: a
+ * settings, the seed roles and the seeded form templates. Idempotent and non-destructive: a
  * role or form version that exists is left exactly as the app's owners last edited it.
  */
 export const ensureApp = internalMutation({

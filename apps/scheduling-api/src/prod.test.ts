@@ -137,13 +137,14 @@ describe.skipIf(!kustomize)("the production overlays, rendered", () => {
 });
 
 describe("production's registration and admission", () => {
-	it("each production Application points at its prod overlay and namespace, on the dev branch", () => {
+	it("each production Application points at its prod overlay and namespace, on the prod branch the promote workflow writes", () => {
 		const apps: Record<string, [string, string]> = {
 			"clinic-prod": ["clinic", "clinic-prod"],
 			"scheduling-api-prod": ["scheduling-api", "scheduling-api-prod"],
 			"scheduling-backend-prod": ["scheduling-backend", "scheduling-backend-prod"],
 			"scheduling-deploy-prod": ["scheduling-deploy", "scheduling-backend-prod"],
 			"account-db-prod": ["account-db", "account-db-prod"],
+			"scheduling-sync-prod": ["scheduling-sync", "scheduling-backend-prod"],
 		};
 		const list = read("gitops/apps/overlays/dev/apps/kustomization.yaml");
 		for (const [name, [service, ns]] of Object.entries(apps)) {
@@ -152,7 +153,9 @@ describe("production's registration and admission", () => {
 			expect(a).toMatch(new RegExp(`^ {2}name: ${name}$`, "m"));
 			expect(a).toContain(`path: gitops/services/${service}/overlays/prod`);
 			expect(a).toMatch(new RegExp(`namespace: ${ns} \\}|namespace: ${ns}$`, "m"));
-			expect(a).toContain("targetRevision: dev");
+			// Production deploys from `prod` alone (docs/plans/clinic.md section 14): never from dev, where merges land.
+			expect(a).toContain("targetRevision: prod");
+			expect(a).not.toContain("targetRevision: dev");
 		}
 	});
 
@@ -190,25 +193,29 @@ describe("production's registration and admission", () => {
 				/- name: OIDC_ISSUER\n\s+value: https:\/\/auth\.psizone\.ro\/application\/o\/clinic-prod\/\n/,
 			);
 			expect(clinic).not.toContain("application/o/clinic/");
-			expect(read("gitops/platform/authentik/blueprints-clinic-prod.yaml")).toMatch(
-				/slug: clinic-prod\b/,
-			);
+			expect(
+				read("estate/seb-components/authentik-platform/clients/blueprints-clinic-prod.yaml"),
+			).toMatch(/slug: clinic-prod\b/);
 		},
 	);
 
 	it("Authentik has the production client, its secrets and its blueprint, wired", () => {
-		const bp = read("gitops/platform/authentik/blueprints-clinic-prod.yaml");
+		const bp = read("estate/seb-components/authentik-platform/clients/blueprints-clinic-prod.yaml");
 		expect(bp).toContain("https://programari.psizone.ro/auth/callback");
 		expect(bp).not.toContain("programari-dev");
 		expect(bp).toContain("name: clinic-prod");
-		expect(read("gitops/platform/authentik/clinic-prod-oidc-externalsecret.yaml")).toContain(
-			"apps/clinic-prod/oidc",
-		);
-		expect(read("gitops/platform/authentik/kustomization.yaml")).toContain(
+		expect(
+			read("estate/seb-components/authentik-platform/clients/clinic-prod-oidc-externalsecret.yaml"),
+		).toContain("apps/clinic-prod/oidc");
+		// psi's layer for SEB's authentik pieces: the client's objects, the chart's mount and its env.
+		expect(read("estate/seb-components/authentik-platform/clients/kustomization.yaml")).toContain(
 			"- blueprints-clinic-prod.yaml",
 		);
-		const a = read("gitops/apps/overlays/dev/authentik.yaml");
-		expect(a).toContain("authentik-blueprints-clinic-prod");
-		expect(a).toContain("authentik-clinic-prod-oidc");
+		expect(read("estate/seb-components/authentik/estate-blueprints.yaml")).toContain(
+			"- authentik-blueprints-clinic-prod",
+		);
+		expect(read("estate/seb-components/authentik/env-secrets.yaml")).toContain(
+			"name: authentik-clinic-prod-oidc",
+		);
 	});
 });

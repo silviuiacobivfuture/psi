@@ -228,7 +228,7 @@ v1.0.5 reference (data-star.dev) and verified in a browser test, not from memory
   preview after cutover.
 - **`apps/psizone-web/authz.manifest.json`**: declares no protected resources (public site); shape per
   `../_RMX_READONLY/apps/vega-svc/authz.manifest.json`.
-- **`gitops/services/psizone-web/`**: copy **psi's own** `gitops/services/changelog` conventions (image
+- **`gitops/services/psizone-web/`**: copy the `pieces/changelog` conventions (SEB's; psi's own git copy was retired 2026-11-15) (image
   `WLREGISTRY/WLAPPS/psizone-web`, whitelabel component + generated `whitelabel-replacements.yaml`), not rmx's
   literal values. `base/`: `kustomization`, `deployment` (Kyverno: non-root, owner alert annotation, no
   `:latest`; `assert-secrets` initContainer for the required keys), `service`, `ingress` (traefik,

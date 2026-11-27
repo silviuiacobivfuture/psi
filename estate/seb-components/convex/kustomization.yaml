@@ -1,0 +1,6 @@
+# psi's layer for the SEB piece `convex` (one self-hosted Convex backend and its Postgres per
+# application): nothing beyond its instances, one directory each under instances/<name>/ (SEB's
+# pieces/convex/kustomization.yaml says what an instance holds).
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources: []

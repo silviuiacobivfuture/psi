@@ -29,6 +29,7 @@ import { isPagedTab, tabHref, tabRegionId } from "./client-tab-pager";
 import { ClientFilters } from "./clients-filters";
 import {
 	ClientResults,
+	clientsAside,
 	practitionersOf,
 	RESULTS_ID,
 	readClients,
@@ -78,13 +79,17 @@ export function registerClients(app: Hono<Env>): void {
 	app.get("/clients", async (c) => {
 		const ctx = c.var.ctx;
 		const asked = parseClients(c.req.query());
+		// A whole page also shows what stands beside the results; it is read while the page size, then the results, are.
+		const aside = inPlace(c) ? null : clientsAside(ctx);
 		const ask = await askOf(ctx, asked);
 		await rememberSize(ctx, asked.paging, ask.size as PageSize);
 		const result = await readClients(ctx, ask);
-		if (!inPlace(c))
-			return c.html(await renderClients(ctx, ask, result, c.req.query("new") === "1"), 200, {
-				"cache-control": "private, no-store",
-			});
+		if (aside !== null)
+			return c.html(
+				await renderClients(ctx, ask, result, await aside, c.req.query("new") === "1"),
+				200,
+				{ "cache-control": "private, no-store" },
+			);
 		const shown = result.ok ? { ...ask, page: result.page.page } : ask;
 		const results = <ClientResults ctx={ctx} ask={shown} result={result} />;
 		return patchList({

@@ -13,7 +13,7 @@ this page is that decision written down, and the code follows it.
 
 | Site | App (local) | Env var (canonical origin) | Dev/staging host today |
 | --- | --- | --- | --- |
-| Psizone | `apps/psizone-web` (:4310) | `PSIZONE_URL` | `landing.psizone.ro` |
+| Psizone | `apps/psizone-web` (:4310) | `PSIZONE_URL` | `psizone.ro` |
 | EQ-SYNC | `apps/eqsync-web` (:4320) | `EQSYNC_URL` | `eqsync.psizone.ro` |
 | Hemi-Sync România | `apps/hemisync-web` (:4330) | `HEMISYNC_URL` | `hemisync.psizone.ro` |
 | Blog | `apps/blog-web` (:4340) | `BLOG_URL` | `blog.psizone.ro` |

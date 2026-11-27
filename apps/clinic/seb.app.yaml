@@ -62,7 +62,7 @@ externalSecrets:
   - name: authentik-clinic-oidc
     namespace: authentik
     target: authentik-clinic-oidc
-    manifest: gitops/platform/authentik/clinic-oidc-externalsecret.yaml
+    manifest: estate/seb-components/authentik-platform/clients/clinic-oidc-externalsecret.yaml
 secrets:
   - path: apps/clinic/oidc
     owner: clinic
@@ -97,7 +97,7 @@ oidc:
 groups:
   - name: app-clinic-member
     state: present
-    declaredIn: gitops/platform/authentik/blueprints-clinic.yaml
+    declaredIn: estate/seb-components/authentik-platform/clients/blueprints-clinic.yaml
     role: member
 ci:
   workflows:

@@ -28,3 +28,8 @@ exceptions:
     target: "Ingress/novu-*"
     paths: ["/"]
     reason: psi runs no mesh for Novu's dashboard and API, so it deletes the two tailnet-only Ingresses rather than leave doors pointing at nothing.
+  - id: psi-old-safari-sfe
+    piece: authentik-platform
+    target: "*/*old-safari-sfe"
+    paths: ["/"]
+    reason: Safari before 18 (and iOS before 18) crashes on Authentik 2026.5's sign-in page (upstream #23500); this IngressRoute and its redirect Middleware send it once to Authentik's simplified page (?sfe=1). SEB carries the same objects in the piece after 0.1.148 (SEB dev 2026-11-17); goes when psi takes that release.

@@ -5,6 +5,7 @@
 @import "@psi/ui/floor-plan.css";
 @import "@psi/ui/inbox.css";
 @import "./calendar.css";
+@import "./calendar-page.css";
 @import "./screens.css";
 @import "./client.css";
 @import "./lists.css";

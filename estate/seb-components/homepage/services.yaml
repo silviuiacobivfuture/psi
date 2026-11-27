@@ -8,7 +8,7 @@
 - Site-urile noastre:
     - Psizone:
         icon: mdi-web
-        href: https://landing.psizone.ro
+        href: https://psizone.ro
         description: Site-ul centrului Psizone
         namespace: psizone-web
         app: psizone-web
@@ -128,13 +128,13 @@
     - E-mail:
         icon: mdi-email-outline
         href: https://inbox.psizone.ro/
-        description: Căsuța ta nume@post.psizone.ro, în browser · Bulwark
+        description: Căsuța ta prenume@psizone.ro, în browser · Bulwark
         namespace: stalwart
         app: bulwark
         podSelector: app.kubernetes.io/name=bulwark
     - Parole de aplicație (e-mail):
         icon: mdi-cellphone-key
-        href: https://post.psizone.ro/account
+        href: https://mail-admin.psizone.ro/account
         description: Pagina serverului de e-mail · parola pentru telefon și administrare · Stalwart
         namespace: stalwart
         app: stalwart

@@ -351,6 +351,7 @@ export interface User {
    * Copied from Authentik at every sign-in; never edited here.
    */
   directoryGroups?: string[] | null;
+  directoryToken?: string | null;
   sub?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -1085,6 +1086,7 @@ export interface AiSettingsVersionsSelect<T extends boolean = true> {
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
   directoryGroups?: T;
+  directoryToken?: T;
   sub?: T;
   updatedAt?: T;
   createdAt?: T;

@@ -3,6 +3,7 @@
 # rather than by an edit to SEB's. Each `from` element is namespace AND pod (an AND; two elements would be an OR).
 #
 #   :8081  Service openfga       Check / ListObjects    clinic (the console) and scheduling-api
+#          (Sigma and Rho, the shared applications, are admitted by SEB's openfga piece itself since 0.1.135)
 #   :8080  Service openfga-admin tuple writes           scheduling-api only
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

@@ -1,0 +1,22 @@
+# GENERATED FROM .seb-bundle/apps/flows/authz.manifest.json — DO NOT EDIT.
+# Run `python3 authz/tools/generate.py` after changing the manifest.
+#
+# Entitlement groups for `flow`, derived from its manifest's group_bindings.
+# @rule ORG-15 — the groups an application depends on are declared in ONE
+# place. A group added by hand survives until the provider is rebuilt, and
+# then nobody can sign in, with no visible reason.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-blueprints-groups-flow
+  namespace: authentik
+data:
+  groups-flow.yaml: |
+    version: 1
+    metadata:
+      name: psi-groups-flow
+      labels:
+        blueprints.goauthentik.io/instantiate: "true"
+    entries:
+      # app-flow-super-admin -> flow:super_admin
+      - { model: authentik_core.group, identifiers: { name: app-flow-super-admin }, attrs: { is_superuser: false } }

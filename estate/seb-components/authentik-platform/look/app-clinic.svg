@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Psizone</title>
+<style>svg{color:#86650F}.t2{color:#2FC8BA}@media(prefers-color-scheme:dark){svg{color:#D2AA50}.t2{color:#40D9C9}}</style>
+<circle cx="32" cy="32" r="25.4" stroke-width="3.4"/><path class="t2" fill="currentColor" stroke="none" d="M32 .5c2.3 1.9 2.9 4.5 0 7.3-2.9-2.8-2.3-5.4 0-7.3z"/>
+<path d="M30.84 15.61C28.66 13.59 25.19 13.73 23.15 15.91 20.55 15.18 18.08 17.21 18.37 19.82 15.76 20.84 14.75 24.02 16.05 26.35 14.16 28.66 14.6 32 16.77 33.45 15.61 36.06 16.77 39.25 19.1 40.12 18.95 43.02 21.13 45.34 23.88 45.34 24.75 48.24 27.65 49.98 30.26 48.97L30.84 48.39Z" fill="currentColor" stroke="none"/><g transform="matrix(-1 0 0 1 64 0)"><path d="M30.84 15.61C28.66 13.59 25.19 13.73 23.15 15.91 20.55 15.18 18.08 17.21 18.37 19.82 15.76 20.84 14.75 24.02 16.05 26.35 14.16 28.66 14.6 32 16.77 33.45 15.61 36.06 16.77 39.25 19.1 40.12 18.95 43.02 21.13 45.34 23.88 45.34 24.75 48.24 27.65 49.98 30.26 48.97L30.84 48.39Z" fill="currentColor" stroke="none"/></g>
+</svg>

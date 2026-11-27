@@ -1,10 +1,14 @@
 # An estate with NO private network (identity MESH: none) opens on the PUBLIC ingress the doors
-# SEB's pieces open on the mesh: Argo CD, Headlamp, OpenBao, the system hub and Netdata, at
-# <tool>.<TAILNET_DOMAIN> — which the identity loader puts on the apex when MESH is none
-# (tools/identity/lib/render.mjs). Each is behind sign-in: the tools with a login of their own
-# (Argo CD, Headlamp, OpenBao) ALSO behind the estate's domain sign-in (the forward-auth
-# Middleware); the hub and Netdata through Authentik's embedded outpost, exactly as their
-# tailnet gates are (gitops/platform/authentik/ingress-proxied-apps.yaml).
+# SEB's pieces open on the mesh: Argo CD, Headlamp, OpenBao, the system hub, Netdata and the
+# changelog, at <tool>.<TAILNET_DOMAIN> — which the identity loader puts on the apex when MESH is
+# none (tools/identity/lib/render.mjs). Each is behind sign-in: the tools with a login of their own
+# (Argo CD, Headlamp, OpenBao) and the changelog's API (its own Bearer keys) ALSO behind the
+# estate's domain sign-in (the forward-auth Middleware); the hub and Netdata through Authentik's
+# embedded outpost, exactly as their tailnet gates are (SEB's pieces/authentik-platform/ingress-proxied-apps.yaml).
+# Each door carries the hub tile its mesh door carries (gethomepage.dev, the same name, group, icon
+# and status pod), so require-hub-annotation passes the door (SEB's
+# .github/scripts/tests/public-doors-hub_test.sh). psi's hub discovers no Ingress (its
+# homepage discovery says ingress: false): its own tiles are unchanged.
 #
 # Deployed only on such an estate: tools/estate-pieces.mjs writes its Application (public-doors)
 # when the identity says MESH: none, and never otherwise — an estate on a mesh keeps these tools
@@ -18,6 +22,7 @@ resources:
   - openbao.yaml
   - hub.yaml
   - netdata.yaml
+  - changelog.yaml
 components:
   - ../../components/whitelabel
 replacements:

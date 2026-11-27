@@ -1,0 +1,5 @@
+# psi's own external hosts: addresses in psi's OpenBao (secret/apps/**) and its pods' environments
+# that nothing in this cluster serves, each with the reason a reviewer can disagree with. Read by
+# SEB's doctor ("service addresses" layers, lib-service-addresses.sh) beside the platform's list.
+# "<host or *.suffix> <reason>"; a line without a reason is not taken. Each host must still resolve.
+hvbbskiwajpbenozbgdt.supabase.co   the old Supabase app the scheduling sync migrates from, read-only (secret/apps/scheduling-sync/old-app; estate/APP-SECRETS.md, packages/scheduling/scripts/sync-old)

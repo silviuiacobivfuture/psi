@@ -1,0 +1,19 @@
+# Rho's Convex instance. NAME is the application's FLOWS_APP (estate-images.sh deploys the flows
+# functions to https://convex-<FLOWS_APP>.<apex>). Convex names its Postgres database after
+# INSTANCE_NAME with `-` replaced by `_`, so DATABASE is psi_flows: one decision, effectively
+# immutable once the instance holds data. 10Gi is the block-volume minimum; Sunday 03:30
+# (six-field cron).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: convex-instance
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  NAME: psi-flows
+  # psi's own tenant: this backend serves one of psi's applications.
+  TENANT: psi
+  DATABASE: psi_flows
+  PURPOSE: Rho
+  DB_SIZE: 10Gi
+  BACKUP_SCHEDULE: "0 30 3 * * 0"

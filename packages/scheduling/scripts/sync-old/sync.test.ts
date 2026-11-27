@@ -272,6 +272,59 @@ describe("what blocks a sync", () => {
 	});
 });
 
+describe("the psychotherapy intake (it refused every pass from 17 Nov while it had to be empty)", () => {
+	const withIntake = (t: Record<string, Row[]>) => {
+		t.psychotherapy_intake = [
+			{ id: 1, client_id: 1, created_at: "2026-11-17T13:40:00Z", therapeutic_goals: "x" },
+		];
+	};
+
+	it("a dry run would write the one intake and nothing else; the real pass writes it; the next writes nothing", async () => {
+		const sink = new MemorySink();
+		await pass(oldApp(), sink);
+		const before = { changes: sink.changes, dump: sink.dump() };
+		const dry = await pass(oldApp(withIntake), sink, { dryRun: true });
+		expect(dry.refused).toBe(false);
+		expect(dry.report.anomalies.filter((a) => a.severity === "blocking")).toEqual([]);
+		expect(dry.report.tables.find((t) => t.table === "psychotherapy_intake")).toMatchObject({
+			source: 1,
+			planned: 1,
+		});
+		expect(diff(dry, "responses")).toMatchObject({ created: 1, changed: 0 });
+		for (const k of dry.kinds.filter((k) => k.kind !== "responses"))
+			expect(k, k.kind).toMatchObject({ created: 0, changed: 0 });
+		expect(sink.dump()).toBe(before.dump);
+
+		const real = await pass(oldApp(withIntake), sink);
+		expect(real.refused).toBe(false);
+		expect(written(real, "responses")).toMatchObject({ created: 1, updated: 0 });
+		expect(sink.changes).toBe(before.changes + 1);
+
+		const again = await pass(oldApp(withIntake), sink);
+		expect(again.refused).toBe(false);
+		expect(sink.changes).toBe(before.changes + 1);
+		expect(diff(again, "responses")).toMatchObject({ created: 0, changed: 0 });
+	});
+
+	it("a table that must stay empty still refuses the pass, intake or not, and nothing is written", async () => {
+		const sink = new MemorySink();
+		await pass(oldApp(), sink);
+		const before = sink.dump();
+		const blocked = await pass(
+			oldApp((t) => {
+				withIntake(t);
+				t.client_therapies = [{ id: 1 }];
+			}),
+			sink,
+		);
+		expect(blocked.refused).toBe(true);
+		expect(blocked.report.anomalies.map((a) => a.code)).toContain(
+			"table_must_be_empty:client_therapies",
+		);
+		expect(sink.dump()).toBe(before);
+	});
+});
+
 describe("--anonymize feeds the same store with dummy identities", () => {
 	it("syncs, and no real identifier reaches the target; a second run is still a no-op", async () => {
 		const fake = oldApp();

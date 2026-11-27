@@ -51,6 +51,26 @@ lock_value() {
   sed -n "s/^$1 = //p" "$LOCK"
 }
 
+# tag_commit_or_none <version> — the commit SEB's tag v<version> names (peeled), or nothing when
+# SEB has no such tag (rc 0); rc 1 only when the repository cannot be read.
+tag_commit_or_none() {
+  env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE git ls-remote "$RELEASE_REPO" "refs/tags/v$1" "refs/tags/v$1^{}" 2>"$WORK/ls.err" \
+    | awk '{ c = $1 } /\^\{\}$/ { p = $1 } END { print (p != "" ? p : c) }'
+}
+
+# release_tag_of <commit> — the SEB release tag (vMAJOR.MINOR.PATCH) that names <commit> (peeled),
+# the highest when several do; rc 1 and nothing printed when no release names it.
+release_tag_of() {
+  local out
+  out="$(env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE git ls-remote --tags "$RELEASE_REPO" 2>"$WORK/ls.err")" || return 1
+  out="$(printf '%s\n' "$out" | awk -v c="$1" '
+    { t = $2; sub(/^refs\/tags\//, "", t); peeled = sub(/\^\{\}$/, "", t)
+      if (peeled) p[t] = $1; else d[t] = $1 }
+    END { for (t in d) { e = (t in p) ? p[t] : d[t]; if (e == c && t ~ /^v[0-9]+\.[0-9]+\.[0-9]+$/) print t } }' | sort -V | tail -n 1)"
+  [ -n "$out" ] || return 1
+  printf '%s\n' "$out"
+}
+
 # tag_commit <version> — the commit SEB's tag v<version> names (peeled), asked of the SEB repository.
 tag_commit() {
   local c
@@ -73,10 +93,22 @@ verify() {
   [ "$(bundle_json "$digest" | jq -r .version)" = "$version" ] || refuse "$REPO@$digest does not say it is $version"
   say "lock holds: $REPO:$version @ $digest"
   # The locked bundle is the release it says it is: built from the commit SEB's tag v<version> names.
-  local tagged
-  tagged="$(tag_commit "$version")"
-  [ "$(bundle_json "$digest" | jq -r .source.commit)" = "$tagged" ] \
-    || refuse "$REPO@$digest was not built from release v$version ($tagged)"
-  say "built from release v$version = $tagged"
+  # An estate may number its bundles of one release itself (psi: 0.1.121-psi.1 is SEB's v0.1.121
+  # built with psi's identity, seb-upgrade.sh 0.1.121-psi.1 --from-artifact 0.1.121): SEB has no
+  # tag v0.1.121-psi.1, so the bundle's own source commit must then be one a SEB release tag names.
+  # Before 2026-11-15 that lock was refused ("holds no release v0.1.121-psi.1") on every doctor run.
+  local tagged commit release
+  commit="$(bundle_json "$digest" | jq -r .source.commit)"
+  tagged="$(tag_commit_or_none "$version")" || refuse "cannot read release v$version from $RELEASE_REPO: $(tail -n1 "$WORK/ls.err")"
+  if [ -n "$tagged" ]; then
+    release="v$version"
+  else
+    release="$(release_tag_of "$commit")" \
+      || refuse "the SEB repository $RELEASE_REPO holds no release v$version, and no SEB release names the bundle's commit ${commit:-(none)}"
+    tagged="$commit"
+  fi
+  [ "$commit" = "$tagged" ] \
+    || refuse "$REPO@$digest was not built from release $release ($tagged)"
+  say "built from release $release = $tagged"
   signed_release "$version" "$digest" "$tagged"
 }

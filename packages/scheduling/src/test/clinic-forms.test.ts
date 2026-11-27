@@ -14,7 +14,7 @@ const template = (key: string): FormDefinition => {
 	return found;
 };
 
-describe("the four seeded templates", () => {
+describe("the five seeded templates", () => {
 	const EXPECTED: Record<string, ReadonlyArray<string>> = {
 		"aba-session-report": [
 			"programs",
@@ -95,6 +95,23 @@ describe("the four seeded templates", () => {
 			"schedule_fits",
 			"would_recommend",
 			"suggestions",
+		],
+		"psychotherapy-intake": [
+			"client_code",
+			"age",
+			"category",
+			"contact",
+			"legal_rep",
+			"referral",
+			"therapist_name",
+			"first_session_date",
+			"presenting_problem",
+			"personal_family_history",
+			"medical_psychiatric_history",
+			"trauma_history",
+			"previous_therapy",
+			"risk_factors",
+			"therapeutic_goals",
 		],
 	};
 

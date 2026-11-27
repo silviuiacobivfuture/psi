@@ -64,3 +64,18 @@ describe("parseEnv", () => {
 		}
 	});
 });
+
+describe("SESSION_LIFETIME — the estate's, from the whitelabel ConfigMap", () => {
+	it('absent or blank (Kubernetes renders an unset key as "") is accepted: never', () => {
+		expect(parseEnv(good).SESSION_LIFETIME).toBeUndefined();
+		expect(parseEnv({ ...good, SESSION_LIFETIME: "" }).SESSION_LIFETIME).toBeUndefined();
+	});
+	it.each(["never", "12h", "90d"])("accepts %s", (v) => {
+		expect(parseEnv({ ...good, SESSION_LIFETIME: v }).SESSION_LIFETIME).toBe(v);
+	});
+	it.each(["forever", "0d", "1w", "days=36500"])("refuses %s, naming the key", (v) => {
+		expect(() => parseEnv({ ...good, SESSION_LIFETIME: v })).toThrow(
+			"MISSING OR INVALID ENV: SESSION_LIFETIME",
+		);
+	});
+});

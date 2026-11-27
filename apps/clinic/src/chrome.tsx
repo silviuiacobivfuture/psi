@@ -23,11 +23,12 @@ import { worstFailure } from "./lib/failures";
 import { at, type Locale } from "./lib/i18n";
 import { joinRoles } from "./lib/roles-joined";
 import { FailureState } from "./pages/failure";
-import { PauseBanner } from "./pages/pause-banner";
+import { PauseBanner, readPauses } from "./pages/pause-banner";
 import { m } from "./paraglide/messages.js";
 import type { AppSlug } from "./port/schema";
 import { RoleSwitcher } from "./role-switcher";
 import { ROLES_MATRIX_PATH } from "./roles-matrix/path";
+import { SpeculativeNav } from "./speculation";
 
 export type NavKey =
 	| "calendar"
@@ -181,6 +182,18 @@ export interface PageProps {
 	noFab?: boolean;
 	/** The calendar: the navigation starts as a rail so the columns fill the screen. */
 	wide?: boolean;
+	/** The page offers "full screen" (the calendar): the saved choice is read from the `adm-full` cookie. */
+	fullscreen?: boolean;
+}
+
+/** The badge on "Cereri": the service's count of open requests, 0 for who may not see them or when it cannot be read. */
+async function openRequests(ctx: Ctx): Promise<number> {
+	if (!ctx.can.has("web_requests_view")) return 0;
+	try {
+		return (await ctx.port.requestPage(ctx.app, "open", { page: 1, size: 1 })).total;
+	} catch {
+		return 0;
+	}
 }
 
 /** One signed-in page: the document and the responsive shell around the screen. */
@@ -194,21 +207,18 @@ export async function Page({
 	noFab,
 	wide,
 	canvas,
+	fullscreen,
 }: PageProps): Promise<JSX.Element> {
 	const { locale } = ctx;
 	const o = at(locale);
 	const { can } = ctx;
-	// The badge is the service's count of open requests (one row asked, never every request).
-	let open: number | string = 0;
-	if (can.has("web_requests_view")) {
-		try {
-			open = (await ctx.port.requestPage(ctx.app, "open", { page: 1, size: 1 })).total;
-		} catch {
-			open = 0;
-		}
-	}
+	// The badge is the service's count of open requests (one row asked, never every request). The pause list is asked
+	// beside it: the page waits for the slower of the two, not for both in turn.
+	const pauses = readPauses(ctx);
+	const [open, pauseList] = await Promise.all([openRequests(ctx), pauses.list]);
 	// The service refused this screen for a reason a retry does not cure: say so instead of the empty or broken page.
-	const refused = worstFailure(ctx.c);
+	// A pause list that cannot be read shows no notice and is no refusal of the screen: it is left out of the judgement.
+	const refused = worstFailure(ctx.c, pauses.failure());
 	const shown =
 		refused !== null && refused.code !== "unauthenticated" ? (
 			<div class="adm-page">
@@ -217,9 +227,8 @@ export async function Page({
 		) : (
 			children
 		);
-	// While online booking is stopped, every screen says so. Read after the screen's own refusals are judged, so a pause
-	// list that cannot be read never turns the page into a failure.
-	const paused = await PauseBanner({ ctx });
+	// While online booking is stopped, every screen says so.
+	const paused = PauseBanner({ ctx, list: pauseList });
 	const item = (
 		key: NavKey,
 		label: string,
@@ -280,7 +289,12 @@ export async function Page({
 			locale={locale}
 			theme={ctx.theme}
 			title={`${title} · ${m.brand({}, o)}`}
-			head={ctx.pwa.head(locale)}
+			head={
+				<>
+					{ctx.pwa.head(locale)}
+					<SpeculativeNav />
+				</>
+			}
 		>
 			<AdminShell
 				app={ctx.app}
@@ -297,6 +311,11 @@ export async function Page({
 				}
 				rail={railPreferenceFrom(getCookie(ctx.c, "adm-rail")) ?? wide === true}
 				canvas={canvas === true}
+				{...(fullscreen === true
+					? {
+							fullscreen: getCookie(ctx.c, "adm-full") === "1" ? ("on" as const) : ("off" as const),
+						}
+					: {})}
 				prefsAction="/prefs"
 				signOutAction={ctx.signOut}
 				choices={

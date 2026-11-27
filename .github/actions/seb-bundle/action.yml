@@ -28,6 +28,13 @@ inputs:
   pull-secret:
     description: The KV v2 data path of the pull robot, fields username and password (vars.REGISTRY_PULL_SECRET).
     required: true
+  package-manager-cache:
+    description: >-
+      "false" in a job that never runs pnpm install (the apps build): setup-node's post step then has no
+      store to save and FAILS the job after it deployed ("Path Validation Error", 39 false reds on
+      2026-11-13/14).
+    required: false
+    default: "true"
 
 runs:
   using: composite
@@ -38,6 +45,7 @@ runs:
     - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
       with:
         node-version-file: .nvmrc
+        package-manager-cache: ${{ inputs.package-manager-cache == 'true' }}
     - id: lock
       shell: bash
       run: |

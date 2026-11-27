@@ -15,24 +15,33 @@ export function registerStats(app: Hono<Env>): void {
 		const query = parsed.data;
 		const span = clamp(spanOf(query, todayIso()));
 		const compare = query.compare === "1" ? previousOf(span) : null;
-		const people = (await ctx.port.columns(ctx.app).catch(() => []))
-			.filter((col) => col.kind === "person")
-			.map((col) => ({ id: col.id, name: col.name }));
-		if (query.person !== undefined && !people.some((p) => p.id === query.person))
-			throw new PortError("not-found", "that person");
 		const ask: ReportQuery = {
 			from: span.from,
 			to: span.to,
 			...(compare === null ? {} : { compare }),
 			...(query.person === undefined ? {} : { personId: query.person }),
 		};
-		let report: Report | null = null;
-		try {
-			report = await ctx.port.report(ctx.app, ask);
-		} catch (error) {
-			// Only the kinds of refusal that have a screen of their own end here; the rest are the service's to answer for.
-			if (!(error instanceof PortError) || error.code !== "unavailable") throw error;
-		}
+		const reportOf = async (): Promise<Report | null> => {
+			try {
+				return await ctx.port.report(ctx.app, ask);
+			} catch (error) {
+				// Only the kinds of refusal that have a screen of their own end here; the rest are the service's to answer for.
+				if (!(error instanceof PortError) || error.code !== "unavailable") throw error;
+				return null;
+			}
+		};
+		const columns = ctx.port.columns(ctx.app).catch(() => []);
+		// The figures for the whole clinic do not wait for the list of people; a named person is checked against it first.
+		const [named, whole] =
+			query.person === undefined
+				? await Promise.all([columns, reportOf()])
+				: [await columns, undefined];
+		const people = named
+			.filter((col) => col.kind === "person")
+			.map((col) => ({ id: col.id, name: col.name }));
+		if (query.person !== undefined && !people.some((p) => p.id === query.person))
+			throw new PortError("not-found", "that person");
+		const report = whole === undefined ? await reportOf() : whole;
 		return c.html(await renderStats(ctx, { query, span, compare, people, report }), 200, {
 			"cache-control": "private, no-store",
 		});

@@ -1,0 +1,3 @@
+# `skip`, not `deny`: with TOTP optional (mfa-validate.yaml) a person with no device reaches this
+# stage too, and must pass. Skip only ever applies to someone holding no device at all.
+not_configured_action: skip

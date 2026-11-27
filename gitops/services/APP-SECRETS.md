@@ -342,7 +342,7 @@ templates this repo does not own.
   **keep the two in sync**.
 
 Adding a new app: put the annotation in `base/deployment.yaml` from day one, next to the
-`alerts.northwind.example/owner` one (see `gitops/services/changelog/base/deployment.yaml`).
+`alerts.northwind.example/owner` one (see SEB's `pieces/changelog/base/deployment.yaml`).
 
 ## Change detection — the `secret-watcher` (OpenBao change → the right action)
 
@@ -519,7 +519,7 @@ declared and not wired yet.
 | `secret/apps/autorizare/authentik-legacy` | retire | — | api_token + api_url of the retired directory, written 2026-10-22; nothing reads it — revoke the token, then delete |
 | `secret/apps/autorizare/e2e-playwright-enrolled` | retire | — | superseded (the authorization work ledger (first estate's history, not shipped)); nothing reads it |
 | `secret/apps/autorizare/e2e-playwright-revocable` | retire | — | nothing reads it; the address survives only as a literal in a Go test's arguments |
-| `secret/apps/changelog/env` | retire | — | superseded 2026-10-22: the URLs are composed from apps/changelog/db (gitops/services/changelog/base/externalsecret.yaml) |
+| `secret/apps/changelog/env` | retire | — | superseded 2026-10-22: the URLs are composed from apps/changelog/db (SEB's pieces/changelog/base/externalsecret.yaml) |
 | `secret/platform/authentik/invoice-oidc` | retire | — | RUNBOOK: "no reader and no writer" once the invoice blueprint is green — soft-delete then |
 | `secret/platform/authentik-business/autorizare-oidc` | retire | — | blanked; the business instance went on 2026-10-25 (seed-secrets.sh) |
 | `secret/platform/authentik-business/bootstrap` | retire | — | blanked; the business instance went on 2026-10-25 |

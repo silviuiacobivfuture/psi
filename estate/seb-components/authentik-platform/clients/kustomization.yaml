@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# psi's own sign-in clients on its directory, ONE copy: composed by ../kustomization.yaml (psi's
+# layer for the SEB piece authentik-platform, slots estate-blueprints and estate-clients). Every
+# object is in the `authentik` namespace. The chart mounts the three blueprints and reads the three clients' secrets
+# as env (estate/seb-components/authentik/: estate-blueprints.yaml, env-secrets.yaml).
+# blueprints-agent-studio.yaml sits here NOT listed: agent-studio's sign-in is not wired yet (its header).
+resources:
+  # psi's cms (OIDC provider, application, editors) and its client's secret.
+  - blueprints-cms.yaml
+  - cms-oidc-externalsecret.yaml
+  # psi's clinic console on dev (OIDC provider, application, team group) and its client's secret.
+  - blueprints-clinic.yaml
+  - clinic-oidc-externalsecret.yaml
+  # The same console in production (own provider, application and team group).
+  - blueprints-clinic-prod.yaml
+  - clinic-prod-oidc-externalsecret.yaml

@@ -1,0 +1,5 @@
+# psi's own sign-in clients (estate/seb-components/authentik-platform/clients/): the cms (OIDC
+# provider, application, editors), the clinic console on dev, and the same console in production.
+- authentik-blueprints-cms
+- authentik-blueprints-clinic
+- authentik-blueprints-clinic-prod
