@@ -90,3 +90,12 @@ export const reviewField: Field = {
 		{ name: "notes", type: "textarea", access: { read: signedInOnly } },
 	],
 };
+
+/**
+ * The edit view's buttons for a reviewed collection (admin.components.edit): Publish saves the
+ * text as a draft before publishing, so a publish the gate refuses never loses an edit
+ * (components/PublishAfterSave.tsx).
+ */
+export const reviewedEditButtons = {
+	PublishButton: "/components/PublishAfterSave#PublishAfterSave",
+} as const;

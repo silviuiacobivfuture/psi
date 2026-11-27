@@ -1,0 +1,22 @@
+# mail.psizone.ro → the webmail (gitops/services/mail-redirect). git-sourced → overlay stamps targetRevision.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mail-redirect
+  namespace: argocd
+  labels:
+    platform.psizone.ro/source: git
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:silviuiacobivfuture/psi.git
+    path: gitops/services/mail-redirect/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: stalwart
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

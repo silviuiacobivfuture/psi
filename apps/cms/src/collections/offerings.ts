@@ -4,7 +4,13 @@ import { brandAccess } from "../authz/access";
 import { brandListFilter } from "../brand/filter";
 import { indexContent, unindexContent } from "../knowledge/ingest-content";
 import { L } from "../labels";
-import { authorUserField, brandField, reviewField, workflowField } from "../review/fields";
+import {
+	authorUserField,
+	brandField,
+	reviewedEditButtons,
+	reviewField,
+	workflowField,
+} from "../review/fields";
 import { reviewGate } from "../review/gate";
 import type { ReviewSpec } from "../review/spec";
 import { announceChange, announceDeletion } from "../webhook/hooks";
@@ -51,6 +57,7 @@ export const Offerings: CollectionConfig = {
 		useAsTitle: "title",
 		defaultColumns: ["title", "brand", "kind", "price.mode", "workflow", "_status", "demo"],
 		baseListFilter: brandListFilter(BRANDS),
+		components: { edit: reviewedEditButtons },
 	},
 	versions: { drafts: { autosave: { interval: 1500 } }, maxPerDoc: 50 },
 	access: brandAccess(BRANDS),

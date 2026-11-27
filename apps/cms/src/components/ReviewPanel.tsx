@@ -3,11 +3,14 @@ import { Pill, useDocumentInfo, useLocale, useTranslation } from "@payloadcms/ui
 import { type ReactElement, useCallback, useEffect, useState } from "react";
 import { z } from "zod";
 import type { CustomKey, PsiKey } from "../i18n";
+import { useSaveFirst } from "./use-save-first";
 
 /**
  * The review panel in an article's sidebar: the stage, each language's review, the actions this
  * person may take (from the server: an author sees no approve buttons) and the document's log.
- * It only calls the review endpoints; every rule is enforced there.
+ * It only calls the review endpoints; every rule is enforced there. What is typed and not yet
+ * autosaved is saved as a draft before any action (save-first.ts): the action reloads the page, and
+ * the review decides on the stored text, so it must be the text on the screen.
  */
 const Locale = z.object({
 	exists: z.boolean(),
@@ -46,6 +49,7 @@ export function ReviewPanel(): ReactElement | null {
 	const [status, setStatus] = useState<Status | null>(null);
 	const [notes, setNotes] = useState("");
 	const [error, setError] = useState<string | null>(null);
+	const { run } = useSaveFirst();
 	const base = `/api/review/${collectionSlug}/${id}`;
 
 	const load = useCallback(async () => {
@@ -60,20 +64,22 @@ export function ReviewPanel(): ReactElement | null {
 
 	async function act(path: string, body?: object): Promise<void> {
 		setError(null);
-		const r = await fetch(`${base}/${path}`, {
-			method: "POST",
-			credentials: "include",
-			headers: { "content-type": "application/json" },
-			body: JSON.stringify(body ?? {}),
+		await run(async () => {
+			const r = await fetch(`${base}/${path}`, {
+				method: "POST",
+				credentials: "include",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify(body ?? {}),
+			});
+			if (!r.ok) {
+				const refusal = Refusal.safeParse(await r.json().catch(() => null));
+				setError(refusal.success ? refusal.data.error : say("failed"));
+				return;
+			}
+			setNotes("");
+			// The form holds the document as it was loaded: reload so it shows the new stage.
+			window.location.reload();
 		});
-		if (!r.ok) {
-			const refusal = Refusal.safeParse(await r.json().catch(() => null));
-			setError(refusal.success ? refusal.data.error : say("failed"));
-			return;
-		}
-		setNotes("");
-		// The form holds the document as it was loaded: reload so it shows the new stage.
-		window.location.reload();
 	}
 
 	if (id === undefined || id === null) return <p style={muted}>{say("saveFirst")}</p>;

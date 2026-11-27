@@ -5,7 +5,13 @@ import { brandListFilter } from "../brand/filter";
 import { indexKnowledge, unindexKnowledge } from "../knowledge/hooks";
 import { knowledgeReviewRequired } from "../knowledge/rule";
 import { L } from "../labels";
-import { authorUserField, brandField, reviewField, workflowField } from "../review/fields";
+import {
+	authorUserField,
+	brandField,
+	reviewedEditButtons,
+	reviewField,
+	workflowField,
+} from "../review/fields";
 import { reviewGate } from "../review/gate";
 import type { ReviewSpec } from "../review/spec";
 import { validAnswer, validator, validCitePath, validSlug } from "./validate";
@@ -48,6 +54,7 @@ export const KnowledgeEntries: CollectionConfig = {
 		useAsTitle: "question",
 		defaultColumns: ["question", "brand", "kind", "_status"],
 		baseListFilter: brandListFilter(),
+		components: { edit: reviewedEditButtons },
 	},
 	versions: { drafts: true, maxPerDoc: 50 },
 	access: brandAccess(SITE_BRANDS),
