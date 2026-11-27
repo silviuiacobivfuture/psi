@@ -3,7 +3,13 @@ import { brandAccess, serverOnly, signedInOnly } from "../authz/access";
 import { indexContent, unindexContent } from "../knowledge/ingest-content";
 import { L } from "../labels";
 import { previewUrl } from "../preview/url";
-import { authorUserField, brandField, reviewField, workflowField } from "../review/fields";
+import {
+	authorUserField,
+	brandField,
+	reviewedEditButtons,
+	reviewField,
+	workflowField,
+} from "../review/fields";
 import { reviewGate } from "../review/gate";
 import type { ReviewSpec } from "../review/spec";
 import { announceArticle, announceDeleted } from "../webhook/hooks";
@@ -127,6 +133,7 @@ export const Articles: CollectionConfig = {
 		listSearchableFields: ["title", "slug"],
 		livePreview: { url: ({ data, locale }) => previewUrl(data.id, locale.code) },
 		preview: (doc, { locale }) => previewUrl(doc.id, locale),
+		components: { edit: reviewedEditButtons },
 	},
 	versions: { drafts: { autosave: { interval: 1500 } }, maxPerDoc: 50 },
 	access: brandAccess(BRANDS),
