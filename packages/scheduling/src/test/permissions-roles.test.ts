@@ -179,6 +179,8 @@ describe("the catalogue's new resources, actions and helpers", () => {
 		expect(recordResourceFor("aba-session-report")).toBe("report_aba");
 		expect(recordResourceFor("race-me-up-report")).toBe("report_racemeup");
 		expect(recordResourceFor("psychotherapy-report")).toBe("report_psychotherapy");
+		// The intake is the psychotherapists' own, like their reports: never an owner-built form's report_custom.
+		expect(recordResourceFor("psychotherapy-intake")).toBe("report_psychotherapy");
 		expect(recordResourceFor("parent-questionnaire")).toBe("questionnaire_parent");
 		expect(recordResourceFor("anything-an-owner-built")).toBe("report_custom");
 		expect(recordResourceFor("")).toBe("report_custom");

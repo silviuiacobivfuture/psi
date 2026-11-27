@@ -201,7 +201,10 @@ export const subscriptionRow = z
 	})
 	.passthrough();
 
-/** The four feedback tables share their meta columns; the template fields are read by name later. */
+/**
+ * The feedback tables and the psychotherapy intake share their meta columns (the intake has no appointment or
+ * therapist id: its columns read as absent); the template fields are read by name later.
+ */
 export const feedbackRow = z
 	.object({
 		id: integer,
@@ -256,6 +259,7 @@ export const TABLES = {
 	racemeup_feedback: feedbackRow,
 	psychotherapy_feedback: feedbackRow,
 	parent_feedback: feedbackRow,
+	psychotherapy_intake: feedbackRow,
 	client_files: clientFileRow,
 	avize: avizRow,
 	optimo_volunteers: volunteerRow,
@@ -263,7 +267,8 @@ export const TABLES = {
 export type TableName = keyof typeof TABLES;
 
 /** Tables that must be empty (the brief: accepted if empty, failing loudly if not). */
-export const MUST_BE_EMPTY = ["nfb_feedback", "psychotherapy_intake", "client_therapies"] as const;
+/** `psychotherapy_intake` left this list on 2026-11-27: it is imported onto the psychotherapy intake template. */
+export const MUST_BE_EMPTY = ["nfb_feedback", "client_therapies"] as const;
 
 /** Tables the export must contain. */
 export const REQUIRED: ReadonlyArray<TableName> = ["therapists", "clients", "appointments"];
@@ -347,6 +352,7 @@ export function parseExport(
 			racemeup_feedback: read("racemeup_feedback"),
 			psychotherapy_feedback: read("psychotherapy_feedback"),
 			parent_feedback: read("parent_feedback"),
+			psychotherapy_intake: read("psychotherapy_intake"),
 			client_files: read("client_files"),
 			avize: read("avize"),
 			optimo_volunteers: read("optimo_volunteers"),

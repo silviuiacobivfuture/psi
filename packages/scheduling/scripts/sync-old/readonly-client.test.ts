@@ -169,12 +169,11 @@ describe("the sign-in and the reads, without leaking", () => {
 		expect(String((error as Error).message)).toContain("404 for table therapists");
 		const withAll = createFakeOldApp(
 			Object.fromEntries(
-				Object.entries(EMPTY).filter(
-					([t]) => !["nfb_feedback", "psychotherapy_intake", "client_therapies"].includes(t),
-				),
+				Object.entries(EMPTY).filter(([t]) => !["nfb_feedback", "client_therapies"].includes(t)),
 			),
 		);
 		const out = await fetchExport(clientOf(withAll), () => new Date());
 		expect(out.tables.nfb_feedback).toEqual([]);
+		expect(out.tables.client_therapies).toEqual([]);
 	});
 });

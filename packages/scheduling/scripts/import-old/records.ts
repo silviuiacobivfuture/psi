@@ -2,6 +2,7 @@ import { coerceAnswer, type FormDefinition, validateResponse } from "../../src/c
 import {
 	ABA_SESSION_REPORT,
 	PARENT_QUESTIONNAIRE,
+	PSYCHOTHERAPY_INTAKE,
 	PSYCHOTHERAPY_REPORT,
 	RACE_ME_UP_REPORT,
 } from "../../src/clinic/templates";
@@ -10,12 +11,13 @@ import type { ResponseRow } from "./rows";
 import type { Row, TableName } from "./source";
 import { type Ctx, fingerprintOf, reportExtraColumns, timestamp } from "./support";
 
-/** The four feedback tables and the template each one is written onto. */
+/** The tables written as form responses (the four feedback tables and the intake), and each one's template. */
 export const FEEDBACK_TABLES = [
 	["session_feedback", ABA_SESSION_REPORT],
 	["racemeup_feedback", RACE_ME_UP_REPORT],
 	["psychotherapy_feedback", PSYCHOTHERAPY_REPORT],
 	["parent_feedback", PARENT_QUESTIONNAIRE],
+	["psychotherapy_intake", PSYCHOTHERAPY_INTAKE],
 ] as const satisfies ReadonlyArray<readonly [TableName, FormDefinition]>;
 
 /** The note of a feedback row whose client is null or unknown: imported all the same, with no client. */

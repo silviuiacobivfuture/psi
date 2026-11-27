@@ -292,6 +292,8 @@ const RECORD_RESOURCES: Readonly<Record<string, Resource>> = {
 	"aba-session-report": "report_aba",
 	"race-me-up-report": "report_racemeup",
 	"psychotherapy-report": "report_psychotherapy",
+	// The intake is written and read by the same clinicians as the psychotherapy report.
+	"psychotherapy-intake": "report_psychotherapy",
 	"parent-questionnaire": "questionnaire_parent",
 };
 

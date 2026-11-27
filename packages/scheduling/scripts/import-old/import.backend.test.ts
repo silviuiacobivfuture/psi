@@ -20,6 +20,15 @@ import { connect } from "./target";
 if (!backendReady) console.warn("import.backend.test: no local backend or admin key; see README");
 
 const APP = `test-import-${Date.now().toString(36)}`;
+const INTAKE_TEXT = "SENTINEL-INTAKE-GOALS";
+/** The synthetic export with one psychotherapy intake, the table the store took on 2026-11-27. */
+const withIntake = () => {
+	const e = syntheticExport();
+	e.tables.psychotherapy_intake = [
+		{ id: 1, client_id: 1, created_at: "2026-11-17T13:40:00Z", therapeutic_goals: INTAKE_TEXT },
+	];
+	return e;
+};
 const mapping = { ...MAPPING, app: APP };
 const counts = () =>
 	runQuery("clinicInspect:counts", { tenant: APP }, z.record(z.string(), z.number())).then(
@@ -51,7 +60,7 @@ describe.skipIf(!backendReady)("the import into the real store", () => {
 			storage,
 		});
 		const options = {
-			exported: syntheticExport(),
+			exported: withIntake(),
 			mapping,
 			ignoreTables: [],
 			allowSkips: true,
@@ -65,19 +74,20 @@ describe.skipIf(!backendReady)("the import into the real store", () => {
 		expect(w.practitioners).toMatchObject({ created: 4, orphan: 0 });
 		expect(w.clients).toMatchObject({ created: 7, orphan: 0 });
 		expect(w.visits).toMatchObject({ created: 12, orphan: 0 });
-		expect(w.responses).toMatchObject({ created: 7, orphan: 0 });
+		// Seven feedback responses and the intake, each on a seeded template the store holds.
+		expect(w.responses).toMatchObject({ created: 8, orphan: 0 });
 		expect(w.files).toMatchObject({ created: 2, orphan: 0 });
 		expect(w.payments).toMatchObject({ created: 1 });
 		const after = await counts();
 		expect(after("visits")).toBe(12);
 		expect(after("clients")).toBe(7);
 		expect(after("treating")).toBe(2);
-		expect(after("formDefinitions")).toBe(4);
+		expect(after("formDefinitions")).toBe(5);
 		expect(after("roles")).toBe(7);
 		expect(after("rosterDays")).toBe(4);
 		expect(after("appKeys")).toBe(1);
 
-		const second = await runImport({ ...options, exported: syntheticExport() });
+		const second = await runImport({ ...options, exported: withIntake() });
 		for (const row of second.written) {
 			expect({
 				kind: row.kind,
@@ -110,6 +120,7 @@ describe.skipIf(!backendReady)("the import into the real store", () => {
 				SENTINELS.reason,
 				SENTINELS.therapistNote,
 				SENTINELS.feedback,
+				INTAKE_TEXT,
 			]) {
 				expect(dump).not.toContain(secret);
 			}

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { FileSource } from "../import-old/files";
+import { FEEDBACK_TABLES } from "../import-old/records";
 import type { OldExport } from "./old-app";
 
 /**
@@ -127,7 +128,7 @@ const idOf = (row: Row): number => (typeof row.id === "number" ? row.id : Number
 const truthy = (v: unknown): boolean =>
 	v !== null && v !== undefined && v !== "" && v !== 0 && v !== false;
 
-/** Feedback columns that are dates or labels, not words a person wrote. */
+/** Feedback and intake columns that are dates or labels, not words a person wrote. */
 const FEEDBACK_KEPT = new Set([
 	"created_at",
 	"updated_at",
@@ -136,13 +137,8 @@ const FEEDBACK_KEPT = new Set([
 	"presence",
 	"session_number",
 	"duration_min",
+	"first_session_date",
 ]);
-const FEEDBACK_TABLES = [
-	"session_feedback",
-	"racemeup_feedback",
-	"psychotherapy_feedback",
-	"parent_feedback",
-];
 
 function anonymizeClient(c: Row): void {
 	const i = idOf(c);
@@ -212,7 +208,7 @@ export function anonymizeExport(input: OldExport): Anonymized {
 	for (const s of rows("staff_schedule")) s.notes = text(s.notes);
 	for (const s of rows("client_subscriptions")) s.notes = text(s.notes);
 	for (const v of rows("optimo_volunteers")) v.name = person(`v${idOf(v)}`);
-	for (const table of FEEDBACK_TABLES) for (const r of rows(table)) anonymizeFeedback(r);
+	for (const [table] of FEEDBACK_TABLES) for (const r of rows(table)) anonymizeFeedback(r);
 	const made = anonymizeFiles(t);
 	return {
 		export: { ...copy, anonymized: true },

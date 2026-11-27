@@ -44,6 +44,22 @@ function realistic(): OldExport {
 		notes: "Operație la genunchi",
 	});
 	Object.assign(rows("optimo_volunteers")[0] ?? {}, { name: "Cristian Voluntar Radu" });
+	data.tables.psychotherapy_intake = [
+		{
+			id: 1,
+			client_id: 1,
+			created_at: "2026-11-17T13:40:00Z",
+			updated_at: "2026-11-17T13:40:00Z",
+			client_code: "MI-2016",
+			age: "10 ani",
+			contact: "0755 123 456",
+			legal_rep: "Gheorghe Ionescu, tatăl",
+			therapist_name: "Ana Dumitrescu",
+			first_session_date: "2026-11-20",
+			trauma_history: "Accident rutier în 2022",
+			therapeutic_goals: "Reducerea anxietății la școală",
+		},
+	];
 	return data;
 }
 
@@ -83,6 +99,15 @@ function identifiers(data: OldExport): string[] {
 		...pick("optimo_volunteers", ["name"]),
 		...pick("client_files", ["file_name"]),
 		...pick("avize", ["title", "file_name"]),
+		...pick("psychotherapy_intake", [
+			"client_code",
+			"age",
+			"contact",
+			"legal_rep",
+			"therapist_name",
+			"trauma_history",
+			"therapeutic_goals",
+		]),
 	];
 }
 
@@ -178,6 +203,7 @@ describe("the anonymizer leaves no real identifier", () => {
 			"racemeup_feedback",
 			"psychotherapy_feedback",
 			"parent_feedback",
+			"psychotherapy_intake",
 		]) {
 			for (const row of out.export.tables[table] as Row[]) {
 				for (const [k, v] of Object.entries(row)) {
@@ -191,6 +217,7 @@ describe("the anonymizer leaves no real identifier", () => {
 							"presence",
 							"session_number",
 							"duration_min",
+							"first_session_date",
 						].includes(k)
 					)
 						continue;
@@ -198,6 +225,9 @@ describe("the anonymizer leaves no real identifier", () => {
 				}
 			}
 		}
+		expect((out.export.tables.psychotherapy_intake as Row[])[0]?.first_session_date).toBe(
+			"2026-11-20",
+		);
 	});
 
 	it("client files and notices become the one placeholder document: names, paths, sizes and bytes", async () => {

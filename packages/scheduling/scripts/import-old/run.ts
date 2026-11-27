@@ -8,7 +8,7 @@ import { AnomalyLog } from "./log";
 import type { Mapping } from "./mapping";
 import { planPackages } from "./money";
 import { planPeople } from "./people";
-import { planResponses } from "./records";
+import { FEEDBACK_TABLES, planResponses } from "./records";
 import type { Report, TableCount, Written } from "./report";
 import { planRoster } from "./roster";
 import type { ImportSink, Kind, RowsByKind, SlugKind } from "./sink";
@@ -192,29 +192,8 @@ function tableCounts(options: PlanOptions, parsed: ParsedExport, p: Plan): Table
 			r.staff_blocks.length,
 			p.roster.blocks.length,
 		),
-		count(
-			"session_feedback",
-			sourceCount("session_feedback"),
-			r.session_feedback.length,
-			responsesOf("session_feedback"),
-		),
-		count(
-			"racemeup_feedback",
-			sourceCount("racemeup_feedback"),
-			r.racemeup_feedback.length,
-			responsesOf("racemeup_feedback"),
-		),
-		count(
-			"psychotherapy_feedback",
-			sourceCount("psychotherapy_feedback"),
-			r.psychotherapy_feedback.length,
-			responsesOf("psychotherapy_feedback"),
-		),
-		count(
-			"parent_feedback",
-			sourceCount("parent_feedback"),
-			r.parent_feedback.length,
-			responsesOf("parent_feedback"),
+		...FEEDBACK_TABLES.map(([table]) =>
+			count(table, sourceCount(table), r[table].length, responsesOf(table)),
 		),
 		count(
 			"client_files",
