@@ -10,7 +10,6 @@ resources:
   - seb-reference.yaml
   - seb-traefik-accesslog.yaml
   - seb-pdfcraft.yaml
-  - seb-talk-hpb.yaml
   - seb-convex.yaml
   - seb-headlamp.yaml
   - seb-reloader.yaml
@@ -32,9 +31,7 @@ resources:
   - seb-test-reports.yaml
   - seb-stalwart.yaml
   - seb-affine.yaml
-  - seb-nextcloud-platform.yaml
   - seb-plane-platform.yaml
-  - seb-nextcloud.yaml
   - seb-harbor.yaml
   - seb-arc-runners.yaml
   - seb-n8n.yaml
@@ -55,3 +52,4 @@ resources:
   - seb-authentik.yaml
   - seb-authentik-platform.yaml
   - seb-changelog.yaml
+  - seb-notifier.yaml

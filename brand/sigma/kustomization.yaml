@@ -14,3 +14,4 @@ configMapGenerator:
       - icon-512.png=public/estate/icon-512.png
       - icon-maskable-512.png=public/estate/icon-maskable-512.png
       - og.png=public/estate/og.png
+      - manifest.webmanifest=public/estate/manifest.webmanifest

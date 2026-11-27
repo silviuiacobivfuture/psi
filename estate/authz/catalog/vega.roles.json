@@ -1,6 +1,6 @@
 {
 	"$schema": "./catalog.schema.json",
-	"$generated": "from .seb-bundle/apps/vega-svc/authz.manifest.json — do not edit; run authz/tools/generate.py",
+	"$generated": "from .seb-bundle/apps/register-svc/authz.manifest.json — do not edit; run authz/tools/generate.py",
 	"module": "vega",
 	"version": 1,
 	"scope_resolvers": {
@@ -32,6 +32,7 @@
 			"names": ["sigma-integration"]
 		}
 	},
+	"platform_grantable": ["role_vega_platform_admin"],
 	"group_bindings": [],
 	"mirror_relations": [
 		"org#perm_vega_capture_appoint_administrator",

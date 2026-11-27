@@ -51,7 +51,6 @@
 	],
 	"mirror_relations": [
 		"flow_workspace#parent_org",
-		"org#administrator",
 		"org#role_flow_admin",
 		"org#role_flow_agent",
 		"org#role_flow_editor",

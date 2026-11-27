@@ -50,7 +50,7 @@ data:
   LOCKDOWN_OBJECT_CHANGES_SINCE: "2026-11-15T14:19:00Z"
   ENVIRONMENTS: dev
   # platform-apps
-  PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,nextcloud,test-reports,pdfcraft,affine,stalwart,invoicing,flows,register
+  PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,test-reports,pdfcraft,affine,stalwart,invoicing,flows,register,notifier
   AUTHENTIK_HOST_PREFIX: auth
   AUTORIZARE_HOST_PREFIX: access
   HARBOR_HOST_PREFIX: registry
@@ -58,11 +58,11 @@ data:
   NOVU_HOST_PREFIX: notify
   N8N_HOST_PREFIX: flows
   PLUNK_HOST_PREFIX: plunk
-  NEXTCLOUD_HOST_PREFIX: drive
   REPORTPORTAL_HOST_PREFIX: reports
   TEST_REPORTS_HOST_PREFIX: tests
   PDFCRAFT_HOST_PREFIX: pdf
   AFFINE_HOST_PREFIX: docs
+  NOTIFIER_HOST_PREFIX: notifier
   MAIL_HOST_PREFIX: mx
   INVOICING_HOST_PREFIX: mu
   FLOWS_HOST_PREFIX: rho
@@ -79,6 +79,7 @@ data:
   HUB_HOST_PREFIX: sso
   HUB_NAME: "Psi Sign-in"
   HUB_TILE_TITLE: PSI
+  SIGNIN_MFA: "off"
   MODEL_PIN_HOLDERS: authentik-tiles
   E2E_ORG_SLUG: e2e-hub-robot
   E2E_COLLEAGUE_ORG_SLUG: e2e-coleg-robot
@@ -94,6 +95,7 @@ data:
   REF_APP_ENV_PATH: "secret/apps/{app}/env"
   # derived (computed by the loader from the keys above)
   GIT_SSH_URL: "git@github.com:silviuiacobivfuture/psi.git"
+  CLUSTER_TOPOLOGY: single-node
   AUTHENTIK_HOST: auth.psizone.ro
   FRONT_HOST: portal.psizone.ro
   MESH_BASE_DOMAIN: psizone.ro
@@ -102,15 +104,25 @@ data:
   GLITCHTIP_NAME: GlitchTip
   BOOKSTACK_HOST_PREFIX: wiki
   BOOKSTACK_NAME: BookStack
-  KUTT_HOST_PREFIX: go
+  KUTT_HOST_PREFIX: tinyurl
   KUTT_NAME: Kutt
   MAIL_ADMIN_HOST_PREFIX: mail-admin
   KENER_HOST_PREFIX: status
   KENER_NAME: Kener
+  OPENCLOUD_HOST_PREFIX: file
+  COLLABORA_HOST_PREFIX: office
+  ZULIP_HOST_PREFIX: chat
   SEMAPHORE_HOST_PREFIX: ops
   SEMAPHORE_NAME: Semaphore
+  JITSI_HOST_PREFIX: meet
+  JITSI_TURN_HOST_PREFIX: meet-turn
+  JITSI_NAME: "Jitsi Meet"
   SESSION_LIFETIME: never
   AUTHENTIK_SESSION_DURATION: days=36500
+  HUB_REQUIRE_MFA: "false"
+  AUTHENTIK_MFA_STATE: absent
+  AUTHENTIK_MFA_ON: "false"
+  AUTHENTIK_MFA_SCOPE: everyone
   HUB_HOST: sso.psizone.ro
   BUSINESS_APP_PREFIX: psi
   INVOICING_SVC: psi-invoice-svc
@@ -126,6 +138,8 @@ data:
   SIGNATURE_PULL_STORE_KEY: platform/harbor/verify
   LOCKDOWN_SIGNATURES: Audit
   LOCKDOWN_OBJECT_CHANGES: Audit
+  LOCKDOWN_SIGNATURES_FAILURE_POLICY: Ignore
+  LOCKDOWN_OBJECT_CHANGES_FAILURE_POLICY: Ignore
   FLOWS_APP: psi-flows
   FLOWS_HOST: rho.psizone.ro
   REGISTER_APP: psi-register

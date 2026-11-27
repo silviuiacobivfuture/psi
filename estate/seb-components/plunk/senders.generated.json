@@ -7,23 +7,6 @@
   "sesReceiving": false,
   "projects": [
     {
-      "key": "cloud",
-      "name": "Nextcloud — colaborare",
-      "domain": "cloud.psizone.ro",
-      "receive": false,
-      "enabled": true,
-      "consumer": "secret/apps/nextcloud/plunk",
-      "service": "nextcloud",
-      "namespace": "nextcloud",
-      "wire": true,
-      "sender": {
-        "address": "noreply@cloud.psizone.ro",
-        "name": "Nextcloud"
-      },
-      "novu": null,
-      "inbound": null
-    },
-    {
       "key": "e2e",
       "name": "Roboți — verificare SSO",
       "robots": true

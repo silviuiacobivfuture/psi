@@ -23,11 +23,6 @@ onboard-admin:
   - adrian
   - iuliana
   - nicholas.turcu
-app-nextcloud-user:
-  - turcu_daniela
-  - adrian
-  - iuliana
-  - nicholas.turcu
 app-argocd-admin:
   - turcu_daniela
   - adrian

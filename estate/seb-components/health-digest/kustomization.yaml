@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+metadata:
+  name: psi-health-digest
+# psi's layer for the SEB piece `health-digest`: estate-watch says what it finds BY E-MAIL, not in
+# Talk's #infra (SEB delivery.py, NOTIFY_VIA=mail). Nobody read #infra on psi, and SEB 0.1.223 retired
+# Nextcloud and Talk. A CronJob's or Job's alert goes to its alerts.psizone.ro/owner address
+# (ops@psizone.ro on every SEB workload: the operations list, delivered into the members' inboxes);
+# what names no owner goes to MAIL_TO, the same list.
+#
+#   mail-sender.yaml   MAIL_API_URL / MAIL_API_KEY / MAIL_FROM from the estate's PLATFORM sender
+#                      (gitops/services/plunk/senders/platform.json: "alerts" is platform mail),
+#                      its key at OpenBao platform/plunk/platform, property secret_key: the path the
+#                      plunk namespace's email-sender already reads, nothing new to seed.
+resources:
+  - mail-sender.yaml
+patches:
+  - target: { kind: CronJob, name: estate-watch, namespace: observability }
+    patch: |-
+      - op: add
+        path: /spec/jobTemplate/spec/template/spec/containers/0/env/-
+        value: { name: NOTIFY_VIA, value: mail }
+      - op: add
+        path: /spec/jobTemplate/spec/template/spec/containers/0/env/-
+        value: { name: MAIL_TO, value: ops@psizone.ro }
+      - op: add
+        path: /spec/jobTemplate/spec/template/spec/containers/0/env/-
+        value: { name: MAIL_SUBJECT_PREFIX, value: "[psi]" }
+      - op: add
+        path: /spec/jobTemplate/spec/template/spec/containers/0/envFrom
+        value:
+          - secretRef: { name: estate-watch-mail }

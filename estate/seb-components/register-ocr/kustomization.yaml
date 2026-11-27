@@ -2,10 +2,10 @@
 # (schema/slots/register-ocr.yaml).
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
-# Slot `image`: register-ocr as psi built it (scripts/estate-images.sh from SEB 0.1.145), sha256:3a4c7184…, signed.
+# Slot `image`: register-ocr as psi built it (scripts/estate-images.sh from SEB 0.1.223), its digest in estate/seb-images.json, signed.
 images:
   - name: WLREGISTRY/WLAPPS/register-ocr
-    newTag: seb-2de9423b8
+    newTag: seb-44fcd5e68
 # psi 2026-11-16: request 384Mi -> 96Mi. Idle at 4-8 Mi (kubectl top, 15-16 Nov); it works only
 # while a scanned document is read, and that burst grows into the 768Mi limit, unchanged. The
 # node sat at 98% of its memory requested.

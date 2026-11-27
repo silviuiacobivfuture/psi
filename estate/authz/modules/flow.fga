@@ -46,14 +46,14 @@ type flow_org
     define role_flow_serviciu: [user, group#member, flow_program]
     define role_flow_rulare: [user, group#member, flow_program]
     define parent_org: [org]
-    define read: [user, group#member] or administrator from parent_org or role_flow_editor from parent_org or role_flow_admin from parent_org or role_flow_viewer from parent_org
-    define write: [user, group#member] or administrator from parent_org or role_flow_editor from parent_org or role_flow_admin from parent_org
-    define publish: [user, group#member] or administrator from parent_org or role_flow_editor from parent_org or role_flow_admin from parent_org
-    define run: [user, group#member] or administrator from parent_org or role_flow_editor from parent_org or role_flow_admin from parent_org
-    define manage_keys: [user, group#member] or administrator from parent_org or role_flow_admin from parent_org
-    define manage_extension: [user, group#member] or administrator from parent_org or role_flow_admin from parent_org
-    define manage_workspaces: [user, group#member] or administrator from parent_org or role_flow_admin from parent_org
-    define read_audit: [user, group#member] or administrator from parent_org or role_flow_admin from parent_org
+    define read: [user, group#member] or role_flow_editor from parent_org or role_flow_admin from parent_org or role_flow_viewer from parent_org
+    define write: [user, group#member] or role_flow_editor from parent_org or role_flow_admin from parent_org
+    define publish: [user, group#member] or role_flow_editor from parent_org or role_flow_admin from parent_org
+    define run: [user, group#member] or role_flow_editor from parent_org or role_flow_admin from parent_org
+    define manage_keys: [user, group#member] or role_flow_admin from parent_org
+    define manage_extension: [user, group#member] or role_flow_admin from parent_org
+    define manage_workspaces: [user, group#member] or role_flow_admin from parent_org
+    define read_audit: [user, group#member] or role_flow_admin from parent_org
     define program_flows_read: [user, group#member] or role_flow_agent from parent_org or role_flow_agent
     define program_flows_write: [user, group#member] or role_flow_agent from parent_org or role_flow_agent
     define program_flows_publish: [user, group#member] or role_flow_agent from parent_org or role_flow_agent

@@ -199,6 +199,9 @@ tuples:
   - user: user:c_org_perm_vega_usages_list
     relation: perm_vega_usages_list
     object: org:closure
+  - user: user:c_org_robot_program_manager
+    relation: robot_program_manager
+    object: org:closure
   - user: user:c_org_role_flow_admin
     relation: role_flow_admin
     object: org:closure
@@ -102726,6 +102729,10 @@ tests:
         object: sched_register:closure
         assertions:
           reader: false
+      - user: user:c_org_robot_program_manager
+        object: sched_register:closure
+        assertions:
+          reader: false
       - user: user:c_org_role_flow_admin
         object: sched_register:closure
         assertions:
@@ -103041,6 +103048,10 @@ tests:
         assertions:
           writer: false
       - user: user:c_org_perm_vega_usages_list
+        object: sched_register:closure
+        assertions:
+          writer: false
+      - user: user:c_org_robot_program_manager
         object: sched_register:closure
         assertions:
           writer: false

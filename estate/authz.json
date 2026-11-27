@@ -4,7 +4,7 @@
 		"apps/*/authz.manifest.json",
 		".seb-bundle/apps/invoice-svc/authz.manifest.json",
 		".seb-bundle/apps/flows/authz.manifest.json",
-		".seb-bundle/apps/vega-svc/authz.manifest.json"
+		".seb-bundle/apps/register-svc/authz.manifest.json"
 	],
 	"model": "estate/authz/fga.mod",
 	"modules_dir": "estate/authz/modules",
@@ -17,6 +17,7 @@
 	"i18n_catalogues": "@seb/i18n=packages/i18n/messages/ro,@psi/scheduling-api=apps/scheduling-api/messages",
 	"doc_example_role": "administrator",
 	"platform_dir": ".seb-bundle/authz",
+	"module_names": { "register": { "name": "vega", "twin": "register" } },
 	"application_programs": {
 		"vega": ["sigma-integration"]
 	}

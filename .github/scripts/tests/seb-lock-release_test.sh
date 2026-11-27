@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # --verify accepts an estate's own numbering of a SEB release (estate/lib/seb-upgrade-registry.sh):
-# psi locks 0.1.121-psi.1, SEB's v0.1.121 built with psi's identity; SEB has no tag v0.1.121-psi.1,
+# an estate locks 0.1.121-acme.1, SEB's v0.1.121 built with that estate's identity; SEB has no tag v0.1.121-acme.1,
 # so the bundle's source commit must be one a SEB release tag names. Before 2026-11-15 every doctor
-# run on psi read "holds no release v0.1.121-psi.1". The same gate in every estate (SEB's
+# run on that estate read "holds no release v0.1.121-acme.1". The same gate in every estate (SEB's
 # tools/estate/scaffold/). Offline: a throwaway git repository stands in for SEB's.
 #   T1 a lightweight release tag names the commit           → that tag
 #   T2 an annotated release tag: matched on the PEELED commit → that tag (never the tag object)
@@ -50,7 +50,7 @@ eq "T3 a pre-release tag is not a release" "rc=1" "$(run release_tag_of "$C")"
 eq "T4 an untagged commit" "rc=1" "$(run release_tag_of "$D")"
 eq "T5 the highest of several (version order, not text)" "v1.2.10" "$(run release_tag_of "$A" | head -n1)"
 eq "T6 a tag SEB has" "$(printf '%s\nrc=0' "$B")" "$(run tag_commit_or_none 1.2.4)"
-eq "T6 a tag SEB lacks (0.1.121-psi.1's kind)" "$(printf '\nrc=0')" "$(run tag_commit_or_none 1.2.3-psi.1)"
+eq "T6 a tag SEB lacks (0.1.121-acme.1's kind)" "$(printf '\nrc=0')" "$(run tag_commit_or_none 1.2.3-acme.1)"
 repo="$work/missing"
 eq "T7 an unreadable repository: no release" "rc=1" "$(run release_tag_of "$A")"
 if [ "$(run tag_commit_or_none 1.2.3 | tail -n1)" != "rc=0" ]; then ok "T7 tag_commit_or_none does not answer 'no such tag' for an unreadable repository"

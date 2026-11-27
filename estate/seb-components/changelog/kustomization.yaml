@@ -1,11 +1,11 @@
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 # PSI's layer on SEB's changelog piece (slot `image`, schema/slots/changelog.yaml): the tag of the
-# changelog image psi built (scripts/estate-images.sh from SEB 0.1.145), sha256:5b5e99a0… in
-# registry.psizone.ro/psi, signed with SEB's key (seb.commit 2de9423b8).
+# changelog image psi built (scripts/estate-images.sh from SEB 0.1.223), its digest in estate/seb-images.json in
+# registry.psizone.ro/psi, signed with SEB's key (seb.commit 44fcd5e68).
 # The generated Application sets it (estate/seb-image-tags.mjs); CI's builds rewrite it here.
 # psi has no mesh (MESH: none): the bundle leaves the piece's tailnet Ingress out, and the public
 # door changelog.psizone.ro is gitops/services/public-doors/changelog.yaml.
 images:
   - name: WLREGISTRY/WLAPPS/changelog
-    newTag: seb-2de9423b8
+    newTag: seb-44fcd5e68

@@ -199,6 +199,9 @@ tuples:
   - user: user:c_org_perm_vega_usages_list
     relation: perm_vega_usages_list
     object: org:closure
+  - user: user:c_org_robot_program_manager
+    relation: robot_program_manager
+    object: org:closure
   - user: user:c_org_role_flow_admin
     relation: role_flow_admin
     object: org:closure
@@ -1438,6 +1441,21 @@ tuples:
   - user: user:g_org_perm_vega_usages_list
     relation: granted_transmitter
     object: invoice_company:closure-granted
+  - user: user:g_org_robot_program_manager
+    relation: robot_program_manager
+    object: org:closure
+  - user: user:g_org_robot_program_manager
+    relation: granted_canceller
+    object: invoice_company:closure-granted
+  - user: user:g_org_robot_program_manager
+    relation: granted_issuer
+    object: invoice_company:closure-granted
+  - user: user:g_org_robot_program_manager
+    relation: granted_stornoer
+    object: invoice_company:closure-granted
+  - user: user:g_org_robot_program_manager
+    relation: granted_transmitter
+    object: invoice_company:closure-granted
   - user: user:g_org_role_flow_admin
     relation: role_flow_admin
     object: org:closure
@@ -1935,6 +1953,10 @@ tests:
         object: invoice_company:closure
         assertions:
           profile_manager: false
+      - user: user:c_org_robot_program_manager
+        object: invoice_company:closure
+        assertions:
+          profile_manager: false
       - user: user:c_org_role_flow_admin
         object: invoice_company:closure
         assertions:
@@ -2294,6 +2316,10 @@ tests:
         assertions:
           reader: false
       - user: user:c_org_perm_vega_usages_list
+        object: invoice_company:closure
+        assertions:
+          reader: false
+      - user: user:c_org_robot_program_manager
         object: invoice_company:closure
         assertions:
           reader: false
@@ -2659,6 +2685,10 @@ tests:
         object: invoice_company:closure
         assertions:
           writer: false
+      - user: user:c_org_robot_program_manager
+        object: invoice_company:closure
+        assertions:
+          writer: false
       - user: user:c_org_role_flow_admin
         object: invoice_company:closure
         assertions:
@@ -3018,6 +3048,10 @@ tests:
         assertions:
           transmitter: false
       - user: user:c_org_perm_vega_usages_list
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
+      - user: user:c_org_robot_program_manager
         object: invoice_company:closure
         assertions:
           transmitter: false
@@ -3383,6 +3417,10 @@ tests:
         object: invoice_company:closure
         assertions:
           canceller: false
+      - user: user:c_org_robot_program_manager
+        object: invoice_company:closure
+        assertions:
+          canceller: false
       - user: user:c_org_role_flow_admin
         object: invoice_company:closure
         assertions:
@@ -3742,6 +3780,10 @@ tests:
         assertions:
           issuer: false
       - user: user:c_org_perm_vega_usages_list
+        object: invoice_company:closure
+        assertions:
+          issuer: false
+      - user: user:c_org_robot_program_manager
         object: invoice_company:closure
         assertions:
           issuer: false
@@ -4107,6 +4149,10 @@ tests:
         object: invoice_company:closure
         assertions:
           stornoer: false
+      - user: user:c_org_robot_program_manager
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
       - user: user:c_org_role_flow_admin
         object: invoice_company:closure
         assertions:
@@ -4466,6 +4512,10 @@ tests:
         assertions:
           members_manager: false
       - user: user:c_org_perm_vega_usages_list
+        object: invoice_company:closure
+        assertions:
+          members_manager: false
+      - user: user:c_org_robot_program_manager
         object: invoice_company:closure
         assertions:
           members_manager: false
@@ -4831,6 +4881,10 @@ tests:
         object: invoice_company:closure
         assertions:
           personal_data_reader: false
+      - user: user:c_org_robot_program_manager
+        object: invoice_company:closure
+        assertions:
+          personal_data_reader: false
       - user: user:c_org_role_flow_admin
         object: invoice_company:closure
         assertions:
@@ -5190,6 +5244,10 @@ tests:
         assertions:
           webhooks_manager: false
       - user: user:c_org_perm_vega_usages_list
+        object: invoice_company:closure
+        assertions:
+          webhooks_manager: false
+      - user: user:c_org_robot_program_manager
         object: invoice_company:closure
         assertions:
           webhooks_manager: false
@@ -5975,6 +6033,10 @@ tests:
         object: invoice_register:closure
         assertions:
           integration: false
+      - user: user:c_org_robot_program_manager
+        object: invoice_register:closure
+        assertions:
+          integration: false
       - user: user:c_org_role_flow_admin
         object: invoice_register:closure
         assertions:
@@ -6337,6 +6399,10 @@ tests:
         object: invoice_company:closure-granted
         assertions:
           transmitter: false
+      - user: user:g_org_robot_program_manager
+        object: invoice_company:closure-granted
+        assertions:
+          transmitter: false
       - user: user:g_org_role_flow_admin
         object: invoice_company:closure-granted
         assertions:
@@ -6659,6 +6725,10 @@ tests:
         object: invoice_company:closure
         assertions:
           transmitter: false
+      - user: user:g_org_robot_program_manager
+        object: invoice_company:closure
+        assertions:
+          transmitter: false
       - user: user:g_org_role_flow_admin
         object: invoice_company:closure
         assertions:
@@ -6974,6 +7044,10 @@ tests:
         assertions:
           canceller: false
       - user: user:g_org_perm_vega_usages_list
+        object: invoice_company:closure-granted
+        assertions:
+          canceller: false
+      - user: user:g_org_robot_program_manager
         object: invoice_company:closure-granted
         assertions:
           canceller: false
@@ -7299,6 +7373,10 @@ tests:
         object: invoice_company:closure
         assertions:
           canceller: false
+      - user: user:g_org_robot_program_manager
+        object: invoice_company:closure
+        assertions:
+          canceller: false
       - user: user:g_org_role_flow_admin
         object: invoice_company:closure
         assertions:
@@ -7614,6 +7692,10 @@ tests:
         assertions:
           issuer: false
       - user: user:g_org_perm_vega_usages_list
+        object: invoice_company:closure-granted
+        assertions:
+          issuer: false
+      - user: user:g_org_robot_program_manager
         object: invoice_company:closure-granted
         assertions:
           issuer: false
@@ -7939,6 +8021,10 @@ tests:
         object: invoice_company:closure
         assertions:
           issuer: false
+      - user: user:g_org_robot_program_manager
+        object: invoice_company:closure
+        assertions:
+          issuer: false
       - user: user:g_org_role_flow_admin
         object: invoice_company:closure
         assertions:
@@ -8254,6 +8340,10 @@ tests:
         assertions:
           stornoer: false
       - user: user:g_org_perm_vega_usages_list
+        object: invoice_company:closure-granted
+        assertions:
+          stornoer: false
+      - user: user:g_org_robot_program_manager
         object: invoice_company:closure-granted
         assertions:
           stornoer: false
@@ -8576,6 +8666,10 @@ tests:
         assertions:
           stornoer: false
       - user: user:g_org_perm_vega_usages_list
+        object: invoice_company:closure
+        assertions:
+          stornoer: false
+      - user: user:g_org_robot_program_manager
         object: invoice_company:closure
         assertions:
           stornoer: false

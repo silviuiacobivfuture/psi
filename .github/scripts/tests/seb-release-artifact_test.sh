@@ -90,10 +90,21 @@ push 9.9.4 "$(arch "$relc" 9.9.4)" "$relc" "application/vnd.oci.image.config.v1+
 # a full SEB source (its consumer record refuses a real build, from a clone just the same).
 mkdir -p "$rel/tools/bundle"
 cat >"$rel/tools/bundle/build.mjs" <<'JS'
-// probe: accepts --estate-components; prints what the real builder would record
+// probe: accepts --estate-components; prints what the real builder would record. --stage-out (the
+// take's overlay-guards renders the pieces that way, before the build) writes what the real builder
+// stages: bundle.json and pieces/, here the installed bundle's render this tree was copied from.
 import { execFileSync } from "node:child_process";
+import { cpSync, mkdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 const g = (...a) => execFileSync("git", a, { encoding: "utf8" }).trim();
 const v = process.argv[process.argv.indexOf("--version") + 1];
+const so = process.argv.indexOf("--stage-out");
+if (so !== -1) {
+  const tree = fileURLToPath(new URL("../../", import.meta.url));
+  mkdirSync(process.argv[so + 1], { recursive: true });
+  for (const p of ["bundle.json", "pieces"]) cpSync(`${tree}${p}`, `${process.argv[so + 1]}/${p}`, { recursive: true });
+  process.exit(0);
+}
 console.log(`bundle ${v} from ${g("rev-parse", "HEAD")}${g("status", "--porcelain", "--", ".") ? " (DIRTY)" : ""} listing ${g("ls-files").split("\n").length} files`);
 JS
 gc add tools/bundle/build.mjs && gc commit -qm probe && gc tag v9.9.2

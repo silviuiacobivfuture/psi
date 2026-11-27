@@ -52,6 +52,7 @@ upgrade() {
     node "$ROOT/estate/seb-helm-app.mjs" "$WORK/bundle-${digest#sha256:}/pieces/$id" "$(app_name "$id")" \
       "$LABEL=seb-bundle" \
       "${MARK#\# } from the locked bundle $version. Do not edit; re-run the upgrade." "$REPO@$digest" \
+      --values-out "$WORK/helm-$id.values.yaml" "${apps#"$ROOT/"}/values/seb-${id#_}.yaml" "$FIRST_ENV" \
       > "$WORK/helm-$id.yaml" 2>"$WORK/helm.err" \
       || refuse "helm piece $id in bundle $version: $(sed 's/^REFUSED: //' "$WORK/helm.err") — nothing written"
   done
@@ -78,6 +79,49 @@ upgrade() {
     nsof[$id]="$(cat "$WORK/carry/$id.dest")"
   done
 
+  # The two-commit take (tools/estate/take-order.mjs): pieces the release orders AFTER another that
+  # has not moved yet keep their current Application in this run (step 1).
+  local held=()
+  if [ -n "${TAKE_HISTORY:-}" ] && [ -f "${SEB_ROOT:-}/tools/estate/take-order.mjs" ]; then
+    node "$SEB_ROOT/tools/estate/take-order.mjs" --repo "$ROOT" --history "$TAKE_HISTORY" --to "$TAKE_TAG" \
+      --apps "${apps#"$ROOT/"}" --digest "$digest" > "$WORK/held" 2>"$WORK/order.err" \
+      || { sed 's/^/  order: /' "$WORK/order.err" >&2; refuse "$(grep -m1 -E '^(REFUSED|UNREADABLE):' "$WORK/order.err" | sed 's/^REFUSED: //' || tail -n1 "$WORK/order.err") — nothing written"; }
+    sed 's/^/  order: /' "$WORK/order.err"
+    while IFS= read -r id; do [ -z "$id" ] || held+=("$id"); done < "$WORK/held"
+  fi
+  is_held() { [[ " ${held[*]} " == *" $1 "* ]]; }
+  local ordered="${#held[@]}"
+  # The image-first take (tools/estate/image-first.mjs, 19 Nov): a piece whose new config needs the
+  # image built from THIS release (Take-Needs: image-first=<piece>) keeps its current Application while
+  # this estate's image of it is still another release's build, and carries a `# HELD image-first:`
+  # line naming the bundle it moves to. The pin that brings the new build (estate/seb-image-tags.mjs
+  # --write) moves the Application and the image in one commit. Otherwise the new config runs on the
+  # old image: Polaris crash-looped on a WEBHOOK_EGRESS_* form its previous image refuses.
+  declare -A holdof=()
+  if [ -n "${TAKE_HISTORY:-}" ] && [ -f "${SEB_ROOT:-}/tools/estate/image-first.mjs" ]; then
+    node "$SEB_ROOT/tools/estate/image-first.mjs" --repo "$ROOT" --history "$TAKE_HISTORY" --to "$TAKE_TAG" \
+      --apps "${apps#"$ROOT/"}" --digest "$digest" --version "$version" > "$WORK/image-first" 2>"$WORK/image-first.err" \
+      || { sed 's/^/  image-first: /' "$WORK/image-first.err" >&2; refuse "$(grep -m1 -E '^(REFUSED|UNREADABLE):' "$WORK/image-first.err" | sed 's/^REFUSED: //' || tail -n1 "$WORK/image-first.err") — nothing written"; }
+    sed 's/^/  image-first: /' "$WORK/image-first.err"
+    local line
+    while IFS=$'\t' read -r id line; do
+      [ -n "$id" ] || continue
+      [[ "$line" == "# HELD image-first: "* ]] || refuse "tools/estate/image-first.mjs printed \"$id\" with no hold line — nothing written"
+      holdof[$id]="$line"; is_held "$id" || held+=("$id")
+    done < "$WORK/image-first"
+  fi
+
+  # The repin the rollout owes (tools/estate/model-repin.mjs, 18 Nov): when the estate's permissions
+  # bundle releases a model its pins are not on, Polaris mints a new model id at the rollout and no pin
+  # follows by itself. Recorded here (authz/pinned/repin-required.json, committed with the take), so
+  # the estate's gate refuses a take that owes a repin without it, and said here as REQUIRED.
+  # The first environment's own directory only (a gate's scratch --apps-dir is not the estate).
+  if [ "$(realpath -m "$apps")" = "$(realpath -m "$APPS")" ] && [ -f "${SEB_ROOT:-}/tools/estate/model-repin.mjs" ]; then
+    node "$SEB_ROOT/tools/estate/model-repin.mjs" mark --repo "$ROOT" > "$WORK/repin.out" 2>&1 \
+      || { sed 's/^/  repin: /' "$WORK/repin.out" >&2; refuse "$(grep -m1 -oE '\[[a-z-]+\] [^:]*' "$WORK/repin.out" || tail -n1 "$WORK/repin.out") — the repin this take owes cannot be judged (tools/estate/model-repin.mjs) — nothing else written"; }
+    sed 's/^/  repin: /' "$WORK/repin.out"
+  fi
+
   [ -r "$apps/repo-seb-bundle.yaml" ] \
     || refuse "${apps#"$ROOT/"} holds no repo-seb-bundle.yaml (Argo CD's read credential for $SOURCE, written by hand): its Applications could not be synced — nothing written"
 
@@ -103,11 +147,27 @@ upgrade() {
   fi
 
   local f
-  for f in "$apps"/seb-*.yaml; do
+  for f in "$apps"/seb-*.yaml "$apps"/values/seb-*.yaml; do
+    id="$(basename "$f" .yaml)"; id="${id#seb-}"
+    if is_held "$id" || is_held "_$id"; then continue; fi  # held: its Application stays as it is
     if [ -e "$f" ] && grep -qF "$MARK" <<<"$(sed -n 1p "$f")"; then rm -f "$f"; fi
   done
   for id in "${ids[@]}"; do
-    if [ "${kindof[$id]}" = helm ]; then cp "$WORK/helm-$id.yaml" "$apps/seb-${id#_}.yaml"
+    if [ -n "${holdof[$id]:-}" ] && [ -e "$apps/seb-${id#_}.yaml" ]; then
+      f="$apps/seb-${id#_}.yaml"
+      { sed -n 1p "$f"; printf '%s\n' "${holdof[$id]}"; sed '1d;/^# HELD image-first: /d' "$f"; } > "$WORK/held.yaml" && cat "$WORK/held.yaml" > "$f"
+      say "held ${apps#"$ROOT/"}/seb-${id#_}.yaml: image-first — it moves with its image, when the pin of the build from this release runs estate/seb-image-tags.mjs --write"
+      continue
+    fi
+    if is_held "$id"; then say "held ${apps#"$ROOT/"}/seb-${id#_}.yaml: it moves in step 2 of the two-commit take"; continue; fi
+    if [ "${kindof[$id]}" = helm ]; then
+      cp "$WORK/helm-$id.yaml" "$apps/seb-${id#_}.yaml"
+      # Values too large to stay in the Application (seb-helm-app.mjs, APP_BUDGET) are read by Argo
+      # from this file in the estate's repository; it carries the same do-not-edit mark.
+      if [ -s "$WORK/helm-$id.values.yaml" ]; then
+        mkdir -p "$apps/values"
+        { printf '%s\n' "$MARK from the locked bundle $version: the values of seb-${id#_}.yaml. Do not edit; re-run the upgrade."; cat "$WORK/helm-$id.values.yaml"; } > "$apps/values/seb-${id#_}.yaml"
+      fi
     else application "$id" "${nsof[$id]}" "$digest" "$version" "$WORK/carry" > "$apps/seb-${id#_}.yaml"; fi
     if [ "${kindof[$id]}" = helm ]; then
       say "wrote ${apps#"$ROOT/"}/seb-${id#_}.yaml → helm chart $(jq -r --arg id "$id" '.pieces[] | select(.id == $id) | .chart.chart + " " + .chart.version' <<< "$bundle") in namespace ${nsof[$id]}, values from the bundle"
@@ -118,12 +178,20 @@ upgrade() {
     printf '# The SEB pieces this estate deploys from its locked bundle (one Application per moved piece).\n'
     printf 'apiVersion: kustomize.config.k8s.io/v1beta1\nkind: Kustomization\n'
     printf 'resources:\n  # Argo CD'"'"'s read credential for the bundle repository (hand-written, kept).\n  - repo-seb-bundle.yaml\n  # The lock, for Harbor housekeeping (namespace harbor).\n  - platform-lock.yaml\n'
-    for id in "${ids[@]}"; do printf '  - seb-%s.yaml\n' "${id#_}"; done
+    for id in "${ids[@]}"; do
+      if ! is_held "$id" || [ -e "$apps/seb-${id#_}.yaml" ]; then printf '  - seb-%s.yaml\n' "${id#_}"; fi
+    done
   } > "$apps/kustomization.yaml"
   say "wrote ${apps#"$ROOT/"}/kustomization.yaml (${#ids[@]} Application(s))"
   # Only for the first environment's own directory: an --apps-dir elsewhere (a gate's scratch) is not the estate.
   local e
   [ "$(realpath -m "$apps")" = "$(realpath -m "$APPS")" ] || return 0
+  if [ "$ordered" -gt 0 ]; then
+    say "step 1 of the two-commit take: the other environments move in step 2"; return 0
+  fi
+  if [ "${#held[@]}" -gt 0 ]; then
+    say "image-first: the other environments are not written by this run — their render carries the image tag this bundle was built with, the previous build, so they move with a take made once that image is pinned"; return 0
+  fi
   for e in "${ENVS[@]}"; do write_env "$e" "$version" "$digest"; done
 }
 

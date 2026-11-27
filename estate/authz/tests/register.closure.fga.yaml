@@ -1,4 +1,4 @@
-# GENERATED FROM .seb-bundle/apps/vega-svc/authz.manifest.json — DO NOT EDIT.
+# GENERATED FROM .seb-bundle/apps/register-svc/authz.manifest.json — DO NOT EDIT.
 # Run `python3 authz/tools/generate.py` after changing the manifest.
 #
 # The closure, proven by the engine — direct tuples AND the via-set hop.
@@ -198,6 +198,9 @@ tuples:
     object: org:closure
   - user: user:c_org_perm_vega_usages_list
     relation: perm_register_usages_list
+    object: org:closure
+  - user: user:c_org_robot_program_manager
+    relation: robot_program_manager
     object: org:closure
   - user: user:c_org_role_flow_admin
     relation: role_flow_admin
@@ -966,6 +969,10 @@ tests:
         object: register_register:closure
         assertions:
           finder: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          finder: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -1481,6 +1488,10 @@ tests:
         assertions:
           profile_reader: true
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          profile_reader: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           profile_reader: false
@@ -2002,6 +2013,10 @@ tests:
         object: register_register:closure
         assertions:
           structure_reader: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          structure_reader: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -2517,6 +2532,10 @@ tests:
         assertions:
           shareholding_recorder: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          shareholding_recorder: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           shareholding_recorder: false
@@ -3038,6 +3057,10 @@ tests:
         object: register_register:closure
         assertions:
           representative_recorder: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          representative_recorder: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -3553,6 +3576,10 @@ tests:
         assertions:
           connections_reader: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          connections_reader: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           connections_reader: false
@@ -4074,6 +4101,10 @@ tests:
         object: register_register:closure
         assertions:
           explainer: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          explainer: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -4589,6 +4620,10 @@ tests:
         assertions:
           history_reader: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          history_reader: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           history_reader: false
@@ -5110,6 +5145,10 @@ tests:
         object: register_register:closure
         assertions:
           history_comparer: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          history_comparer: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -5625,6 +5664,10 @@ tests:
         assertions:
           changes_reader: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          changes_reader: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           changes_reader: false
@@ -6146,6 +6189,10 @@ tests:
         object: register_register:closure
         assertions:
           events_reader: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          events_reader: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -6661,6 +6708,10 @@ tests:
         assertions:
           case_lister: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          case_lister: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           case_lister: false
@@ -7182,6 +7233,10 @@ tests:
         object: register_register:closure
         assertions:
           case_reader: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          case_reader: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -7700,6 +7755,10 @@ tests:
         object: register_register:closure
         assertions:
           case_merger: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          case_merger: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -8215,6 +8274,10 @@ tests:
         assertions:
           case_separator: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          case_separator: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           case_separator: false
@@ -9366,6 +9429,10 @@ tests:
         object: register_register:closure
         assertions:
           conflict_lister: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          conflict_lister: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -9881,6 +9948,10 @@ tests:
         assertions:
           stale_lister: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          stale_lister: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           stale_lister: false
@@ -10402,6 +10473,10 @@ tests:
         object: register_register:closure
         assertions:
           expiring_documents_lister: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          expiring_documents_lister: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -10917,6 +10992,10 @@ tests:
         assertions:
           proposal_lister: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          proposal_lister: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           proposal_lister: false
@@ -11438,6 +11517,10 @@ tests:
         object: register_register:closure
         assertions:
           proposal_confirmer: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          proposal_confirmer: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -11953,6 +12036,10 @@ tests:
         assertions:
           proposal_decliner: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          proposal_decliner: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           proposal_decliner: false
@@ -12474,6 +12561,10 @@ tests:
         object: register_register:closure
         assertions:
           request_recorder: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          request_recorder: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -12989,6 +13080,10 @@ tests:
         assertions:
           request_lister: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          request_lister: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           request_lister: false
@@ -13510,6 +13605,10 @@ tests:
         object: register_register:closure
         assertions:
           request_closer: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          request_closer: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -14025,6 +14124,10 @@ tests:
         assertions:
           restriction_lifter: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          restriction_lifter: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           restriction_lifter: false
@@ -14546,6 +14649,10 @@ tests:
         object: register_register:closure
         assertions:
           statement_issuer: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          statement_issuer: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -15061,6 +15168,10 @@ tests:
         assertions:
           statement_reader: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          statement_reader: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           statement_reader: false
@@ -15582,6 +15693,10 @@ tests:
         object: register_register:closure
         assertions:
           statement_lister: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          statement_lister: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -16097,6 +16212,10 @@ tests:
         assertions:
           company_looker: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          company_looker: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           company_looker: false
@@ -16618,6 +16737,10 @@ tests:
         object: register_register:closure
         assertions:
           company_registrar: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          company_registrar: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -17133,6 +17256,10 @@ tests:
         assertions:
           person_registrar: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          person_registrar: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           person_registrar: false
@@ -17654,6 +17781,10 @@ tests:
         object: register_register:closure
         assertions:
           address_recorder: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          address_recorder: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -18169,6 +18300,10 @@ tests:
         assertions:
           contact_recorder: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          contact_recorder: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           contact_recorder: false
@@ -18690,6 +18825,10 @@ tests:
         object: register_register:closure
         assertions:
           administrator_appointer: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          administrator_appointer: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -19205,6 +19344,10 @@ tests:
         assertions:
           document_scanner: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          document_scanner: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           document_scanner: false
@@ -19726,6 +19869,10 @@ tests:
         object: register_register:closure
         assertions:
           document_person_registrar: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          document_person_registrar: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -20241,6 +20388,10 @@ tests:
         assertions:
           bank_account_recorder: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          bank_account_recorder: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           bank_account_recorder: false
@@ -20762,6 +20913,10 @@ tests:
         object: register_register:closure
         assertions:
           civil_status_recorder: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          civil_status_recorder: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -21277,6 +21432,10 @@ tests:
         assertions:
           capture_session_holder: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          capture_session_holder: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           capture_session_holder: false
@@ -21798,6 +21957,10 @@ tests:
         object: register_register:closure
         assertions:
           identity_recorder: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          identity_recorder: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -22313,6 +22476,10 @@ tests:
         assertions:
           importer: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          importer: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           importer: false
@@ -22834,6 +23001,10 @@ tests:
         object: register_register:closure
         assertions:
           outcome_applier: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          outcome_applier: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -23349,6 +23520,10 @@ tests:
         assertions:
           disclosure_lister: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          disclosure_lister: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           disclosure_lister: false
@@ -23870,6 +24045,10 @@ tests:
         object: register_register:closure
         assertions:
           source_lister: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          source_lister: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -24388,6 +24567,10 @@ tests:
         object: register_register:closure
         assertions:
           usage_lister: true
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          usage_lister: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -24903,6 +25086,10 @@ tests:
         assertions:
           registry_refresher: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          registry_refresher: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           registry_refresher: false
@@ -25424,6 +25611,10 @@ tests:
         object: register_register:closure
         assertions:
           typed_input_relayer: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          typed_input_relayer: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -25939,6 +26130,10 @@ tests:
         assertions:
           retention_lister: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          retention_lister: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           retention_lister: false
@@ -26460,6 +26655,10 @@ tests:
         object: register_register:closure
         assertions:
           personal_reader: false
+      - user: user:c_org_robot_program_manager
+        object: register_register:closure
+        assertions:
+          personal_reader: false
       - user: user:c_org_role_flow_admin
         object: register_register:closure
         assertions:
@@ -26975,6 +27174,10 @@ tests:
         assertions:
           contact_reader: false
       - user: user:c_org_perm_vega_usages_list
+        object: register_register:closure
+        assertions:
+          contact_reader: false
+      - user: user:c_org_robot_program_manager
         object: register_register:closure
         assertions:
           contact_reader: false

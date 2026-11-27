@@ -199,6 +199,9 @@ tuples:
   - user: user:c_org_perm_vega_usages_list
     relation: perm_vega_usages_list
     object: org:closure
+  - user: user:c_org_robot_program_manager
+    relation: robot_program_manager
+    object: org:closure
   - user: user:c_org_role_flow_admin
     relation: role_flow_admin
     object: org:closure
@@ -2094,12 +2097,12 @@ tests:
         object: flow_admin:closure
         assertions:
           read_audit: false
-  - name: flow_org#read is conferred by exactly ['administrator', 'role_flow_admin', 'role_flow_editor', 'role_flow_viewer']
+  - name: flow_org#read is conferred by exactly ['role_flow_admin', 'role_flow_editor', 'role_flow_viewer']
     check:
       - user: user:c_org_administrator
         object: flow_org:closure
         assertions:
-          read: true
+          read: false
       - user: user:c_org_auditor
         object: flow_org:closure
         assertions:
@@ -2352,6 +2355,10 @@ tests:
         object: flow_org:closure
         assertions:
           read: false
+      - user: user:c_org_robot_program_manager
+        object: flow_org:closure
+        assertions:
+          read: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -2412,268 +2419,272 @@ tests:
         object: flow_org:closure
         assertions:
           read: false
-  - name: flow_org#write is conferred by exactly ['administrator', 'role_flow_admin', 'role_flow_editor']
+  - name: flow_org#write is conferred by exactly ['role_flow_admin', 'role_flow_editor']
     check:
       - user: user:c_org_administrator
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_auditor
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_member
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_invoice_company_manage
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_invoice_data_read
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_invoice_data_write
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_invoice_efactura_transmit
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_invoice_integration_sync
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_invoice_invoice_cancel
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_invoice_invoice_issue
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_invoice_invoice_storno
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_invoice_members_manage
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_invoice_personal_data_read
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_invoice_webhooks_manage
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_capture_appoint_administrator
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_capture_look_up_company
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_capture_record_address
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_capture_record_bank_account
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_capture_record_civil_status
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_capture_record_contact
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_capture_register_company
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_capture_register_person
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_capture_register_person_from_document
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_capture_scan_identity_document
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_capture_session
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_cases_keep_apart
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_cases_list
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_cases_merge
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_cases_read
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_conflicts_list
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_connections_read
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_contact_read
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_disclosures_list
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_documents_list_expiring
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_dossier_outcomes_apply
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_facts_explain
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_history_compare
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_history_list_changes
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_history_list_events
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_history_read
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_identity_record
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_import_run
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_personal_read
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_proposals_confirm
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_proposals_decline
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_proposals_list
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_registry_refresh
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_relay_typed_input
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_requests_close
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_requests_list
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_requests_record
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_restrictions_lift
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_retention_list
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_sources_list
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_stale_list
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_statements_issue
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_statements_list
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_statements_read
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_structure_read
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_structure_record_representative
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_structure_record_shareholding
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_subjects_find
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_subjects_read_profile
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_robot_program_manager
+        object: flow_org:closure
+        assertions:
+          write: false
+      - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
           write: true
-      - user: user:c_org_auditor
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_member
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_invoice_company_manage
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_invoice_data_read
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_invoice_data_write
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_invoice_efactura_transmit
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_invoice_integration_sync
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_invoice_invoice_cancel
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_invoice_invoice_issue
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_invoice_invoice_storno
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_invoice_members_manage
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_invoice_personal_data_read
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_invoice_webhooks_manage
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_capture_appoint_administrator
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_capture_look_up_company
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_capture_record_address
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_capture_record_bank_account
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_capture_record_civil_status
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_capture_record_contact
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_capture_register_company
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_capture_register_person
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_capture_register_person_from_document
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_capture_scan_identity_document
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_capture_session
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_cases_keep_apart
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_cases_list
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_cases_merge
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_cases_read
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_conflicts_list
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_connections_read
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_contact_read
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_disclosures_list
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_documents_list_expiring
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_dossier_outcomes_apply
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_facts_explain
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_history_compare
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_history_list_changes
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_history_list_events
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_history_read
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_identity_record
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_import_run
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_personal_read
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_proposals_confirm
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_proposals_decline
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_proposals_list
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_registry_refresh
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_relay_typed_input
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_requests_close
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_requests_list
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_requests_record
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_restrictions_lift
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_retention_list
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_sources_list
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_stale_list
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_statements_issue
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_statements_list
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_statements_read
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_structure_read
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_structure_record_representative
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_structure_record_shareholding
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_subjects_find
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_subjects_read_profile
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_perm_vega_usages_list
-        object: flow_org:closure
-        assertions:
-          write: false
-      - user: user:c_org_role_flow_admin
-        object: flow_org:closure
-        assertions:
-          write: true
       - user: user:c_org_role_flow_agent
         object: flow_org:closure
         assertions:
@@ -2730,12 +2741,12 @@ tests:
         object: flow_org:closure
         assertions:
           write: false
-  - name: flow_org#publish is conferred by exactly ['administrator', 'role_flow_admin', 'role_flow_editor']
+  - name: flow_org#publish is conferred by exactly ['role_flow_admin', 'role_flow_editor']
     check:
       - user: user:c_org_administrator
         object: flow_org:closure
         assertions:
-          publish: true
+          publish: false
       - user: user:c_org_auditor
         object: flow_org:closure
         assertions:
@@ -2988,6 +2999,10 @@ tests:
         object: flow_org:closure
         assertions:
           publish: false
+      - user: user:c_org_robot_program_manager
+        object: flow_org:closure
+        assertions:
+          publish: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -3048,12 +3063,12 @@ tests:
         object: flow_org:closure
         assertions:
           publish: false
-  - name: flow_org#run is conferred by exactly ['administrator', 'role_flow_admin', 'role_flow_editor']
+  - name: flow_org#run is conferred by exactly ['role_flow_admin', 'role_flow_editor']
     check:
       - user: user:c_org_administrator
         object: flow_org:closure
         assertions:
-          run: true
+          run: false
       - user: user:c_org_auditor
         object: flow_org:closure
         assertions:
@@ -3306,6 +3321,10 @@ tests:
         object: flow_org:closure
         assertions:
           run: false
+      - user: user:c_org_robot_program_manager
+        object: flow_org:closure
+        assertions:
+          run: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -3366,268 +3385,272 @@ tests:
         object: flow_org:closure
         assertions:
           run: false
-  - name: flow_org#manage_keys is conferred by exactly ['administrator', 'role_flow_admin']
+  - name: flow_org#manage_keys is conferred by exactly ['role_flow_admin']
     check:
       - user: user:c_org_administrator
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_auditor
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_member
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_invoice_company_manage
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_invoice_data_read
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_invoice_data_write
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_invoice_efactura_transmit
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_invoice_integration_sync
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_invoice_invoice_cancel
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_invoice_invoice_issue
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_invoice_invoice_storno
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_invoice_members_manage
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_invoice_personal_data_read
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_invoice_webhooks_manage
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_capture_appoint_administrator
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_capture_look_up_company
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_capture_record_address
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_capture_record_bank_account
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_capture_record_civil_status
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_capture_record_contact
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_capture_register_company
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_capture_register_person
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_capture_register_person_from_document
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_capture_scan_identity_document
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_capture_session
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_cases_keep_apart
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_cases_list
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_cases_merge
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_cases_read
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_conflicts_list
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_connections_read
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_contact_read
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_disclosures_list
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_documents_list_expiring
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_dossier_outcomes_apply
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_facts_explain
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_history_compare
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_history_list_changes
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_history_list_events
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_history_read
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_identity_record
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_import_run
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_personal_read
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_proposals_confirm
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_proposals_decline
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_proposals_list
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_registry_refresh
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_relay_typed_input
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_requests_close
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_requests_list
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_requests_record
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_restrictions_lift
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_retention_list
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_sources_list
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_stale_list
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_statements_issue
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_statements_list
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_statements_read
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_structure_read
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_structure_record_representative
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_structure_record_shareholding
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_subjects_find
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_subjects_read_profile
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_robot_program_manager
+        object: flow_org:closure
+        assertions:
+          manage_keys: false
+      - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
           manage_keys: true
-      - user: user:c_org_auditor
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_member
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_invoice_company_manage
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_invoice_data_read
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_invoice_data_write
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_invoice_efactura_transmit
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_invoice_integration_sync
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_invoice_invoice_cancel
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_invoice_invoice_issue
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_invoice_invoice_storno
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_invoice_members_manage
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_invoice_personal_data_read
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_invoice_webhooks_manage
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_capture_appoint_administrator
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_capture_look_up_company
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_capture_record_address
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_capture_record_bank_account
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_capture_record_civil_status
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_capture_record_contact
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_capture_register_company
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_capture_register_person
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_capture_register_person_from_document
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_capture_scan_identity_document
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_capture_session
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_cases_keep_apart
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_cases_list
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_cases_merge
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_cases_read
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_conflicts_list
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_connections_read
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_contact_read
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_disclosures_list
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_documents_list_expiring
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_dossier_outcomes_apply
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_facts_explain
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_history_compare
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_history_list_changes
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_history_list_events
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_history_read
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_identity_record
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_import_run
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_personal_read
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_proposals_confirm
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_proposals_decline
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_proposals_list
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_registry_refresh
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_relay_typed_input
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_requests_close
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_requests_list
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_requests_record
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_restrictions_lift
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_retention_list
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_sources_list
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_stale_list
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_statements_issue
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_statements_list
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_statements_read
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_structure_read
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_structure_record_representative
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_structure_record_shareholding
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_subjects_find
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_subjects_read_profile
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_perm_vega_usages_list
-        object: flow_org:closure
-        assertions:
-          manage_keys: false
-      - user: user:c_org_role_flow_admin
-        object: flow_org:closure
-        assertions:
-          manage_keys: true
       - user: user:c_org_role_flow_agent
         object: flow_org:closure
         assertions:
@@ -3684,12 +3707,12 @@ tests:
         object: flow_org:closure
         assertions:
           manage_keys: false
-  - name: flow_org#manage_extension is conferred by exactly ['administrator', 'role_flow_admin']
+  - name: flow_org#manage_extension is conferred by exactly ['role_flow_admin']
     check:
       - user: user:c_org_administrator
         object: flow_org:closure
         assertions:
-          manage_extension: true
+          manage_extension: false
       - user: user:c_org_auditor
         object: flow_org:closure
         assertions:
@@ -3939,6 +3962,10 @@ tests:
         assertions:
           manage_extension: false
       - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          manage_extension: false
+      - user: user:c_org_robot_program_manager
         object: flow_org:closure
         assertions:
           manage_extension: false
@@ -4002,12 +4029,12 @@ tests:
         object: flow_org:closure
         assertions:
           manage_extension: false
-  - name: flow_org#manage_workspaces is conferred by exactly ['administrator', 'role_flow_admin']
+  - name: flow_org#manage_workspaces is conferred by exactly ['role_flow_admin']
     check:
       - user: user:c_org_administrator
         object: flow_org:closure
         assertions:
-          manage_workspaces: true
+          manage_workspaces: false
       - user: user:c_org_auditor
         object: flow_org:closure
         assertions:
@@ -4257,6 +4284,10 @@ tests:
         assertions:
           manage_workspaces: false
       - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          manage_workspaces: false
+      - user: user:c_org_robot_program_manager
         object: flow_org:closure
         assertions:
           manage_workspaces: false
@@ -4320,12 +4351,12 @@ tests:
         object: flow_org:closure
         assertions:
           manage_workspaces: false
-  - name: flow_org#read_audit is conferred by exactly ['administrator', 'role_flow_admin']
+  - name: flow_org#read_audit is conferred by exactly ['role_flow_admin']
     check:
       - user: user:c_org_administrator
         object: flow_org:closure
         assertions:
-          read_audit: true
+          read_audit: false
       - user: user:c_org_auditor
         object: flow_org:closure
         assertions:
@@ -4575,6 +4606,10 @@ tests:
         assertions:
           read_audit: false
       - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          read_audit: false
+      - user: user:c_org_robot_program_manager
         object: flow_org:closure
         assertions:
           read_audit: false
@@ -4896,6 +4931,10 @@ tests:
         object: flow_org:closure
         assertions:
           program_flows_read: false
+      - user: user:c_org_robot_program_manager
+        object: flow_org:closure
+        assertions:
+          program_flows_read: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -5211,6 +5250,10 @@ tests:
         assertions:
           program_flows_write: false
       - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          program_flows_write: false
+      - user: user:c_org_robot_program_manager
         object: flow_org:closure
         assertions:
           program_flows_write: false
@@ -5532,6 +5575,10 @@ tests:
         object: flow_org:closure
         assertions:
           program_flows_publish: false
+      - user: user:c_org_robot_program_manager
+        object: flow_org:closure
+        assertions:
+          program_flows_publish: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -5847,6 +5894,10 @@ tests:
         assertions:
           program_tests_run: false
       - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          program_tests_run: false
+      - user: user:c_org_robot_program_manager
         object: flow_org:closure
         assertions:
           program_tests_run: false
@@ -6168,6 +6219,10 @@ tests:
         object: flow_org:closure
         assertions:
           program_runs_launch: false
+      - user: user:c_org_robot_program_manager
+        object: flow_org:closure
+        assertions:
+          program_runs_launch: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -6483,6 +6538,10 @@ tests:
         assertions:
           program_runs_read: false
       - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          program_runs_read: false
+      - user: user:c_org_robot_program_manager
         object: flow_org:closure
         assertions:
           program_runs_read: false
@@ -6804,6 +6863,10 @@ tests:
         object: flow_org:closure
         assertions:
           program_runs_cancel: false
+      - user: user:c_org_robot_program_manager
+        object: flow_org:closure
+        assertions:
+          program_runs_cancel: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -7119,6 +7182,10 @@ tests:
         assertions:
           program_files_resolve: false
       - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          program_files_resolve: false
+      - user: user:c_org_robot_program_manager
         object: flow_org:closure
         assertions:
           program_files_resolve: false
@@ -7440,6 +7507,10 @@ tests:
         object: flow_org:closure
         assertions:
           program_files_write: false
+      - user: user:c_org_robot_program_manager
+        object: flow_org:closure
+        assertions:
+          program_files_write: false
       - user: user:c_org_role_flow_admin
         object: flow_org:closure
         assertions:
@@ -7755,6 +7826,10 @@ tests:
         assertions:
           program_manifest_write: false
       - user: user:c_org_perm_vega_usages_list
+        object: flow_org:closure
+        assertions:
+          program_manifest_write: false
+      - user: user:c_org_robot_program_manager
         object: flow_org:closure
         assertions:
           program_manifest_write: false

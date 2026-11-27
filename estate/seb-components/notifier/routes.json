@@ -1,0 +1,12 @@
+{
+	"dedup_seconds": 900,
+	"streams": [],
+	"routes": [
+		{
+			"name": "ops",
+			"match": {},
+			"email": "ops@psizone.ro",
+			"topic": "{routing_key} · {source}"
+		}
+	]
+}

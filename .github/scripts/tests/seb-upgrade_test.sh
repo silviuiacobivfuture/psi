@@ -48,6 +48,14 @@
 #       as a directory piece's Application does, so Kyverno's seb-bundle-signed checks its values
 #   U28 REFUSED, nothing on stdout: a bundle reference that is not <registry>/<path>@sha256:<digest>,
 #       and a template that carries spec.info itself
+# The IMAGE-FIRST take (the release double declares Take-Needs: image-first=<piece>), in a copy:
+#   U52 REFUSED, nothing written: the piece's image is OLDER than the previous release's build (only
+#       the immediately previous build may be held)
+#   U50 its image the previous release's build, with NO estate/seb-image-holds line for it: the
+#       take's image check holds it ("held: <piece> waits for <image> built from 9.9.9"), the lock
+#       moves, the piece's Application stays on the previous bundle byte for byte under its hold line;
+#       the estate's other SEB-built images, not declared, are still refused unless held by that file
+#   U51 the pin of the build from the release releases the hold, in one write
 # A case this estate cannot exercise (it builds no image a deployed piece runs; it deploys no
 # piece without exactly one namespace) says `n/a` and why. Last: the working tree is exactly as before.
 set -euo pipefail
@@ -126,7 +134,7 @@ elif [ -z "$(comm -23 <(printf '%s\n' "$listed") <(dset))" ] \
    && [ "$(dset)" = "$(sort -u <(printf '%s\n' "$listed") <(printf '%s\n' "$ledger_only" | sed '/^$/d'))" ]; then
   ok "U22 the $(wc -l <<<"$listed") piece(s) $first_list lists are deployed; without it only the ledger's $(sed '/^$/d' <<<"$ledger_only" | wc -l) remain (planted)"
 else bad "U22 the deploy set is not the ledger's pieces plus $first_list's" "$(diff <(dset) <(sort -u <(printf '%s\n' "$listed") <(printf '%s\n' "$ledger_only" | sed '/^$/d')))"; fi
-one="$(dset | head -n1)"
+one="$(dset | sed -n 1p)"
 if [ -z "$one" ]; then na "U23 U24 this estate deploys no piece yet"
 else
   printf '%s\n%s\n' "$one" "$one" > "$tmp/list-dup"
@@ -238,7 +246,7 @@ if out="$(estate/seb-upgrade.sh --compare-bundles "$tmp/cmp-old" "$tmp/cmp-new" 
   ok "U25 a bundle against itself: $(grep -c '^IDENTICAL' <<<"$out") piece(s) IDENTICAL, $pa ADDED"
 else bad "U25 the comparison of a bundle with itself was not identical" "$out"; fi
 cp "$fake/bundle/bundle.json" "$tmp/cmp-old/bundle.json"
-f="$(find "$tmp/cmp-new/pieces/$pb" -type f | head -n1)"; printf '# planted\n' >> "$f"
+f="$(find "$tmp/cmp-new/pieces/$pb" -type f | sed -n 1p)"; printf '# planted\n' >> "$f"
 jq --arg id "$pa" 'del(.pieces[] | select(.id == $id))' "$fake/bundle/bundle.json" > "$tmp/cmp-new/bundle.json"
 rc=0; out="$(estate/seb-upgrade.sh --compare-bundles "$tmp/cmp-old" "$tmp/cmp-new" "$relc" 2>&1)" || rc=$?
 if [ "$rc" != 0 ] && grep -q "^DIFFERS pieces/$pb:" <<<"$out" && grep -q "^DIFFERS pieces/$pa: the locked bundle has it, the release drops it" <<<"$out"; then
@@ -340,6 +348,94 @@ if out="$(SEB_ROOT="$sb" node estate/seb-helm-app.mjs "$hp" planted k=v "# heade
 elif [ -z "$out" ] && grep -q 'REFUSED: values.yaml: ${PLANTED_UNSET_KEY} names an identity key this estate does not set' "$tmp/helm-u21.err"; then
   ok "U21 refused, nothing on stdout (planted): $(cut -c1-100 "$tmp/helm-u21.err")"
 else bad "U21 refused for another reason, or something was written" "$out$(cat "$tmp/helm-u21.err")"; fi
+
+echo "── an Application's size (seb-helm-app.mjs, APP_BUDGET): Argo copies it into every status entry"
+hs="$tmp/helm-size"; mkdir -p "$hs"; cp "$tmp/helm-info/application.yaml" "$hs/application.yaml"
+sed -i '/^  info: \[ { name: seb-bundle, value: x } \]$/d' "$hs/application.yaml"
+printf 'host: cloud.${BASE_DOMAIN}\n' > "$hs/values.yaml"
+jsq() { node -e 'const y=require("yaml");const a=y.parse(require("fs").readFileSync(0,"utf8"));process.stdout.write(JSON.stringify(eval(process.argv[1])))' "$1"; }
+if out="$(node estate/seb-helm-app.mjs "$hs" planted k=v "# header" "$hb" --values-out "$tmp/u41.values" gitops/values/seb-planted.yaml dev 2>&1)" \
+   && [ "$(jsq 'a.spec.revisionHistoryLimit' <<<"$out")" = 2 ]; then
+  ok "U40 the Application keeps two history entries (revisionHistoryLimit 2), not Argo's ten"
+else bad "U40 no revisionHistoryLimit 2" "$out"; fi
+if [ "$(jsq 'a.spec.source.helm.values' <<<"$out")" = "\"host: cloud.$dom\\n\"" ] && [ "$(jsq 'a.spec.sources ?? null' <<<"$out")" = null ] && [ ! -e "$tmp/u41.values" ]; then
+  ok "U41 values within the budget stay inline, one source, no values file written"
+else bad "U41 small values were moved out, or a file was written" "$out"; fi
+{ printf 'big: |\n'; for i in $(seq 1 1600); do printf '  line %04d of the hub configuration, long enough to matter\n' "$i"; done; } > "$hs/values.yaml"
+git_url="git@$(idv GIT_HOST):$(idv GIT_OWNER)/$(idv GIT_REPO).git"
+if out="$(node estate/seb-helm-app.mjs "$hs" planted k=v "# header" "$hb" --values-out "$tmp/u42.values" gitops/values/seb-planted.yaml dev 2>&1)" \
+   && [ "$(printf '%s' "$out" | wc -c)" -le 65536 ] \
+   && [ "$(jsq 'a.spec.source ?? null' <<<"$out")" = null ] \
+   && [ "$(jsq 'a.spec.sources[0].helm.valueFiles' <<<"$out")" = '["$estate/gitops/values/seb-planted.yaml"]' ] \
+   && [ "$(jsq 'a.spec.sources[0].helm.values ?? null' <<<"$out")" = null ] \
+   && [ "$(jsq 'a.spec.sources[1]' <<<"$out")" = "{\"repoURL\":\"$git_url\",\"targetRevision\":\"dev\",\"ref\":\"estate\"}" ] \
+   && cmp -s "$tmp/u42.values" "$hs/values.yaml"; then
+  ok "U42 values over the budget move out: $(printf '%s' "$out" | wc -c) bytes of Application, the chart reads \$estate/gitops/values/seb-planted.yaml from the estate's repo at dev, the file is the values byte for byte"
+else bad "U42 large values were not moved out as declared" "$(head -c 600 <<<"$out")"; fi
+if o="$(node estate/seb-helm-app.mjs "$hs" planted k=v "# header" "$hb" 2>"$tmp/u43.err")" || [ -n "$o" ] \
+   || ! grep -q 'over the 65536-byte budget' "$tmp/u43.err"; then
+  bad "U43 an Application over the budget was written, or refused for another reason" "$(cat "$tmp/u43.err")"
+else ok "U43 refused, nothing on stdout: $(cut -c1-120 "$tmp/u43.err")"; fi
+
+# ── U50–U51: the image-first take, through the real upgrade and the real pin, in a copy of the estate
+# on the previous bundle, from a release double whose commit declares image-first for $efid.
+echo "── the image-first take (Take-Needs: image-first=<piece>), in a copy of the estate"
+prev="$(env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE git -C "$rel" describe --tags --abbrev=0 v9.9.9^ 2>/dev/null)" || prev=""
+if [ -z "$efid" ] || [ -z "$prev" ]; then na "U50 U51 U52 this estate runs no image it builds from a deployed piece, or has taken no release yet"
+else
+  ie="$tmp/if-estate"; d0="sha256:$(printf '0%.0s' $(seq 64))"; held_tag="seb-0000000"
+  mkdir -p "$ie"; git ls-files -z -- estate gitops | tar --null -T - -c 2>/dev/null | tar -x -C "$ie"
+  ln -s "$root/node_modules" "$ie/node_modules"; ln -s "$seb" "$ie/.seb-bundle"
+  # On the previous bundle: the release before 9.9.9, its Applications on another digest than 9.9.9's.
+  sed -i -e "s/^version = .*/version = ${prev#v}/" -e "s/^digest = .*/digest = $d0/" "$ie/estate/platform.lock"
+  grep -rl "$fd" "$ie/$apps_rel" 2>/dev/null | xargs -r sed -i "s/$fd/$d0/g"
+  # Its image of $efid: first a build OLDER than the previous release (U52), then the previous
+  # release's build (U50), as CI builds it only once the take has moved the lock. No
+  # estate/seb-image-holds line: the release's image-first declaration is what holds it.
+  efrepo="${efimg##*/}"
+  sed -i "s|newTag:.*|newTag: \"$held_tag\"|" "$ie/estate/seb-components/$efid/kustomization.yaml"
+  gi=(env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE git -C "$ie" -c user.name=gate -c user.email=gate@invalid -c core.hooksPath=/dev/null)
+  "${gi[@]}" init -q && "${gi[@]}" add -A && "${gi[@]}" commit -qm "on ${prev#v}" || gate_abort "the image-first copy could not be committed"
+  app_before="$(cat "$ie/$apps_rel/seb-$efid.yaml")"
+  DOUBLES_TAKE_NEEDS="image-first=$efid" doubles_up "$tmp/if" "$seb" "$ie"
+  # The estate's other SEB-built images (no image-first declared for them) are refused as behind:
+  # held by estate/seb-image-holds lines. (the release's own judge, as the take runs it.)
+  while read -r name; do
+    [ "${name%%/*}" != "$efid" ] || continue
+    r="${name#*/}"; printf '%s %s %s built after the take, from the release it takes\n' "${name%%/*}" "${r%:*}" "${name##*:}" >> "$ie/estate/seb-image-holds"
+  done < <(node "$rel/tools/estate/scaffold/estate/seb-image-release.mjs" --root "$ie" --commit "$relc" 2>/dev/null | sed -n 's/^BEHIND *\([^,]*\),.*/\1/p')
+  "${gi[@]}" add -A && "${gi[@]}" commit -q --amend --no-edit
+  lock_before="$(cat "$ie/estate/platform.lock")"
+  rc=0; out="$(FUP_ESTATE="$ie" SEB_LOCK="$ie/estate/platform.lock" fup 9.9.9 --from-release v9.9.9)" || rc=$?
+  if [ "$rc" != 0 ] && grep -q "image-first holds only the previous release's build" <<<"$out" \
+     && [ "$(cat "$ie/estate/platform.lock")" = "$lock_before" ] && [ "$(cat "$ie/$apps_rel/seb-$efid.yaml")" = "$app_before" ] \
+     && [ -z "$("${gi[@]}" status --porcelain)" ]; then
+    ok "U52 REFUSED, nothing written: $efid declared image-first, but $efrepo:$held_tag is older than the previous release's build"
+  else bad "U52 an image older than the previous release's build was not refused, or something was written (rc $rc)" "$out"; fi
+  # The previous release's build: the only one image-first may hold.
+  held_tag="seb-$(env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE git -C "$rel" rev-parse --short=9 "$prev^{commit}")"
+  sed -i "s|newTag:.*|newTag: \"$held_tag\"|" "$ie/estate/seb-components/$efid/kustomization.yaml"
+  "${gi[@]}" add -A && "${gi[@]}" commit -q --amend --no-edit
+  rc=0; out="$(FUP_ESTATE="$ie" SEB_LOCK="$ie/estate/platform.lock" fup 9.9.9 --from-release v9.9.9)" || rc=$?
+  hold="# HELD image-first: moves to bundle 9.9.9 @ $fd once $efrepo is built from $relc"
+  app_held="$(cat "$ie/$apps_rel/seb-$efid.yaml")"
+  if [ "$rc" = 0 ] && grep -q "held $apps_rel/seb-$efid.yaml: image-first" <<<"$out" && grep -qx "digest = $fd" "$ie/estate/platform.lock" \
+     && grep -qx "held: $efid waits for $efrepo built from 9.9.9" <<<"$out" \
+     && ! grep -q "^$efid $efrepo " "$ie/estate/seb-image-holds" 2>/dev/null \
+     && [ "$(sed -n 2p <<<"$app_held")" = "$hold" ] && [ "$(sed 2d <<<"$app_held")" = "$app_before" ]; then
+    ok "U50 with no estate/seb-image-holds line for it, the take moves the lock to 9.9.9 and holds $efid on the previous bundle, byte for byte, under its hold line ($efrepo:$held_tag is the previous release's build)"
+  else bad "U50 the image-first take did not hold $efid on the previous bundle (rc $rc)" "$out"$'\n'"$app_held"; fi
+  "${gi[@]}" add -A && "${gi[@]}" commit -qm "seb 9.9.9, $efid held" || gate_abort "the image-first take could not be committed"
+  # CI pins the build from the release: the component's tag, then the deploy step's --write.
+  sed -i "s|newTag:.*|newTag: \"seb-${relc:0:9}\"|" "$ie/estate/seb-components/$efid/kustomization.yaml"; rm -f "$ie/estate/seb-image-holds"
+  rc=0; out="$(cd "$ie" && node estate/seb-image-tags.mjs --write --piece "$efid" 2>&1)" || rc=$?
+  f="$ie/$apps_rel/seb-$efid.yaml"
+  if [ "$rc" = 0 ] && grep -q "image-first hold released → bundle 9.9.9" <<<"$out" && ! grep -q '^# HELD image-first' "$f" \
+     && grep -qx "    targetRevision: $fd" "$f" && grep -qx "        - $efimg:seb-${relc:0:9}" "$f" \
+     && (cd "$ie" && node estate/seb-image-tags.mjs --piece "$efid" >/dev/null 2>&1); then
+    ok "U51 the pin of the build from v9.9.9 releases the hold: $efid moves to the new bundle and the new tag in one write, and a check after it is clean"
+  else bad "U51 the pin did not release the hold (rc $rc)" "$out"$'\n'"$(cat "$f")"; fi
+fi
 
 [ "$(git status --porcelain)" = "$before" ] && ok "the working tree is exactly as before" \
   || bad "the cases changed the working tree" "$(git status --porcelain)"

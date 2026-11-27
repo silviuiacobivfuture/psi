@@ -1,0 +1,21 @@
+# estate-watch's Plunk sender, per key (a key missing in OpenBao is a loud SecretSyncedError, never an
+# empty value): the estate's platform sender, as the plunk namespace's own email-sender reads it.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: estate-watch-mail
+  namespace: observability
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: openbao, kind: ClusterSecretStore }
+  target:
+    name: estate-watch-mail
+    creationPolicy: Owner
+    template:
+      data:
+        MAIL_API_URL: "http://plunk.plunk.svc.cluster.local"
+        MAIL_API_KEY: "{{ .secret_key }}"
+        MAIL_FROM: "noreply@psizone.ro"
+  data:
+    - secretKey: secret_key
+      remoteRef: { key: platform/plunk/platform, property: secret_key }

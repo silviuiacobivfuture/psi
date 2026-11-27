@@ -1,9 +1,9 @@
 module register
 # TRANSITIONAL TWIN: module `vega` under the name `register`, every identifier it owns
 # re-spelled (authz/tools/gen/rename.py). One model holds both while a store's tuples are
-# copied between the names (`autorizared rename-module`); removed with `transition`.
+# copied between the names (`autorizared rename-module`); removed when the rename is done.
 
-# GENERATED FROM .seb-bundle/apps/vega-svc/authz.manifest.json — DO NOT EDIT.
+# GENERATED FROM .seb-bundle/apps/register-svc/authz.manifest.json — DO NOT EDIT.
 # Run `python3 authz/tools/generate.py` after changing the manifest.
 #
 # @rule AUTZ-1 — every type is prefixed. OpenFGA does NOT namespace types by

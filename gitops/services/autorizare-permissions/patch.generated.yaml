@@ -7,7 +7,7 @@ spec:
   template:
     metadata:
       annotations:
-        autorizare/permissions-bundle: "e8541738896f0d8b"
+        autorizare/permissions-bundle: "9b0bc5d4b8cbebe5"
     spec:
       initContainers:
         - name: assert-secrets
@@ -67,10 +67,10 @@ spec:
                     - {key: catalog__invoice.roles.json, path: catalog/invoice.roles.json}
                     - {key: catalog__psizone.manifest.json, path: catalog/psizone.manifest.json}
                     - {key: catalog__psizone.roles.json, path: catalog/psizone.roles.json}
+                    - {key: catalog__register.manifest.d__intents.json, path: catalog/register.manifest.d/intents.json}
+                    - {key: catalog__register.manifest.json, path: catalog/register.manifest.json}
                     - {key: catalog__sched.manifest.json, path: catalog/sched.manifest.json}
                     - {key: catalog__sched.roles.json, path: catalog/sched.roles.json}
-                    - {key: catalog__vega.manifest.d__intents.json, path: catalog/vega.manifest.d/intents.json}
-                    - {key: catalog__vega.manifest.json, path: catalog/vega.manifest.json}
                     - {key: catalog__vega.roles.json, path: catalog/vega.roles.json}
 ---
 apiVersion: apps/v1
@@ -81,7 +81,7 @@ spec:
   template:
     metadata:
       annotations:
-        autorizare/permissions-bundle: "e8541738896f0d8b"
+        autorizare/permissions-bundle: "9b0bc5d4b8cbebe5"
     spec:
       containers:
         - name: autorizare-hub
@@ -133,8 +133,8 @@ spec:
                     - {key: catalog__invoice.roles.json, path: catalog/invoice.roles.json}
                     - {key: catalog__psizone.manifest.json, path: catalog/psizone.manifest.json}
                     - {key: catalog__psizone.roles.json, path: catalog/psizone.roles.json}
+                    - {key: catalog__register.manifest.d__intents.json, path: catalog/register.manifest.d/intents.json}
+                    - {key: catalog__register.manifest.json, path: catalog/register.manifest.json}
                     - {key: catalog__sched.manifest.json, path: catalog/sched.manifest.json}
                     - {key: catalog__sched.roles.json, path: catalog/sched.roles.json}
-                    - {key: catalog__vega.manifest.d__intents.json, path: catalog/vega.manifest.d/intents.json}
-                    - {key: catalog__vega.manifest.json, path: catalog/vega.manifest.json}
                     - {key: catalog__vega.roles.json, path: catalog/vega.roles.json}

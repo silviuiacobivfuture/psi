@@ -46,18 +46,20 @@ MESH: none
 ENVIRONMENTS: dev
 
 # ── platform apps: the first estate's full platform set ─────────────────────
-PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,nextcloud,test-reports,pdfcraft,affine,stalwart,invoicing,flows,register
+PLATFORM_APPS: authentik,autorizare,harbor,plane,novu,n8n,plunk,test-reports,pdfcraft,affine,stalwart,invoicing,flows,register,notifier
 AUTHENTIK_HOST_PREFIX: auth
 AUTORIZARE_HOST_PREFIX: access
 HARBOR_HOST_PREFIX: registry
 PLANE_HOST_PREFIX: plane
 NOVU_HOST_PREFIX: notify
+# The estate notifier (SEB pieces/notifier), every alert source's one address; psi runs no chat, so its
+# routes are e-mail to ops@ (estate/seb-components/notifier/routes.json). Not `notify`: Novu holds it.
+NOTIFIER_HOST_PREFIX: notifier
 # psi's own Novu bridge (apps/notify-bridge: the workflows of @psi/notify, holding the estate key apps/novu/estate)
 # in place of SEB's: Novu syncs and calls it, and its in-cluster address is what Novu's SSRF allow list admits.
 NOVU_BRIDGE_URL: http://notify-bridge.notify-bridge.svc.cluster.local:8080/api/novu
 N8N_HOST_PREFIX: flows
 PLUNK_HOST_PREFIX: plunk
-NEXTCLOUD_HOST_PREFIX: drive
 REPORTPORTAL_HOST_PREFIX: reports
 TEST_REPORTS_HOST_PREFIX: tests
 PDFCRAFT_HOST_PREFIX: pdf
@@ -105,3 +107,8 @@ REGISTER_HOST_PREFIX: sigma
 # rollback drill ended (14:05:18Z): that run finished 2026-11-15 14:19Z. Moved forward when a violation is fixed.
 LOCKDOWN_SIGNATURES_SINCE: 2026-11-15T14:19:00Z
 LOCKDOWN_OBJECT_CHANGES_SINCE: 2026-11-15T14:19:00Z
+# Two-factor sign-in: OFF for everyone, administrators included (the owner, 2026-11-16: two-factor
+# disabled completely on both estates). Without this key SEB's default is `required`, and the take
+# would bind the code prompt again. SEB tools/identity/lib/mfa.mjs `off`; the hub stops demanding the
+# mfa amr with it.
+SIGNIN_MFA: off

@@ -2,11 +2,11 @@
 # migrations and worker (schema/slots/register.yaml).
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
-# Slot `image`: register-svc as psi built it (scripts/estate-images.sh from SEB 0.1.145), sha256:8e26d344…, signed, in
+# Slot `image`: register-svc as psi built it (scripts/estate-images.sh from SEB 0.1.223), its digest in estate/seb-images.json, signed, in
 # registry.psizone.ro/psi.
 images:
   - name: WLREGISTRY/WLAPPS/register-svc
-    newTag: seb-2de9423b8
+    newTag: seb-44fcd5e68
 # Slot `homepage-name`: the API's tile on psi's homepage carries the product's name.
 patches:
   - target: { kind: Ingress, name: ".*-svc" }
@@ -14,3 +14,25 @@ patches:
       - op: replace
         path: /metadata/annotations/gethomepage.dev~1name
         value: Sigma API
+  # psi's register started under SEB 0.1.145, before the register took its neutral names (SEB
+  # 792b85f5, e8f39a41, 5f380106). Its live names are kept by setting them, as SEB's register-svc
+  # CLAUDE.md asks of an estate that started under the old ones:
+  #   IDENTIFIER_INDEX_DOMAIN        the blind index psi's identifiers were indexed under, for ever
+  #   REGISTER_AUTHZ_MODULE          psi's store and programs carry `vega` (estate/authz.json
+  #                                  module_names: name vega, twin register) until psi switches
+  #   REGISTER_LEGACY_WIRE_PACKAGE   one release, while a client built before the take still calls
+  #   REGISTER_LEGACY_PURPOSE_PREFIX the read log's rows written under the old namespace
+  #   REGISTER_MINIMAL_PROFILE_ID    the capture profile psi's rows name
+  - target: { kind: Deployment, name: psi-register-svc }
+    patch: |-
+      - { op: test, path: /spec/template/spec/containers/0/name, value: psi-register-svc }
+      - { op: add, path: /spec/template/spec/containers/0/env/-, value: { name: IDENTIFIER_INDEX_DOMAIN, value: vega-identifier-v1 } }
+      - { op: add, path: /spec/template/spec/containers/0/env/-, value: { name: REGISTER_AUTHZ_MODULE, value: vega } }
+      - { op: add, path: /spec/template/spec/containers/0/env/-, value: { name: REGISTER_LEGACY_WIRE_PACKAGE, value: rmx.vega.v1 } }
+      - { op: add, path: /spec/template/spec/containers/0/env/-, value: { name: REGISTER_LEGACY_PURPOSE_PREFIX, value: vega_intent_ } }
+      - { op: add, path: /spec/template/spec/containers/0/env/-, value: { name: REGISTER_MINIMAL_PROFILE_ID, value: vega.minimal } }
+  - target: { kind: Deployment, name: psi-register-worker }
+    patch: |-
+      - { op: test, path: /spec/template/spec/containers/0/name, value: psi-register-worker }
+      - { op: add, path: /spec/template/spec/containers/0/env/-, value: { name: IDENTIFIER_INDEX_DOMAIN, value: vega-identifier-v1 } }
+      - { op: add, path: /spec/template/spec/containers/0/env/-, value: { name: REGISTER_AUTHZ_MODULE, value: vega } }

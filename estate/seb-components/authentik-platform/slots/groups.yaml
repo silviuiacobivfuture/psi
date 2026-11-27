@@ -16,3 +16,5 @@
     name: app-flow-super-admin
   attrs:
     is_superuser: false
+    # its members are rosters.yaml's (the roster fills this list)
+    users: []

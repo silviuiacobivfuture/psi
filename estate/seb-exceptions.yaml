@@ -28,8 +28,13 @@ exceptions:
     target: "Ingress/novu-*"
     paths: ["/"]
     reason: psi runs no mesh for Novu's dashboard and API, so it deletes the two tailnet-only Ingresses rather than leave doors pointing at nothing.
-  - id: psi-old-safari-sfe
-    piece: authentik-platform
-    target: "*/*old-safari-sfe"
-    paths: ["/"]
-    reason: Safari before 18 (and iOS before 18) crashes on Authentik 2026.5's sign-in page (upstream #23500); this IngressRoute and its redirect Middleware send it once to Authentik's simplified page (?sfe=1). SEB carries the same objects in the piece after 0.1.148 (SEB dev 2026-11-17); goes when psi takes that release.
+  - id: psi-estate-watch-mail
+    piece: health-digest
+    target: "*/estate-watch*"
+    paths: ["/", "/spec/jobTemplate/spec/template/spec/containers[#0]/env/*", "/spec/jobTemplate/spec/template/spec/containers[#0]/envFrom"]
+    reason: estate-watch says what it finds by e-mail (SEB delivery.py NOTIFY_VIA=mail, MAIL_TO, MAIL_SUBJECT_PREFIX, and the platform sender's MAIL_* from the ExternalSecret estate-watch-mail), because nobody reads Talk's #infra on psi and Talk is being retired. SEB documents this in components/estate/health-digest but declares no slot; goes when it does.
+  - id: psi-register-live-names
+    piece: register
+    target: "Deployment/psi-register-*"
+    paths: ["/spec/template/spec/containers[psi-register-svc]/env/*", "/spec/template/spec/containers[psi-register-worker]/env/*"]
+    reason: psi's register started under SEB 0.1.145's names; IDENTIFIER_INDEX_DOMAIN, REGISTER_AUTHZ_MODULE, REGISTER_LEGACY_WIRE_PACKAGE, REGISTER_LEGACY_PURPOSE_PREFIX and REGISTER_MINIMAL_PROFILE_ID keep them (SEB register-svc CLAUDE.md), which SEB documents as estate settings but declares no slot for; the wire-package line goes one release after the take, the rest when SEB declares a slot.

@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+metadata:
+  name: psi-notifier
+# psi's layer for the SEB piece `notifier` (slots: schema/slots/notifier.yaml). psi runs no chat
+# (zulip is not in PLATFORM_APPS), so every route is an e-mail to ops@psizone.ro, the operations list
+# delivered into the members' inboxes, sent through Plunk as the estate's platform sender
+# (notifier-mail, platform/plunk/platform). SEB's senders.json and their token paths are kept as
+# they are: platform/notifier/sender/<name>, seeded by seed-secrets.sh.
+#
+#   images      slot `image`: estate-notifier as psi builds it (SEB estate-images.sh from the locked
+#               release), signed, in registry.psizone.ro/psi
+#   routes.json slot `routes`: no streams, every routing key to ops@
+images:
+  - name: WLREGISTRY/WLAPPS/estate-notifier
+    newTag: seb-44fcd5e68
+configMapGenerator:
+  - name: notifier-config
+    behavior: merge
+    files:
+      - routes.json

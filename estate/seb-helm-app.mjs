@@ -22,9 +22,19 @@
 // placeholder naming an identity key this estate does not set; a
 // template that is not one Application with one chart source; values already in the template.
 // Called by estate/seb-upgrade.sh; commits nothing.
+//
+// SIZE (2026-11-13). Argo CD copies an Application's source into spec, status.sync.comparedTo,
+// status.operationState and every status.history entry, and gRPC refuses a message over 2 MB:
+// homepage's 240 KB of inline hub values made its Application 2.24 MB and its sync hung. So:
+//   * every Application written here keeps spec.revisionHistoryLimit 2 (Argo's default is 10);
+//   * with --values-out <file> <path in the estate repo> <branch>, values that would make the
+//     Application larger than APP_BUDGET go OUT of it: written to <file>, and read by Argo from
+//     the estate's own repository (identity GIT_SSH_URL, <branch>) as a second source,
+//     `ref: estate`, through helm.valueFiles. Values within the budget stay inline, unchanged;
+//   * a written Application over APP_BUDGET is refused, either way.
 
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isMap, parse, parseDocument } from "yaml";
@@ -38,13 +48,22 @@ function refuse(msg) {
 	process.exit(1);
 }
 
-const [dir, name, label, header, bundle] = process.argv.slice(2);
+const argv = process.argv.slice(2);
+const vo = argv.indexOf("--values-out");
+const valuesOut =
+	vo === -1 ? null : { file: argv[vo + 1], repoPath: argv[vo + 2], branch: argv[vo + 3] };
+if (vo !== -1) argv.splice(vo, 4);
+const [dir, name, label, header, bundle] = argv;
+/** The largest Application written, in bytes: well under gRPC's 2 MB with every copy Argo keeps. */
+const APP_BUDGET = 64 * 1024;
 if (!dir || !name || !label || !header || !bundle) {
 	process.stderr.write(
-		"usage: seb-helm-app.mjs <piece dir> <app name> <label k=v> <header> <bundle@sha256:…>\n",
+		"usage: seb-helm-app.mjs <piece dir> <app name> <label k=v> <header> <bundle@sha256:…> [--values-out <file> <repo path> <branch>]\n",
 	);
 	process.exit(2);
 }
+if (valuesOut !== null && (!valuesOut.file || !valuesOut.repoPath || !valuesOut.branch))
+	refuse("--values-out takes <file> <path in the estate repo> <branch>");
 if (!/^[a-z0-9.-]+(:[0-9]+)?(\/[a-z0-9._-]+)+@sha256:[0-9a-f]{64}$/.test(bundle))
 	refuse(`bundle "${bundle}" is not <registry>/<path>@sha256:<digest>`);
 const [labelKey, labelValue] = label.split("=", 2);
@@ -130,6 +149,7 @@ doc.setIn(["metadata", "namespace"], "argocd");
 doc.setIn(["metadata", "labels", labelKey], labelValue);
 if (doc.getIn(["spec", "info"]) !== undefined) refuse("application.yaml carries spec.info itself");
 doc.setIn(["spec", "info"], doc.createNode([{ name: "seb-bundle", value: bundle }]));
+doc.setIn(["spec", "revisionHistoryLimit"], 2);
 const noValues = renderedValues
 	.split("\n")
 	.every((l) => l.trim() === "" || l.trimStart().startsWith("#"));
@@ -139,8 +159,37 @@ if (!noValues) {
 	doc.setIn(["spec", "source", "helm", "values"], renderedValues);
 }
 doc.commentBefore = doc.commentBefore ? ` ${header}\n${doc.commentBefore}` : ` ${header}`;
-const out = doc.toString({ lineWidth: 0 });
+let out = doc.toString({ lineWidth: 0 });
 // The written file must say exactly the values it was given: parse it back.
 if (parse(out)?.spec?.source?.helm?.values !== (noValues ? undefined : renderedValues))
 	refuse("the written Application does not carry the values text unchanged");
+if (Buffer.byteLength(out) > APP_BUDGET && !noValues && valuesOut !== null) {
+	// The values go to the estate's repository; the chart source reads them as a value file.
+	const gitUrl = values.get("GIT_SSH_URL");
+	if (!gitUrl)
+		refuse(
+			"the identity derives no GIT_SSH_URL: the values cannot be read from the estate's repository",
+		);
+	const chart = doc.getIn(["spec", "source"]);
+	doc.deleteIn(["spec", "source"]);
+	doc.setIn(["spec", "sources"], doc.createNode([]));
+	doc.addIn(["spec", "sources"], chart);
+	doc.deleteIn(["spec", "sources", 0, "helm", "values"]);
+	doc.setIn(
+		["spec", "sources", 0, "helm", "valueFiles"],
+		doc.createNode([`$estate/${valuesOut.repoPath}`]),
+	);
+	doc.addIn(
+		["spec", "sources"],
+		doc.createNode({ repoURL: gitUrl, targetRevision: valuesOut.branch, ref: "estate" }),
+	);
+	out = doc.toString({ lineWidth: 0 });
+	writeFileSync(valuesOut.file, renderedValues);
+	if (readFileSync(valuesOut.file, "utf8") !== renderedValues)
+		refuse("the values file does not carry the values text unchanged");
+}
+if (Buffer.byteLength(out) > APP_BUDGET)
+	refuse(
+		`the Application for ${name} would be ${Buffer.byteLength(out)} bytes, over the ${APP_BUDGET}-byte budget (Argo copies it into every status entry; gRPC refuses 2 MB)${valuesOut === null ? ": pass --values-out to move its values out" : ""}`,
+	);
 process.stdout.write(out);

@@ -9,7 +9,6 @@
 reference
 traefik-accesslog
 pdfcraft
-talk-hpb
 convex
 headlamp
 reloader
@@ -31,9 +30,7 @@ argocd-config
 test-reports
 stalwart
 affine
-nextcloud-platform
 plane-platform
-nextcloud
 harbor
 arc-runners
 n8n
@@ -54,3 +51,4 @@ register-web
 authentik
 authentik-platform
 changelog
+notifier
