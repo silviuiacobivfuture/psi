@@ -6,7 +6,7 @@
 			"name": "ops",
 			"match": {},
 			"email": "ops@psizone.ro",
-			"topic": "{routing_key} · {source}"
+			"topic": "{source}"
 		}
 	]
 }
