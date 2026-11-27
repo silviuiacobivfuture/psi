@@ -16,6 +16,7 @@ resources:
   # The RMX list (business applications). Its own kustomization; see rmx/.
   - ../../base
   - harbor-route.yaml
+  - mail-redirect.yaml
   # The runner scale set is a SEB piece (pieces/arc-runners): the consumer generates its Application.
   - arc-runners-namespace.yaml
   - arc-runner-secret.yaml
