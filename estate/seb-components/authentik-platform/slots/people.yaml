@@ -14,17 +14,13 @@
     email: turcu_daniela@icloud.com
     type: internal
     is_active: true
+# adi_rar (created 2026-11-11 from a mistyped address, never signed in) is removed (owner,
+# 2026-11-27): Adrian has one account, `adrian`. Declared absent so no apply recreates it; once
+# gone from the live Authentik, this entry can be removed.
 - model: authentik_core.user
-  state: created
+  state: absent
   identifiers:
     username: adi_rar
-  attrs:
-    name: Adi
-    email: adi_rar@yahoo.com
-    type: internal
-    # owner, 2026-11-27: Adrian has ONE account, `adrian`; this one (created 2026-11-11 from a
-    # mistyped address, never signed in) is disabled, in no roster, its mailbox moved to `adrian`.
-    is_active: false
 - model: authentik_core.user
   state: created
   identifiers:
