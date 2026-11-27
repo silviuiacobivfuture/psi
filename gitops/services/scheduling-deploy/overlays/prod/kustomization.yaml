@@ -14,7 +14,7 @@ resources:
   - ../../base
 images:
   - name: registry.psizone.ro/psi/scheduling-deploy
-    newTag: "007a093"
+    newTag: "256aea0"
 patches:
   - target: { kind: Job, name: scheduling-deploy }
     patch: |-
